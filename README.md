@@ -5,6 +5,8 @@
 	<br>
 </p>
 
+> Maintainer note: This repository is a forked/published copy of the original [swift502/Sketchbook](https://github.com/swift502/Sketchbook). Original license and attribution are preserved.
+
 # Final update (20. Feb 2023)
 
 As I have no more interest in developing this project, it comes to a conclusion. In order to remain honest about the true state of the project, I am archiving this repository.
