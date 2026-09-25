@@ -5,6 +5,7 @@ import { Renderer } from './render/renderer.js';
 import { FX } from './render/fx.js';
 import { HUD } from './render/hud.js';
 import { Input } from './input.js';
+import { TouchControls } from './touch.js';
 import { LocalTransport, NetTransport, serverUrl } from './net.js';
 import { GameAudio } from './audio.js';
 import { HEROES, HERO_KEYS } from '../shared/themes.js';
@@ -13,6 +14,12 @@ import { DT } from '../shared/constants.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
+// storage can be unavailable (private windows, sandboxed frames); never let it break the menu
+const setUrl = (u) => { try { history.replaceState(null, '', u); } catch { /* sandboxed frame */ } };
+const store = {
+  get(k) { try { return store.get(k); } catch { return null; } },
+  set(k, v) { try { store.set(k, v); } catch { /* ignore */ } },
+};
 
 const canvas = $('#game');
 const fx = new FX();
@@ -21,11 +28,13 @@ const audio = new GameAudio();
 const world = new ClientWorld({ fx, audio, hud });
 const renderer = new Renderer(canvas, world, fx, hud);
 const input = new Input(canvas);
+const touch = new TouchControls(document.body, () => setPaused(!paused));
+input.touch = touch;
 
 let transport = null;
 let running = false;
 let paused = false;
-let hero = localStorage.getItem('pb.hero') || HERO_KEYS[0];
+let hero = store.get('pb.hero') || HERO_KEYS[0];
 if (!HEROES[hero]) hero = HERO_KEYS[0];
 
 world.onLevel = (msg, prev) => {
@@ -43,8 +52,8 @@ world.onError = (m) => {
 // ------------------------------------------------------------------- menu
 
 const nameInput = $('#name');
-nameInput.value = localStorage.getItem('pb.name') || randomName();
-$('#theme').value = params.get('theme') || localStorage.getItem('pb.theme') || '';
+nameInput.value = store.get('pb.name') || randomName();
+$('#theme').value = params.get('theme') || store.get('pb.theme') || '';
 if (params.get('room')) $('#code').value = params.get('room').toUpperCase();
 
 function randomName() {
@@ -72,7 +81,7 @@ for (const key of HERO_KEYS) {
   heroAnims.set(key, { canvas: c, anim: makeAnim(HERO_KEYS.indexOf(key) + 1) });
   card.addEventListener('click', () => {
     hero = key;
-    localStorage.setItem('pb.hero', key);
+    store.set('pb.hero', key);
     for (const el of heroBox.children) el.classList.toggle('selected', el.dataset.hero === key);
     audio.unlock();
     audio.play('uiClick');
@@ -98,10 +107,10 @@ function drawHeroCards(dt) {
   }
 }
 
-const onlinePossible = location.protocol.startsWith('http') && !params.has('offline');
+const onlinePossible = location.protocol.startsWith('http') && !params.has('offline') && !window.PB_STATIC;
 if (!onlinePossible) {
-  for (const b of document.querySelectorAll('.online .btn')) b.disabled = true;
-  $('#online-note').textContent = 'Online play needs the game server: run "npm start" and open http://localhost:3000';
+  for (const el of document.querySelectorAll('.online .btn, .online input')) el.disabled = true;
+  $('#online-note').textContent = 'Online rooms need the game server. Run "npm start" in the panel-brawl folder, then open http://localhost:3000.';
 } else {
   $('#online-note').textContent = 'Host a room, then send friends the 4-letter code (or the link).';
 }
@@ -113,8 +122,8 @@ document.addEventListener('click', (e) => {
   audio.play('uiClick');
   const a = b.dataset.action;
   const common = { name: nameInput.value.trim() || randomName(), hero, theme: $('#theme').value || undefined };
-  localStorage.setItem('pb.name', common.name);
-  localStorage.setItem('pb.theme', $('#theme').value);
+  store.set('pb.name', common.name);
+  store.set('pb.theme', $('#theme').value);
   const chaos = $('#chaos').checked;
   if (a === 'solo-story') start({ ...common, local: true, mode: 'story' });
   else if (a === 'solo-brawl') start({ ...common, local: true, mode: 'brawl', chaos, botFill: 6 });
@@ -173,7 +182,7 @@ async function start(opts) {
       const wait = setInterval(() => {
         if (world.code) {
           clearInterval(wait);
-          history.replaceState(null, '', `?room=${world.code}`);
+          setUrl(`?room=${world.code}`);
         }
       }, 200);
     }
@@ -194,12 +203,16 @@ function leave() {
   $('#pause').classList.add('hidden');
   $('#loading').classList.add('hidden');
   $('#menu').classList.remove('hidden');
+  touch.show(false);
+  document.body.classList.remove('playing');
   canvas.style.cursor = 'default';
-  if (params.get('room') == null) history.replaceState(null, '', location.pathname);
+  if (params.get('room') == null && !window.PB_STATIC) setUrl(location.pathname);
 }
 
 function setPaused(p) {
   paused = p;
+  document.body.classList.toggle('playing', running);
+  touch.show(running && !p);
   $('#pause').classList.toggle('hidden', !p);
   $('#pause-code').textContent = world.code && world.code !== 'SOLO' ? `ROOM CODE: ${world.code} — share it with friends!` : 'SOLO GAME';
   input.enabled = !p;
@@ -256,6 +269,7 @@ function loop(now) {
   }
   audio.setListener(renderer.cam.x, renderer.cam.y, renderer.cam.zoom);
   if (running) audio.setIntensity(world.intensity || 0);
+  hud.compact = touch.active;
   if (running) renderer.frame(localPaused ? 0 : dt, input, audio);
   else {
     const ctx = renderer.ctx;

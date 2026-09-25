@@ -4,7 +4,7 @@ import {
   INK, TAU, shade, mix, rgba, halftoneGradient, cloudPath,
   P, rectP, circP, ellP, polyP, rrectP, lineP, fillP, strokeP, inked, dotsIn, hatchIn, clipped, gradIn, crescent,
   bandSky, dotFade, stars, moon, glow, glowRect, beam, cloudBank, skyline, windows, brickPatches,
-  pipe, hazardStripes, rivetRow, neon, letters, vignette, speckle, hatchLines, solid, fire, smoke, fogBand,
+  pipe, hazardStripes, rivetRow, neon, letters, vignette, speckle, hatchLines, solid, fire, smoke, fogBand, halftone,
   deadTree, ironFence, drips, batPath, hillPath, handPath, arcLine, spans,
 } from './kit.js';
 
@@ -171,7 +171,14 @@ export function street(ctx, w, h, R) {
   for (let i = 0; i < nplume; i++) {
     const px = ((i + R.r(0.2, 0.8)) / nplume) * w;
     plumeXs.push(px);
-    smoke(ctx, R, px, h * 0.62, { r: R.r(28, 40), n: 8, drift: R.r(10, 40), grow: 1.2, fill: '#3a1a22', dots: '#2a1017', lw: 2.2 });
+    const sm = smoke(ctx, R, px, h * 0.62, { r: R.r(28, 40), n: 8, drift: R.r(10, 40), grow: 1.2, fill: '#3a1a22', lw: 2.2 });
+    // fire-lit undersides + dotted shadow tops
+    crescent(ctx, sm, 0, -16, '#6a2224');
+    crescent(ctx, sm, 0, -7, '#b04a2c');
+    ctx.save(); ctx.clip(sm);
+    const top = P(); top.rect(-1e4, -1e4, 2e4, 2e4); top.addPath(sm, new DOMMatrix().translate(-10, 14));
+    ctx.fillStyle = halftone(ctx, '#1f0b10', 6, 1.8); ctx.fill(top, 'evenodd');
+    ctx.restore();
   }
 
   // far ruined skyline
@@ -279,15 +286,24 @@ export function hospital(ctx, w, h, R) {
   const floorY = h - 38;
   const railY = floorY - 118;
   const ceilH = 46;
-  // tiled wall
-  fillP(ctx, rectP(0, 0, w, railY), '#c3cdb0');
+  // tiled wall: grimy and dim, with pools of sick fluorescent light
+  fillP(ctx, rectP(0, 0, w, railY), '#a3ae8c');
+  const nf = Math.max(2, Math.round(w / 300));
+  const broken = R.i(0, nf - 1);
+  const pools = P();
+  for (let i = 0; i < nf; i++) {
+    if (i === broken) continue;
+    const fx = ((i + 0.5) / nf) * w;
+    polyP([[fx - 70, ceilH], [fx + 70, ceilH], [fx + 70 + (floorY - ceilH) * 0.4, floorY], [fx - 70 - (floorY - ceilH) * 0.4, floorY]], true, pools);
+  }
+  fillP(ctx, pools, '#cbd4b4');
   const tiles = P();
   for (let y = ceilH; y < railY; y += 22) { tiles.moveTo(0, y); tiles.lineTo(w, y); }
   for (let x = 0; x < w; x += 22) { tiles.moveTo(x, ceilH); tiles.lineTo(x, railY); }
-  strokeP(ctx, tiles, 1, '#a2ad92');
+  strokeP(ctx, tiles, 1, '#8f9a7a');
   // grime creeping up from the rail and down from the ceiling
-  halftoneGradient(ctx, 0, ceilH, w, railY - ceilH, '#99a07c', { spacing: 8, dir: 'down', from: 0.55, maxR: 3.4 });
-  halftoneGradient(ctx, 0, ceilH, w, 120, '#99a07c', { spacing: 8, dir: 'up', from: 0.4, maxR: 3.4 });
+  halftoneGradient(ctx, 0, ceilH, w, railY - ceilH, '#858c68', { spacing: 8, dir: 'down', from: 0.55, maxR: 3.4 });
+  halftoneGradient(ctx, 0, ceilH, w, 120, '#858c68', { spacing: 8, dir: 'up', from: 0.4, maxR: 3.4 });
   // grime streaks
   const streaks = P();
   for (let i = 0; i < w / 70; i++) {
@@ -313,6 +329,7 @@ export function hospital(ctx, w, h, R) {
   drips(ctx, R, 0, w, railY + 4, 40, '#4c5f4f', { p: 0.25 });
 
   const slots = spans(20, w - 20);
+  { const bfx = ((broken + 0.5) / nf) * w; slots.mark(bfx - 70, bfx + 60); }
 
   // ward doors
   const dw = 150, dh = 210;
@@ -420,8 +437,6 @@ export function hospital(ctx, w, h, R) {
   // ceiling + fluorescent fixtures
   fillP(ctx, rectP(-5, -5, w + 10, ceilH + 5), '#3a443e');
   strokeP(ctx, lineP(-5, ceilH, w + 5, ceilH), 2);
-  const nf = Math.max(2, Math.round(w / 300));
-  const broken = R.i(0, nf - 1);
   for (let i = 0; i < nf; i++) {
     const fx = ((i + 0.5) / nf) * w;
     if (i === broken) {
@@ -439,7 +454,6 @@ export function hospital(ctx, w, h, R) {
       strokeP(ctx, spk, 3.4, INK);
       strokeP(ctx, spk, 1.8, '#fff3a0');
     } else {
-      beam(ctx, fx, ceilH + 8, Math.PI / 2, floorY - ceilH, 0.42, '#f4ffe6', { alpha: 0.13, w0: 60 });
       inked(ctx, rrectP(fx - 64, ceilH - 4, 128, 16, 3), '#8a948c', 2);
       inked(ctx, rrectP(fx - 58, ceilH + 8, 116, 7, 3), '#f4ffe6', 1.4);
     }

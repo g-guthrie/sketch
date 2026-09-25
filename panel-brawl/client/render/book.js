@@ -59,6 +59,52 @@ export function drawDesk(ctx, W, H, parallaxX, parallaxY, t) {
 
 // ------------------------------------------------------------- book base
 
+// A reader's desk clutter, visible when the camera pulls back to the book.
+export function drawDeskProps(ctx, level, t) {
+  const W = level.width;
+  ctx.save();
+  // coffee mug (top-down) with a steam wisp
+  const mx = W + 380, my = 360;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(mx + 22, my + 26, 150, 150, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = 12; ctx.strokeStyle = INK;
+  ctx.beginPath(); ctx.ellipse(mx + 150, my + 10, 70, 44, 0.3, 0, Math.PI * 2);
+  ctx.lineWidth = 36; ctx.strokeStyle = INK; ctx.stroke();
+  ctx.lineWidth = 20; ctx.strokeStyle = '#e8262b'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(mx, my, 140, 0, Math.PI * 2);
+  ctx.fillStyle = '#e8262b'; ctx.fill(); ctx.lineWidth = 12; ctx.strokeStyle = INK; ctx.stroke();
+  ctx.fillStyle = halftone(ctx, 'rgba(0,0,0,0.3)', 18, 5); ctx.fill();
+  ctx.beginPath(); ctx.arc(mx, my, 108, 0, Math.PI * 2);
+  ctx.fillStyle = '#4a2a16'; ctx.fill(); ctx.lineWidth = 8; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,240,220,0.35)';
+  ctx.beginPath(); ctx.ellipse(mx - 30, my - 34, 38, 16, -0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  for (let i = 0; i < 2; i++) {
+    ctx.beginPath();
+    const ox = mx - 30 + i * 60;
+    ctx.moveTo(ox, my - 20);
+    for (let k = 1; k <= 6; k++) ctx.lineTo(ox + Math.sin(t * 1.5 + k + i) * 18, my - 20 - k * 40);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // pencil
+  ctx.translate(-470, 900);
+  ctx.rotate(1.25);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(14, 16, 620, 44);
+  ctx.lineWidth = 8; ctx.strokeStyle = INK;
+  ctx.fillStyle = '#ffd23f'; ctx.fillRect(0, 0, 520, 50); ctx.strokeRect(0, 0, 520, 50);
+  ctx.fillStyle = '#e6b820'; ctx.fillRect(0, 17, 520, 16);
+  ctx.fillStyle = '#c8ced6'; ctx.fillRect(-60, -2, 60, 54); ctx.strokeRect(-60, -2, 60, 54);
+  ctx.fillStyle = '#ff8fb0'; ctx.fillRect(-120, 0, 60, 50); ctx.strokeRect(-120, 0, 60, 50);
+  ctx.beginPath(); ctx.moveTo(520, 0); ctx.lineTo(640, 25); ctx.lineTo(520, 50); ctx.closePath();
+  ctx.fillStyle = '#f0d0a0'; ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(606, 18); ctx.lineTo(640, 25); ctx.lineTo(606, 32); ctx.closePath();
+  ctx.fillStyle = INK; ctx.fill();
+  ctx.restore();
+}
+
 export function drawBookBase(ctx, level, comic, theme) {
   const W = level.width, H = level.height;
   // shadow on the desk (pre-blurred once; live blur filters are very slow)
@@ -281,19 +327,19 @@ export function drawHandsFront(ctx, level, t) {
 // ------------------------------------------------------------------- cover
 
 const coverCache = new Map();
-export function coverImage(comic, res) {
-  const key = comic.seed + '|' + res;
+export function coverImage(comic, res, starHeroes = []) {
+  const key = comic.seed + '|' + res + '|' + starHeroes.join(',');
   if (coverCache.has(key)) return coverCache.get(key);
   if (coverCache.size > 3) coverCache.clear();
   const c = makeCanvas(Math.ceil(PW * res), Math.ceil(PH * res));
   const g = c.getContext('2d');
   g.scale(res, res);
-  paintCover(g, comic);
+  paintCover(g, comic, starHeroes);
   coverCache.set(key, c);
   return c;
 }
 
-function paintCover(g, comic) {
+function paintCover(g, comic, starHeroes = []) {
   const th = THEMES[comic.theme];
   const pal = th.palette;
   const r = rand(comic.coverSeed);
@@ -330,7 +376,8 @@ function paintCover(g, comic) {
   drawCharacter(g, bossEnt, A, { lw: 3.2, noShadow: true });
   g.restore();
   // heroes charging in
-  const heroes = [HERO_KEYS[Math.floor(r() * HERO_KEYS.length)], HERO_KEYS[Math.floor(r() * HERO_KEYS.length)]];
+  // the reader's own hero gets top billing on the cover
+  const heroes = [starHeroes[0] || HERO_KEYS[Math.floor(r() * HERO_KEYS.length)], starHeroes[1] || HERO_KEYS[Math.floor(r() * HERO_KEYS.length)]];
   const weapons = ['launcher', 'shotgun', 'rail', 'smg', 'blade'];
   heroes.forEach((hk, i) => {
     const ent = { x: PW * (0.22 + i * 0.2), y: PH * (0.95 - i * 0.02), vx: 390, vy: 0, facing: 1, aim: -0.35 - i * 0.15, h: 92, onGround: i === 0, look: { ...HEROES[hk].look, scale: 5 - i * 0.6 }, crouch: false };

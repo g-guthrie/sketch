@@ -238,3 +238,43 @@ input:focus, select:focus { outline: 3px solid var(--pink); }
   .heroes { grid-template-columns: repeat(3, 1fr); }
   .modes { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------------------------------ touch */
+#touch { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+#touch.hidden { display: none; }
+#touch .tzone { position: absolute; top: 0; bottom: 0; pointer-events: auto; touch-action: none; }
+#touch .tzone.left { left: 0; width: 45%; }
+#touch .tzone.right { right: 0; width: 55%; }
+#touch .stick {
+  position: absolute; width: 130px; height: 130px; margin: -65px 0 0 -65px; border-radius: 50%;
+  border: 4px solid rgba(20, 20, 20, 0.6); background: rgba(255, 255, 255, 0.18); display: none; pointer-events: none;
+}
+#touch .stick.on { display: block; }
+#touch .stick .knob {
+  position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; border-radius: 50%;
+  background: #ffe14a; border: 4px solid #141414; transform: translate(-50%, -50%);
+}
+#touch #stickR .knob { background: #ff3fa4; }
+#touch .tbtns {
+  position: absolute; right: 10px; bottom: 10px; display: grid; grid-template-columns: repeat(3, 64px); gap: 8px; pointer-events: auto;
+}
+#touch .tbtns button, #touch .tpause {
+  font-family: var(--font); font-size: 17px; letter-spacing: 1px; height: 52px; border: 3px solid #141414;
+  background: rgba(255, 255, 255, 0.85); box-shadow: 3px 3px 0 #141414; touch-action: none;
+}
+#touch .tbtns button.down { background: #ffe14a; transform: translate(2px, 2px); box-shadow: 1px 1px 0 #141414; }
+#touch .tbtns button.super { background: rgba(35, 213, 232, 0.9); }
+#touch .tpause { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 52px; pointer-events: auto; }
+@media (max-height: 480px) {
+  #touch .tbtns { grid-template-columns: repeat(3, 52px); gap: 6px; }
+  #touch .tbtns button, #touch .tpause { height: 40px; font-size: 14px; }
+  #touch .stick { width: 110px; height: 110px; margin: -55px 0 0 -55px; }
+}
+#rotate { display: none; }
+@media (orientation: portrait) and (pointer: coarse) {
+  body.touch.playing #rotate {
+    display: flex; position: fixed; inset: 0; z-index: 20; align-items: center; justify-content: center; text-align: center;
+    background: rgba(20, 12, 6, 0.85); color: #ffe14a; font-family: var(--font); font-size: 34px; letter-spacing: 1px; padding: 24px;
+    -webkit-text-stroke: 1px #141414;
+  }
+}

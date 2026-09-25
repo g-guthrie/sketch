@@ -6,7 +6,7 @@ import { INK, PAPER, FONT, rand, shade, mix, rgba, makeCanvas, halftone, starbur
 import { drawCharacter, drawWeapon } from './characters.js';
 import { PanelArt } from './panels.js';
 import { paintLadder } from './scenes.js';
-import { drawDesk, drawBookBase, drawSpine, drawHandsBack, drawHandsFront, coverImage, drawFlipSheet, bookShadow, PW, PH } from './book.js';
+import { drawDesk, drawDeskProps, drawBookBase, drawSpine, drawHandsBack, drawHandsFront, coverImage, drawFlipSheet, bookShadow, PW, PH } from './book.js';
 import { WEAPONS, shoulderOf, weaponOf } from '../../shared/weapons.js';
 import { LAYOUT } from '../../shared/constants.js';
 
@@ -76,10 +76,13 @@ export class Renderer {
     this.buildBorders(msg.level);
     const newPages = this.pageImages(this.art, msg.level, msg.comic, 0.5);
     if (msg.transition === 'cover') {
-      this.trans = { kind: 'cover', t: 0, newPages, cover: coverImage(msg.comic, 0.55), dur: 4.3 };
+      const mine = world.roster.get(world.me) || world.players.get(world.me);
+      const others = [...world.roster.values()].filter((r) => r.id !== world.me && !r.bot).map((r) => r.hero);
+      const stars = [mine ? mine.hero : null, ...others].filter(Boolean);
+      this.trans = { kind: 'cover', t: 0, newPages, cover: coverImage(msg.comic, 0.55, stars), dur: 4.3 };
       this.cam.x = PW * 1.5;
       this.cam.y = PH / 2;
-      this.cam.zoom = this.bookZoom() * 1.05;
+      this.cam.zoom = Math.min(this.W / (PW + 700), this.H / (PH + 420));
     } else if (oldPages) {
       this.trans = { kind: 'turn', t: 0, oldPages, newPages, dur: 3.2 };
     } else {
@@ -145,6 +148,7 @@ export class Renderer {
     const world = this.world;
     const cam = this.cam;
     const pz = this.playZoom(), bz = this.bookZoom();
+    const cz = Math.min(this.W / (PW + 700), this.H / (PH + 420)); // closed-cover close-up
     let tx = PW, ty = PH / 2 + 60, tz = bz;
     const me = world.meRender();
     const tr = this.trans;
@@ -153,13 +157,13 @@ export class Renderer {
       tr.t += dt;
       if (tr.kind === 'cover') {
         const t = tr.t;
-        if (t < 1.4) { tx = PW * 1.5; ty = PH / 2; tz = bz * 1.35; }
+        if (t < 1.4) { tx = PW * 1.5; ty = PH / 2 + 60; tz = cz; }
         else if (t < 2.5) { tx = lerp(PW * 1.5, PW, ease((t - 1.4) / 1.1)); ty = PH / 2 + 60; tz = bz; }
         else if (me) { tx = me.x; ty = me.y - 70; tz = pz; }
         snap = t < 2.5;
         if (t < 2.5) {
           cam.x = tx; cam.y = ty;
-          cam.zoom = t < 1.4 ? bz * 1.35 : lerp(bz * 1.35, bz, ease((t - 1.4) / 1.1));
+          cam.zoom = t < 1.4 ? cz : lerp(cz, bz, ease((t - 1.4) / 1.1));
         }
       } else if (tr.kind === 'turn') {
         if (tr.t < 1.9) { tx = PW; ty = PH / 2 + 60; tz = bz; }
@@ -200,7 +204,7 @@ export class Renderer {
     // keep the book in frame
     const halfW = this.W / 2 / cam.zoom, halfH = this.H / 2 / cam.zoom;
     const lv = world.level;
-    if (lv && cam.zoom > bz * 1.2) {
+    if (lv && cam.zoom > bz * 1.2 && !this.inTransition()) {
       cam.x = clamp(cam.x, halfW - 300, lv.width - halfW + 300);
       cam.y = clamp(cam.y, halfH - 200, lv.height - halfH + 360);
     }
@@ -219,6 +223,7 @@ export class Renderer {
       .translate(-cam.x, -cam.y + Math.sin(this.time * 0.9) * 6 * swayAmt);
     this.matrix = m;
     this.inv = m.inverse();
+    this.cam.matrix = m;
     return m;
   }
 
@@ -259,6 +264,7 @@ export class Renderer {
     if (tr && ((tr.kind === 'cover' && tr.t < 2.5) || (tr.kind === 'turn' && tr.t < 1.9))) {
       this.drawTransition(ctx, tr, lv);
     } else {
+      if (this.cam.zoom < this.playZoom() * 0.8) drawDeskProps(ctx, lv, this.time);
       drawHandsBack(ctx, lv, this.time);
       drawBookBase(ctx, lv, world.comic, world.theme);
       this.drawPanels(ctx, view);
@@ -299,6 +305,7 @@ export class Renderer {
 
   drawTransition(ctx, tr, lv) {
     const world = this.world;
+    drawDeskProps(ctx, lv, this.time);
     if (tr.kind === 'cover' && tr.t < 1.6) ctx.drawImage(bookShadow(PW, PH), PW - 150, -90, PW + 300, PH + 300);
     else ctx.drawImage(bookShadow(PW * 2, PH), -150, -90, PW * 2 + 300, PH + 300);
     if (tr.kind === 'cover') {

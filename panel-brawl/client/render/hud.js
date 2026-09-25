@@ -105,10 +105,11 @@ export class HUD {
         this.drawWeaponBox(ctx, W, H, u, world, pred);
         this.drawPrompts(ctx, W, H, u, world, pred);
         this.deathInfo = null;
-      } else {
+      } else if (!this.bigMsg && world.phase !== 'gameover') {
         this.drawDeathCard(ctx, W, H, u, me);
       }
     }
+    this.drawOffscreen(ctx, W, H, u, world, cam);
     this.drawTopLeft(ctx, W, H, u, world);
     this.drawFeed(ctx, W, H, u);
     this.drawMinimap(ctx, W, H, u, world);
@@ -118,10 +119,10 @@ export class HUD {
     this.drawToasts(ctx, W, H, u);
     if (this.bigMsg) this.drawBig(ctx, W, H, u);
     if (this.splash) this.drawSplash(ctx, W, H, u);
-    if (this.hintT > 0 && world.phase === 'play') this.drawHints(ctx, W, H, u);
+    if (this.hintT > 0 && world.phase === 'play' && !this.compact) this.drawHints(ctx, W, H, u);
     if (this.resultsT > 0 && this.resultsData) this.drawResults(ctx, W, H, u);
     else if (this.showScores) this.drawScoreboard(ctx, W, H, u, world);
-    if (me && me.alive && world.phase !== 'intro' && world.phase !== 'turning' && !input.usingPad) this.drawCrosshair(ctx, input.mouse.x * cam.dpr, input.mouse.y * cam.dpr, u, fx, pred);
+    if (me && me.alive && world.phase !== 'intro' && world.phase !== 'turning' && !input.usingPad && !this.compact) this.drawCrosshair(ctx, input.mouse.x * cam.dpr, input.mouse.y * cam.dpr, u, fx, pred);
     ctx.restore();
   }
 
@@ -176,7 +177,7 @@ export class HUD {
   }
 
   drawPlayerCard(ctx, W, H, u, world, me, pred, rp, audio) {
-    const x = 24 * u, y = H - 176 * u;
+    const x = 24 * u, y = this.compact ? 104 * u : H - 176 * u;
     // portrait panel
     ctx.save();
     ctx.translate(x + 75 * u, y + 76 * u);
@@ -307,7 +308,7 @@ export class HUD {
   drawWeaponBox(ctx, W, H, u, world, pred) {
     const wk = pred.slot === 1 && pred.heavy ? pred.heavy : 'pistol';
     const Wd = WEAPONS[wk];
-    const x = W - 330 * u, y = H - 150 * u;
+    const x = W - 330 * u, y = this.compact ? 40 * u : H - 150 * u;
     const box = wobblyRectPath(x, y, 300 * u, 120 * u, 1 * u, 5);
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.save(); ctx.translate(6 * u, 6 * u); ctx.fill(box); ctx.restore();
@@ -381,6 +382,44 @@ export class HUD {
     captionBox(ctx, W / 2, H - 230 * u, text, { size: 22 * u, align: 'center', fill: '#ffffff', lw: 3 * u, seed: 4 });
   }
 
+  // arrows at the screen edge pointing at other heroes who are out of view
+  drawOffscreen(ctx, W, H, u, world, cam) {
+    if (!cam.matrix) return;
+    const m = 60 * u;
+    for (const p of world.players.values()) {
+      if (p.id === world.me || !p.alive || (p.bot && world.mode === 'brawl')) continue;
+      const pt = cam.matrix.transformPoint(new DOMPoint(p.x, p.y - 50));
+      if (pt.x > 0 && pt.x < W && pt.y > 0 && pt.y < H) continue;
+      const cx = W / 2, cy = H / 2;
+      const a = Math.atan2(pt.y - cy, pt.x - cx);
+      const k = Math.min((W / 2 - m) / Math.abs(Math.cos(a) || 1e-6), (H / 2 - m) / Math.abs(Math.sin(a) || 1e-6));
+      const x = cx + Math.cos(a) * k, y = cy + Math.sin(a) * k;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.save();
+      ctx.rotate(a);
+      ctx.beginPath();
+      ctx.moveTo(26 * u, 0);
+      ctx.lineTo(-10 * u, -18 * u);
+      ctx.lineTo(-4 * u, 0);
+      ctx.lineTo(-10 * u, 18 * u);
+      ctx.closePath();
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      ctx.lineWidth = 3.5 * u;
+      ctx.strokeStyle = INK;
+      ctx.stroke();
+      ctx.restore();
+      ctx.font = `${15 * u}px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4 * u;
+      ctx.strokeText(p.name, -Math.cos(a) * 34 * u, -Math.sin(a) * 34 * u + 5 * u);
+      ctx.fillStyle = p.color;
+      ctx.fillText(p.name, -Math.cos(a) * 34 * u, -Math.sin(a) * 34 * u + 5 * u);
+      ctx.restore();
+    }
+  }
+
   drawDeathCard(ctx, W, H, u, me) {
     const d = this.deathInfo || { killer: 'THE COMIC', weapon: '', t: 1 };
     const k = clamp(d.t / 0.3, 0, 1);
@@ -429,7 +468,7 @@ export class HUD {
   }
 
   drawFeed(ctx, W, H, u) {
-    let y = 16 * u;
+    let y = this.compact ? 200 * u : 16 * u;
     for (const f of this.feedItems) {
       const a = f.t > 5 ? 6 - f.t : 1;
       ctx.save();
@@ -444,7 +483,7 @@ export class HUD {
 
   drawMinimap(ctx, W, H, u, world) {
     const lv = world.level;
-    if (!lv) return;
+    if (!lv || this.compact) return;
     const mw = 190 * u, mh = mw * (lv.height / lv.width);
     const x = W / 2 - mw / 2, y = H - mh - 14 * u;
     const s = mw / lv.width;

@@ -2,7 +2,7 @@
 // inside the browser for solo play. Emits a stream of events that clients use
 // to drive all the comic-book FX.
 
-import { DT, PHYS, BODY, PLAYER, MODES, BRAWL, F, EDGE_KEYS, emptyCmd } from './constants.js';
+import { DT, BODY, PLAYER, MODES, BRAWL, F, emptyCmd } from './constants.js';
 import { RNG, hash01, randomSeed } from './rng.js';
 import { THEMES, HEROES, HERO_KEYS, PLAYER_COLORS, TAUNTS } from './themes.js';
 import { WEAPONS, HEAVY_KEYS, PUNCH, BOMB, SUPER, EXPLOSION_SELF, ENEMY_SHOTS, PROJ_RADIUS, weaponOf, shoulderOf, applyRecoil } from './weapons.js';
@@ -267,26 +267,30 @@ export class Game {
     const frozen = this.phase === 'intro' || this.phase === 'turning' || this.phase === 'over' || this.phase === 'victory';
 
     for (const p of this.players.values()) {
-      let cmd;
       if (p.bot) {
-        cmd = frozen ? emptyCmd(0, p.aim) : botThink(this, p);
-      } else {
-        while (p.inputQ.length > 3) {
-          const a = p.inputQ.shift();
-          const b = p.inputQ[0];
-          for (const k of EDGE_KEYS) b[k] = b[k] || a[k];
-          p.lastSeq = a.seq;
-        }
-        cmd = p.inputQ.shift();
-        if (cmd) {
-          p.lastSeq = cmd.seq;
-          p.lastCmd = cmd;
-        } else {
-          cmd = { ...p.lastCmd };
-          for (const k of EDGE_KEYS) cmd[k] = false;
-        }
+        this.updatePlayer(p, frozen ? emptyCmd(0, p.aim) : botThink(this, p), frozen);
+        continue;
       }
-      this.updatePlayer(p, cmd, frozen);
+      // Every client input is simulated exactly once, so client prediction
+      // replays land in the same spot. A late packet briefly pauses the
+      // player (up to ~0.25 s); a backlog is worked off a little faster.
+      let n = p.inputQ.length > 6 ? 3 : p.inputQ.length > 2 ? 2 : 1;
+      if (!p.inputQ.length) {
+        p.starve = (p.starve || 0) + 1;
+        if (p.starve > 15) {
+          const idle = emptyCmd(p.lastSeq, p.aim);
+          idle.seq = p.lastSeq;
+          this.updatePlayer(p, idle, frozen);
+        }
+        continue;
+      }
+      p.starve = 0;
+      while (n-- > 0 && p.inputQ.length) {
+        const cmd = p.inputQ.shift();
+        p.lastSeq = cmd.seq;
+        p.lastCmd = cmd;
+        this.updatePlayer(p, cmd, frozen);
+      }
     }
 
     if (!frozen || this.phase === 'over') {
@@ -728,7 +732,7 @@ export class Game {
       if (a && a !== t) {
         a.dmg += d;
         a.score += d;
-        a.super = Math.min(PLAYER.superMax, a.super + d * SUPER.chargePerDmg);
+        if (info.w !== 'super') a.super = Math.min(PLAYER.superMax, a.super + d * SUPER.chargePerDmg);
       }
     }
     if (t.hp <= 0) this.kill(t, info);
@@ -747,7 +751,7 @@ export class Game {
       if (killer && killer !== t) {
         killer.kills++;
         killer.score += 100;
-        killer.super = Math.min(PLAYER.superMax, killer.super + SUPER.chargePerKO);
+        if (info.w !== 'super') killer.super = Math.min(PLAYER.superMax, killer.super + SUPER.chargePerKO);
       }
       if (t.heavy && this.mode === MODES.BRAWL) this.dropPickup('weapon', t.heavy, t.x, t.y - 40, t.heavyAmmo);
       t.heavy = null;
@@ -760,7 +764,7 @@ export class Game {
       if (killer) {
         killer.kills++;
         killer.score += ENEMY_STATS[t.k].score * 10;
-        killer.super = Math.min(PLAYER.superMax, killer.super + (t.k === 'boss' ? 0 : 5));
+        if (info.w !== 'super') killer.super = Math.min(PLAYER.superMax, killer.super + (t.k === 'boss' ? 0 : 5));
       }
       this.emit({ t: 'kill', id: t.id, tt: 'e', by: info.by, bk: info.byKind, w: info.w, x: r1(t.x), y: r1(t.y - t.h / 2), vx: Math.round(t.vx), vy: Math.round(t.vy), k: t.k });
       if (t.look && t.look.bloat && t.k === 'brute') {

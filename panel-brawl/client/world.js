@@ -760,6 +760,7 @@ export class ClientWorld {
       ent.anim.flash = 0.07;
       ent.anim.hurt = 0.3;
       if (ev.big) ent.anim.stars = 0.8;
+      if (Math.hypot(ev.kx, ev.ky) > 420 || ev.big) ent.anim.flung = 0.4;
     }
     const kn = Math.hypot(ev.kx, ev.ky) || 1;
     const dx = ev.kx / kn, dy = ev.ky / kn;

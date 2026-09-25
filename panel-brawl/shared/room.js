@@ -27,6 +27,7 @@ export class RoomCore {
     this.game.addPlayer(pid, name, hero);
     this.clients.set(cid, { cid, send, pid });
     send({ type: 'joined', code: this.code, you: pid, mode: this.game.mode, chaos: this.game.chaos });
+    send({ type: 'roster', players: this.game.roster() });
     send({ type: 'level', ...this.game.levelData() });
     this.syncBots();
     this.rosterDirty = true;

@@ -41,6 +41,7 @@ export function updateAnim(A, ent, dt) {
   A.flash = Math.max(0, A.flash - dt);
   A.hurt = Math.max(0, A.hurt - dt);
   A.stars = Math.max(0, A.stars - dt);
+  A.flung = Math.max(0, (A.flung || 0) - dt);
   const targetLean = ent.climb ? 0 : clamp((ent.vx || 0) * (ent.facing || 1) / 390, -1, 1) * 0.16 + (ent.dash ? 0.3 : 0);
   A.lean = lerp(A.lean, targetLean, Math.min(1, dt * 10));
   A.blink -= dt;
@@ -243,6 +244,29 @@ export function drawCharacter(ctx, ent, A, opts = {}) {
     for (const p of A.trail) {
       const k = 1 - (A.t - p.t) / 0.22;
       drawBody(ctx, { ...ent, x: p.x, y: p.y }, A, { ...opts, noInk: true, tint: '#23d5e8', tintAmt: 0.85, alpha: 0.25 * k, ghost: true });
+    }
+  }
+
+  // flung by a big hit: action lines streaming behind the body
+  if (A.flung > 0 && !opts.asleep) {
+    const sp = Math.hypot(ent.vx || 0, ent.vy || 0);
+    if (sp > 120) {
+      const ux = -(ent.vx || 0) / sp, uy = -(ent.vy || 0) / sp;
+      const cy = ent.y - (ent.h || 90) * 0.5;
+      const k = A.flung / 0.4;
+      ctx.save();
+      ctx.strokeStyle = INK;
+      ctx.lineCap = 'round';
+      for (let i = -2; i <= 2; i++) {
+        const ox = -uy * i * 11, oy = ux * i * 11;
+        const len = (50 + (i & 1) * 30) * k + 20;
+        ctx.lineWidth = 3 - Math.abs(i) * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(ent.x + ux * 26 + ox, cy + uy * 26 + oy);
+        ctx.lineTo(ent.x + ux * (26 + len) + ox, cy + uy * (26 + len) + oy);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
   }
 
@@ -1595,6 +1619,8 @@ function drawBrainJar(ctx, ent, A, opts) {
   ctx.translate(ent.x, ent.y - ent.h / 2);
   const bob = Math.sin(A.t * 1.6) * 4;
   ctx.translate(0, bob);
+  const js = (look.scale || 2.2) / 2.2;
+  ctx.scale(js, js);
   // tentacles
   for (let i = 0; i < 5; i++) {
     const bx = -40 + i * 20;

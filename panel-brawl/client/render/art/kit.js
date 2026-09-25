@@ -939,8 +939,42 @@ export function handPath(x, y, s, rot = 0, p = new Path2D()) {
   return p;
 }
 
+// Dots on a GLOBAL 45-degree lattice (anchored at 0,0) inside an annulus,
+// shrinking from full size at rIn to nothing at rOut. Iterates only the ring
+// (fast for huge radii) and, being globally aligned, never moires with itself.
+export function dotRing(ctx, cx, cy, rIn, rOut, color, sp = 8, o = {}) {
+  const maxR = o.maxR || sp * 0.64;
+  const b = o.bounds || [-1e9, -1e9, 1e9, 1e9];
+  const p = new Path2D();
+  const half = sp / 2;
+  const yStart = Math.max(cy - rOut, b[1] - sp), yEnd = Math.min(cy + rOut, b[3] + sp);
+  let row = Math.floor(yStart / half);
+  for (let yy = row * half; yy <= yEnd; yy += half, row++) {
+    const dy = yy - cy;
+    if (Math.abs(dy) > rOut) continue;
+    const xo = Math.sqrt(rOut * rOut - dy * dy);
+    const xi = Math.abs(dy) < rIn ? Math.sqrt(rIn * rIn - dy * dy) : 0;
+    const off = (row & 1) ? half : 0;
+    const segs = xi > 0 ? [[cx - xo, cx - xi], [cx + xi, cx + xo]] : [[cx - xo, cx + xo]];
+    for (const [a0, a1] of segs) {
+      const lo = Math.max(a0, b[0] - sp), hi = Math.min(a1, b[2] + sp);
+      for (let xx = Math.ceil((lo - off) / sp) * sp + off; xx <= hi; xx += sp) {
+        const d = Math.hypot(xx - cx, dy);
+        let t = 1 - (d - rIn) / (rOut - rIn);
+        if (t <= 0) continue;
+        if (t > 1) t = 1;
+        const r = maxR * (o.ease ? t * t : t);
+        if (r < 0.35) continue;
+        p.moveTo(xx + r, yy);
+        p.arc(xx, yy, r, 0, TAU);
+      }
+    }
+  }
+  fillP(ctx, p, color);
+}
+
 // Posterized radial glow: flat rings from outside in, each edge softened by a
-// ring of dots of the inner color (no overlapping screens -> no moire).
+// ring of dots of the inner color.
 // stops: [{ r, c }] ordered from the OUTERMOST ring to the innermost.
 export function ringGlow(ctx, cx, cy, stops, o = {}) {
   const sp = o.spacing || 8;
@@ -949,16 +983,8 @@ export function ringGlow(ctx, cx, cy, stops, o = {}) {
     const next = stops[i + 1];
     fillP(ctx, circP(cx, cy, s.r), s.c);
     if (next) {
-      // dots of next.c from next.r (solid) fading out to midway toward s.r
       const ro = next.r + (s.r - next.r) * (o.fade != null ? o.fade : 0.7);
-      const maxD = ro * Math.SQRT2;
-      ctx.save();
-      ctx.clip(circP(cx, cy, ro));
-      halftoneGradient(ctx, cx - ro, cy - ro, ro * 2, ro * 2, next.c, {
-        spacing: sp, dir: 'center', cx, cy, maxR: sp * 0.64,
-        from: 1 - ro / maxD, to: 1 - next.r / maxD,
-      });
-      ctx.restore();
+      dotRing(ctx, cx, cy, next.r - 1, ro, next.c, sp, { bounds: o.bounds });
     }
   }
 }

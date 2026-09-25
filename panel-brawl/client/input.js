@@ -50,6 +50,7 @@ export class Input {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       this.usingPad = false;
+      this.mouseT = performance.now();
     });
     canvas.addEventListener('mousedown', (e) => {
       if (e.button === 0) { this.mouse.left = true; this.mouseEdges.left = true; }
@@ -64,6 +65,10 @@ export class Input {
       this.wheel += Math.sign(e.deltaY);
       e.preventDefault();
     }, { passive: false });
+  }
+
+  mouseMovedRecently() {
+    return this.mouseT && performance.now() - this.mouseT < 1500;
   }
 
   down(action) {
@@ -108,6 +113,15 @@ export class Input {
       s.superP = s.superP || pad.rbP;
       s.interactP = s.interactP || pad.dpadUpP;
       s.reloadP = s.reloadP || pad.dpadDownP;
+    }
+    if (this.touch && this.touch.active) {
+      const t = this.touch.sample();
+      if (t.mx) s.mx = t.mx;
+      for (const k of ['up', 'down', 'jump', 'jumpP', 'fire', 'dashP', 'meleeP', 'bombP', 'swapP', 'interactP', 'superP']) s[k] = s[k] || !!t[k];
+      if (this.touch.state.aim != null && (this.touch.aimT || !this.mouseMovedRecently())) {
+        this.padAim = this.touch.state.aim;
+        this.usingPad = true;
+      }
     }
     this.edges.clear();
     this.mouseEdges.left = this.mouseEdges.right = false;

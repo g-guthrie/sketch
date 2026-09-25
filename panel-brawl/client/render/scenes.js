@@ -15,7 +15,7 @@
 //   paintLadder(ctx, { x, y, w, h, theme })
 //   SCENE_LIST: [{ theme, scene }]
 
-import { mkR, hashStr, rectP, fillP } from './art/kit.js';
+import { mkR, hashStr } from './art/kit.js';
 import * as HERO from './art/hero.js';
 import * as ZOMBIE from './art/zombie.js';
 import * as SPACE from './art/space.js';
@@ -108,6 +108,3 @@ export function paintLadder(ctx, { x, y, w, h, theme }) {
     ctx.restore();
   }
 }
-
-// Unused helper kept private: solid fill used as a last-resort backdrop.
-export function _flat(ctx, w, h, c) { fillP(ctx, rectP(0, 0, w, h), c); }

@@ -171,9 +171,10 @@ const DECOR = {
   billboard(ctx, x, y, M, R) {
     const bw = R.r(190, 230), bh = 104, legH = R.r(90, 120);
     const top = y - legH - bh;
-    const legs = P();
+    const legs = P(), braces = P();
     for (const lx of [-bw * 0.35, 0, bw * 0.35]) { legs.rect(x + lx - 3, y - legH, 6, legH); }
-    legs.moveTo(x - bw * 0.35, y); legs.lineTo(x, y - legH); legs.lineTo(x + bw * 0.35, y);
+    braces.moveTo(x - bw * 0.35, y); braces.lineTo(x, y - legH); braces.lineTo(x + bw * 0.35, y);
+    strokeP(ctx, braces, 6, M.ink); strokeP(ctx, braces, 2.6, M.col(M.pal.metalD));
     strokeP(ctx, legs, M.lw + 1.4, M.ink);
     fillP(ctx, legs, M.col(M.pal.metalD));
     const walk = rectP(x - bw / 2 - 6, y - legH, bw + 12, 6);
@@ -570,7 +571,7 @@ const DECOR = {
     const bag = P();
     bag.moveTo(x - 38, y - hh + 20); bag.lineTo(x - 10, y - hh + 20); bag.quadraticCurveTo(x - 6, y - hh + 60, x - 18, y - hh + 74); bag.lineTo(x - 30, y - hh + 74); bag.quadraticCurveTo(x - 42, y - hh + 60, x - 38, y - hh + 20);
     M.fill(ctx, bag, M.mono ? '#dddddd' : '#e8f0e8');
-    clipped(ctx, bag, () => M.fill(ctx, rectP(x - 44, y - hh + 44, 40, 40), M.key === 'zombie' ? '#c8302a' : '#e8d060'));
+    clipped(ctx, bag, () => M.fill(ctx, rectP(x - 44, y - hh + 44, 40, 40), M.key === 'zombie' ? '#c8302a' : '#8fd0e8'));
     M.stroke(ctx, bag, M.thin + 0.6);
     const tube = P(); tube.moveTo(x - 24, y - hh + 74); tube.bezierCurveTo(x - 30, y - 60, x + 30, y - 90, x + 26, y - 30);
     M.stroke(ctx, tube, 1.8);
@@ -972,93 +973,100 @@ export function decor(ctx, kind, x, y, theme, R) {
 
 const BLOCKS = {
   car(ctx, x, y, w, h, M, R, theme) {
-    const body = M.mono ? '#161616' : R.pick(['#e8262b', '#1f8fd1', '#2fb88a', '#f0b21f', '#e86aa8', '#7b3fb8']);
+    const body = M.mono ? '#161616' : R.pick(['#e8262b', '#1f8fd1', '#2fb88a', '#f0b21f', '#e86aa8', '#7b3fb8', '#23b8c8']);
+    const roofC = M.mono ? '#161616' : '#f4efe0';
     const chrome = M.mono ? '#f2efe6' : '#e8eef4';
-    const wheelR = h * 0.2;
-    const roofL = x + w * 0.24, roofR = x + w * 0.98;
-    const belt = y + h * 0.4;
-    const bottom = y + h - wheelR * 0.55;
-    const flip = R.chance(0.5) ? 1 : -1;
+    const wheelR = h * 0.21;
+    const roofL = x + w * 0.27, roofR = x + w * 0.86;
+    const belt = y + h * 0.42;
+    const bottom = y + h - wheelR * 0.5;
+    const flip = R.chance(0.5);
     ctx.save();
-    if (flip < 0) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
-    // cabin (wagon roof spans to the tail so the top reads flat)
+    if (flip) { ctx.translate(x * 2 + w, 0); ctx.scale(-1, 1); }
+    // cabin: long wagon roof, two-tone
     const cab = P();
-    cab.moveTo(roofL - w * 0.08, belt);
-    cab.lineTo(roofL, y);
+    cab.moveTo(roofL - w * 0.09, belt);
+    cab.quadraticCurveTo(roofL - w * 0.02, y + 2, roofL + w * 0.03, y);
     cab.lineTo(roofR - w * 0.02, y);
-    cab.quadraticCurveTo(roofR, y, roofR, y + h * 0.06);
-    cab.lineTo(roofR, belt);
+    cab.quadraticCurveTo(roofR + w * 0.01, y, roofR + w * 0.02, y + h * 0.1);
+    cab.lineTo(roofR + w * 0.04, belt);
     cab.closePath();
-    M.solid(ctx, cab, M.mono ? '#161616' : shade(body, 0.35), { lx: -4, ly: -4 });
-    // windows
+    M.solid(ctx, cab, roofC, { lx: -4, ly: -4 });
+    const wy0 = y + h * 0.09, wy1 = belt - 3;
     const wins = P();
-    const wy0 = y + h * 0.08, wy1 = belt - 3;
-    wins.moveTo(roofL - w * 0.045, wy1); wins.lineTo(roofL + 4, wy0); wins.lineTo(roofL + w * 0.2, wy0); wins.lineTo(roofL + w * 0.2, wy1); wins.closePath();
-    wins.rect(roofL + w * 0.235, wy0, w * 0.2, wy1 - wy0);
-    wins.rect(roofL + w * 0.47, wy0, roofR - roofL - w * 0.5, wy1 - wy0);
-    fillP(ctx, wins, M.mono ? NW : '#9fd8ec');
+    wins.moveTo(roofL - w * 0.06, wy1); wins.quadraticCurveTo(roofL - w * 0.01, wy0 + 2, roofL + w * 0.035, wy0); wins.lineTo(roofL + w * 0.2, wy0); wins.lineTo(roofL + w * 0.2, wy1); wins.closePath();
+    wins.rect(roofL + w * 0.225, wy0, w * 0.17, wy1 - wy0);
+    wins.moveTo(roofL + w * 0.42, wy0); wins.lineTo(roofR - w * 0.03, wy0); wins.quadraticCurveTo(roofR, wy0, roofR + w * 0.015, wy0 + h * 0.08); wins.lineTo(roofR + w * 0.025, wy1); wins.lineTo(roofL + w * 0.42, wy1); wins.closePath();
+    fillP(ctx, wins, M.mono ? NW : '#8fd0e8');
     clipped(ctx, wins, () => {
+      if (M.mono) { dotsIn(ctx, wins, NB, 4, 1.2); return; }
+      halftoneGradient(ctx, x, wy0, w, wy1 - wy0, '#5aa8c8', { spacing: 4, dir: 'down', from: 0.3, maxR: 2.4 });
       const gl = P();
-      for (let gx = x; gx < x + w; gx += 46) polyP([[gx, wy1], [gx + 12, wy1], [gx + 30, wy0], [gx + 18, wy0]], true, gl);
-      fillP(ctx, gl, M.mono ? hatchPattern(ctx, NB, 3.5, 1) : '#ffffff');
-      if (M.mono) dotsIn(ctx, wins, NB, 4, 1.1);
+      for (let gx = x; gx < x + w; gx += 52) polyP([[gx, wy1], [gx + 10, wy1], [gx + 26, wy0], [gx + 16, wy0]], true, gl);
+      fillP(ctx, gl, '#ffffff');
     });
-    strokeP(ctx, wins, 2.2, M.ink);
-    // roof rack rails
-    inked(ctx, rrectP(roofL + 6, y - 1, roofR - roofL - 12, 5, 2), chrome, 1.8, M.ink);
-    // body
+    strokeP(ctx, wins, 3, chrome === '#e8eef4' && !M.mono ? INK : NB);
+    strokeP(ctx, wins, 1.2, chrome);
+    inked(ctx, rrectP(roofL + w * 0.06, y - 2, roofR - roofL - w * 0.1, 5, 2), chrome, 1.8, M.ink);
+    // body with rocket tail fin
     const b = P();
-    b.moveTo(x + w * 0.02, belt + h * 0.06);
-    b.quadraticCurveTo(x + w * 0.03, belt - h * 0.02, x + w * 0.12, belt - h * 0.02);
-    b.lineTo(roofR - w * 0.02, belt - h * 0.02);
-    // tail fin
-    b.lineTo(x + w * 0.9, belt - h * 0.08);
-    b.lineTo(x + w, belt - h * 0.16);
-    b.lineTo(x + w, bottom - h * 0.04);
+    b.moveTo(x + w * 0.015, belt + h * 0.1);
+    b.quadraticCurveTo(x + w * 0.02, belt - h * 0.03, x + w * 0.12, belt - h * 0.03);
+    b.lineTo(x + w * 0.8, belt - h * 0.03);
+    b.quadraticCurveTo(x + w * 0.92, belt - h * 0.06, x + w, y + h * 0.1);
+    b.lineTo(x + w, bottom - h * 0.05);
     b.quadraticCurveTo(x + w, bottom, x + w * 0.97, bottom);
     b.lineTo(x + w * 0.03, bottom);
-    b.quadraticCurveTo(x, bottom, x, bottom - h * 0.1);
+    b.quadraticCurveTo(x, bottom, x, bottom - h * 0.12);
     b.closePath();
-    M.solid(ctx, b, body, { lx: 0, ly: -6 });
+    M.solid(ctx, b, body, { lx: 0, ly: -7 });
     clipped(ctx, b, () => {
-      // side sweep spear
+      // two-tone side sweep in the roof color
       const sp = P();
-      sp.moveTo(x + w * 0.3, belt + h * 0.2); sp.quadraticCurveTo(x + w * 0.6, belt + h * 0.06, x + w * 0.96, belt + h * 0.02);
-      sp.lineTo(x + w * 0.96, belt + h * 0.12); sp.quadraticCurveTo(x + w * 0.6, belt + h * 0.15, x + w * 0.3, belt + h * 0.2);
-      fillP(ctx, sp, M.mono ? NW : shade(body, 0.55));
-      strokeP(ctx, sp, 1.6, M.ink);
+      sp.moveTo(x + w * 0.34, belt + h * 0.26);
+      sp.quadraticCurveTo(x + w * 0.62, belt + h * 0.05, x + w * 1.02, belt - h * 0.02);
+      sp.lineTo(x + w * 1.02, belt + h * 0.12);
+      sp.quadraticCurveTo(x + w * 0.64, belt + h * 0.16, x + w * 0.34, belt + h * 0.26);
+      fillP(ctx, sp, M.mono ? NW : roofC);
+      strokeP(ctx, sp, 1.8, M.ink);
       if (!M.mono) {
-        halftoneGradient(ctx, x, belt + h * 0.2, w, bottom - belt, shade(body, -0.35), { spacing: 5, dir: 'down', from: 0.3, maxR: 2.6 });
-        fillP(ctx, rectP(x, belt - h * 0.02 + 4, w, 4), rgba('#ffffff', 0.55));
+        halftoneGradient(ctx, x, belt + h * 0.22, w, bottom - belt, shade(body, -0.38), { spacing: 5, dir: 'down', from: 0.25, maxR: 2.7 });
+        fillP(ctx, rectP(x, belt - h * 0.03 + 4, w * 0.8, 3.5), rgba('#ffffff', 0.6));
+      } else {
+        fillP(ctx, rectP(x, belt - h * 0.03 + 3, w * 0.8, 2), NW);
       }
     });
     strokeP(ctx, b, M.lw, M.ink);
+    // chrome belt spear
+    const spear = P(); spear.moveTo(x + w * 0.1, belt + h * 0.09); spear.lineTo(x + w * 0.5, belt + h * 0.09);
+    strokeP(ctx, spear, 4.4, M.ink); strokeP(ctx, spear, 2, chrome);
     // door seams + handle
-    const ds = P(); ds.moveTo(roofL + w * 0.225, belt); ds.lineTo(roofL + w * 0.225, bottom - 4); ds.moveTo(roofL + w * 0.455, belt); ds.lineTo(roofL + w * 0.455, bottom - 4);
+    const ds = P(); ds.moveTo(roofL + w * 0.21, belt); ds.lineTo(roofL + w * 0.21, bottom - 5); ds.moveTo(roofL + w * 0.4, belt); ds.lineTo(roofL + w * 0.4, bottom - 5);
     strokeP(ctx, ds, 1.6, M.mono ? NW : M.ink);
-    inked(ctx, rrectP(roofL + w * 0.18, belt + 5, 12, 4, 2), chrome, 1.2, M.ink);
-    // bumpers
-    const bf = rrectP(x - 3, bottom - h * 0.14, w * 0.16, h * 0.14, 5);
-    const br2 = rrectP(x + w * 0.86, bottom - h * 0.14, w * 0.14 + 3, h * 0.14, 5);
-    M.solid(ctx, bf, chrome, { lx: 0, ly: -3, lw: 2.4 });
-    M.solid(ctx, br2, chrome, { lx: 0, ly: -3, lw: 2.4 });
-    // grille + round headlight + taillight
-    const gr = rrectP(x + 1, belt + h * 0.12, w * 0.05, h * 0.2, 3);
-    M.solid(ctx, gr, chrome, { lx: 0, ly: 0, lw: 2 });
-    const hl = circP(x + w * 0.07, belt + h * 0.13, h * 0.1);
-    inked(ctx, circP(x + w * 0.07, belt + h * 0.13, h * 0.13), chrome, 2, M.ink);
-    inked(ctx, hl, M.mono ? NW : '#fff6c8', 2, M.ink);
-    fillP(ctx, circP(x + w * 0.07 - 2, belt + h * 0.13 - 2, h * 0.035), '#ffffff');
-    inked(ctx, rrectP(x + w - 7, belt - h * 0.1, 7, h * 0.18, 2), M.mono ? NR : '#ff3a3a', 1.6, M.ink);
-    // wheels (whitewalls) with arches
-    for (const wx of [x + w * 0.2, x + w * 0.8]) {
-      const arch = P(); arch.moveTo(wx - wheelR * 1.25, bottom); arch.arc(wx, bottom, wheelR * 1.25, Math.PI, 0); arch.closePath();
+    inked(ctx, rrectP(roofL + w * 0.16, belt + 6, 12, 4, 2), chrome, 1.2, M.ink);
+    // big chrome bumpers
+    M.solid(ctx, rrectP(x - 4, bottom - h * 0.16, w * 0.17, h * 0.16, 6), chrome, { lx: 0, ly: -3, lw: 2.6 });
+    M.solid(ctx, rrectP(x + w * 0.84, bottom - h * 0.16, w * 0.16 + 4, h * 0.16, 6), chrome, { lx: 0, ly: -3, lw: 2.6 });
+    // grille, headlight with chrome ring, jet taillight in the fin
+    M.solid(ctx, rrectP(x, belt + h * 0.13, w * 0.045, h * 0.2, 3), chrome, { lx: 0, ly: 0, lw: 2 });
+    inked(ctx, circP(x + w * 0.075, belt + h * 0.12, h * 0.135), chrome, 2.2, M.ink);
+    inked(ctx, circP(x + w * 0.075, belt + h * 0.12, h * 0.09), M.mono ? NW : '#fff6c8', 1.8, M.ink);
+    fillP(ctx, circP(x + w * 0.07, belt + h * 0.1, h * 0.03), '#ffffff');
+    const tl = P(); tl.moveTo(x + w - 3, y + h * 0.14); tl.lineTo(x + w - 3, y + h * 0.34); tl.lineTo(x + w - 12, y + h * 0.3); tl.closePath();
+    inked(ctx, tl, M.mono ? NR : '#ff3a3a', 1.6, M.ink);
+    // wheels: whitewalls under skirted arches
+    for (const [wx, skirt] of [[x + w * 0.2, false], [x + w * 0.77, true]]) {
+      const arch = P(); arch.moveTo(wx - wheelR * 1.3, bottom); arch.arc(wx, bottom, wheelR * 1.3, Math.PI, 0); arch.closePath();
       fillP(ctx, arch, M.mono ? NB : INK);
-      const tire = circP(wx, y + h - wheelR, wheelR);
-      inked(ctx, tire, M.mono ? NB : '#1b1b1b', 2.4, M.ink);
-      inked(ctx, circP(wx, y + h - wheelR, wheelR * 0.66), M.mono ? NW : '#f2efe6', 1.4, M.ink);
-      M.solid(ctx, circP(wx, y + h - wheelR, wheelR * 0.42), chrome, { lx: -2, ly: -2, lw: 1.6 });
-      fillP(ctx, circP(wx, y + h - wheelR, wheelR * 0.12), M.ink);
+      const cy = y + h - wheelR;
+      inked(ctx, circP(wx, cy, wheelR), M.mono ? NB : '#1b1b1b', 2.4, M.ink);
+      inked(ctx, circP(wx, cy, wheelR * 0.7), M.mono ? NW : '#f2efe6', 1.4, M.ink);
+      M.solid(ctx, circP(wx, cy, wheelR * 0.45), chrome, { lx: -2, ly: -2, lw: 1.6 });
+      fillP(ctx, circP(wx, cy, wheelR * 0.12), M.ink);
+      if (skirt) {
+        const sk = P(); sk.moveTo(wx - wheelR * 1.3, bottom - 1); sk.lineTo(wx - wheelR * 1.3, bottom - wheelR * 0.9); sk.quadraticCurveTo(wx, bottom - wheelR * 1.5, wx + wheelR * 1.3, bottom - wheelR * 0.9); sk.lineTo(wx + wheelR * 1.3, bottom - 1); sk.closePath();
+        M.solid(ctx, sk, body, { lx: 0, ly: -4, lw: 2.4 });
+      }
     }
     ctx.restore();
   },
@@ -1312,7 +1320,7 @@ const BLOCKS = {
       fillP(ctx, f, M.mono ? halftone(ctx, NB, 4, 1.3) : '#5a9ab0');
       const fr = P(); for (let i = 0; i < 10; i++) circP(x + w * 0.2 + R() * w * 0.6, y + 24 + R() * h * 0.5, R.r(2, 6), fr);
       fillP(ctx, fr, M.mono ? NW : '#e8fbff');
-      fillP(ctx, polyP([[x + w * 0.24, y + 24 + h * 0.5], [x + w * 0.32, y + 24 + h * 0.5], [x + w * 0.5, y + 24], [x + w * 0.42, y + 24]]), 'rgba(255,255,255,0.45)');
+      if (!M.mono) fillP(ctx, polyP([[x + w * 0.24, y + 24 + h * 0.5], [x + w * 0.32, y + 24 + h * 0.5], [x + w * 0.5, y + 24], [x + w * 0.42, y + 24]]), 'rgba(255,255,255,0.45)');
       if (M.mono) dotsIn(ctx, win, NB, 4, 0.8);
     });
     strokeP(ctx, win, 2.6, M.ink);
@@ -1526,10 +1534,10 @@ const PLATFORMS = {
     const th = Math.max(h, 14);
     // poles rising to the ceiling with cross braces
     const poles = [x + 8, x + w - 8];
-    if (w > 220) poles.splice(1, 0, x + w / 2);
     const br = P();
-    for (let i = 0; i < poles.length - 1; i++) {
-      for (let by = y - 10; by > 20; by -= 120) { br.moveTo(poles[i], by); br.lineTo(poles[i + 1], Math.max(0, by - 110)); }
+    for (let by = y - 10, k = 0; by > 40; by -= 170, k++) {
+      const a = k % 2 ? poles[0] : poles[poles.length - 1], b2 = k % 2 ? poles[poles.length - 1] : poles[0];
+      br.moveTo(a, by); br.lineTo(b2, Math.max(0, by - 150));
     }
     strokeP(ctx, br, 5, M.ink); strokeP(ctx, br, 2.4, M.col(pole));
     for (const px of poles) {

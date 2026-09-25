@@ -120,7 +120,7 @@ const SHOPS = ['DINER', 'PAWN', 'BANK', 'DRUGS', 'HOTEL', 'BOOKS', 'RADIO', 'BAR
 
 export function street(ctx, w, h, R) {
   const walkY = h - 44;
-  dotSky(ctx, 0, 0, w, walkY, '#e2f0ec', '#5fa8da', { solid: 0.14, spacing: 11, to: 0.95 });
+  dotSky(ctx, 0, 0, w, walkY, '#e4f1ec', '#5fa8da', { solid: 0.06, spacing: 12, to: 1.7 });
 
   // clouds
   const nc = Math.max(2, Math.round(w / 380));

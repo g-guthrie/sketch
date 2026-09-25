@@ -149,6 +149,35 @@ export function bridge(ctx, w, h, R) {
   fillP(ctx, rectP(-5, wallTop + 14, w + 10, 8), '#ff5fae');
   strokeP(ctx, rectP(-5, wallTop + 14, w + 10, 8), 1.4);
   dotFade(ctx, 0, w, floorY, wallTop + 40, hullD, 8);
+  // wall status screens + ship plaque
+  const scY = wallTop + 34, scH = Math.min(60, floorY - 100 - scY);
+  if (scH > 30) {
+    const nsc = Math.max(2, Math.floor((vx1 - vx0) / 190));
+    for (let i = 0; i < nsc; i++) {
+      const sx = vx0 + ((i + 0.5) / nsc) * (vx1 - vx0) - 45;
+      if (i === Math.floor(nsc / 2)) {
+        const pl = rrectP(sx - 20, scY + 4, 130, 30, 6);
+        solid(ctx, pl, '#c9a64a', { lw: 2, lx: 0, ly: -3 });
+        letters(ctx, 'VALIANT', sx + 45, scY + 20, 20, '#3a2a10');
+        continue;
+      }
+      const sc = rrectP(sx, scY, 90, scH, 5);
+      inked(ctx, rrectP(sx - 5, scY - 5, 100, scH + 10, 7), '#4f5b73', 2);
+      fillP(ctx, sc, '#15303e');
+      clipped(ctx, sc, () => {
+        const g = P();
+        if (R() < 0.5) {
+          g.moveTo(sx + 4, scY + scH * 0.6);
+          for (let k = 0; k <= 10; k++) g.lineTo(sx + 4 + k * 8.2, scY + scH * (0.25 + R() * 0.5));
+          strokeP(ctx, g, 1.8, '#5fe0ec');
+        } else {
+          for (let k = 0; k < 6; k++) g.rect(sx + 8 + k * 13, scY + scH - 6 - R() * (scH - 14), 9, scH);
+          fillP(ctx, g, R() < 0.5 ? '#ff5fae' : '#ffe14a');
+        }
+      });
+      strokeP(ctx, sc, 1.6);
+    }
+  }
   // side bulkhead ribs
   for (const sx of [vx0 - 20, vx1 + 20]) {
     const rb = rectP(sx - 14, ceil, 28, floorY - ceil);
@@ -244,7 +273,7 @@ export function hangar(ctx, w, h, R) {
     fillP(ctx, pl, '#3a78b8');
     clipped(ctx, pl, () => {
       for (let i = 0; i < 7; i++) inked(ctx, cloudPath(pcx + R.r(-pr * 0.6, pr * 0.6), pcy - pr + R.r(10, 90), R.r(50, 120), R.r(10, 22), 7, (R() * 1e6) | 0), '#e8f2ff', 0);
-      halftoneGradient(ctx, pcx - pr, pcy - pr, pr * 2, pr * 0.6, '#1f4a80', { spacing: 7, dir: 'down', from: 0.2, maxR: 4 });
+      halftoneGradient(ctx, bx0, pcy - pr, bx1 - bx0, pr * 0.6, '#1f4a80', { spacing: 7, dir: 'down', from: 0.2, maxR: 4 });
     });
     strokeP(ctx, pl, 2.4);
     // distant ship
@@ -303,11 +332,15 @@ export function hangar(ctx, w, h, R) {
   strokeP(ctx, tr, 1.6, '#7a2e22');
   const hx = R.r(0.2, 0.8) * w;
   inked(ctx, rrectP(hx - 26, gy + 20, 52, 26, 4), '#e8c040', 2);
-  const cable = lineP(hx, gy + 46, hx, gy + R.r(160, 260));
-  strokeP(ctx, cable, 2.4);
+  const cEnd = gy + R.r(150, 240);
+  const cable = P(); cable.moveTo(hx - 3, gy + 46); cable.lineTo(hx - 3, cEnd); cable.moveTo(hx + 3, gy + 46); cable.lineTo(hx + 3, cEnd);
+  strokeP(ctx, cable, 2);
+  solid(ctx, rrectP(hx - 14, cEnd, 28, 18, 4), '#e8c040', { lw: 2, lx: 0, ly: -3 });
   const hk = P();
-  hk.moveTo(hx, gy + 200); hk.arc(hx + 8, gy + 214, 10, Math.PI, Math.PI * 0.2, true);
-  ctx.save(); ctx.translate(0, cable.__dy || 0); ctx.restore();
+  hk.moveTo(hx, cEnd + 18); hk.lineTo(hx, cEnd + 30); hk.arc(hx + 10, cEnd + 30, 10, Math.PI, Math.PI * 0.15, true);
+  ctx.save(); ctx.lineCap = 'round';
+  strokeP(ctx, hk, 8, INK); strokeP(ctx, hk, 4, '#9aa3ad');
+  ctx.restore();
 
   // parked rocket in the bay
   const rs = Math.min(h * 0.55, 380);
@@ -493,7 +526,7 @@ export function reactor(ctx, w, h, R) {
     { r: big * 0.5, c: '#1d3a50' },
     { r: big * 0.32, c: '#245672' },
     { r: big * 0.2, c: '#2e7690' },
-  ], { spacing: 9, fade: 0.55 });
+  ], { spacing: 9, fade: 0.55, bounds: [0, 0, w, h] });
   // containment wall: radial ribs + ring lines
   const rib = P();
   for (let k = 0; k < 24; k++) {
