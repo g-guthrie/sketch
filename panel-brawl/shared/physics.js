@@ -112,6 +112,7 @@ export function moveBody(phys, b, dx, dy, opts) {
 function moveX(phys, b, sx, opts, res) {
   const hw = b.w / 2;
   let nx = b.x + sx;
+  const prevL = b.x - hw, prevR = b.x + hw;
   for (let pass = 0; pass < 3; pass++) {
     const top = b.y - b.h, bot = b.y;
     const list = phys.query(nx - hw, top, nx + hw, bot, TMP_A);
@@ -121,6 +122,14 @@ function moveX(phys, b, sx, opts, res) {
     for (const r of list) {
       if (r.t !== SOLID) continue;
       if (!(nx - hw < r.x + r.w - EPS && nx + hw > r.x + EPS && top < r.y + r.h - EPS && bot > r.y + EPS)) continue;
+      // Only rects we moved into can block. A rect we were already embedded
+      // in must never "resolve" us out of its far side (that teleports
+      // bodies through walls).
+      if (sx > 0 ? r.x < prevR - 0.5 : r.x + r.w > prevL + 0.5) {
+        const rise = bot - r.y;
+        if (rise > 0 && rise <= PHYS.stepHeight && opts && opts.step) { if (stepTo === null || r.y < stepTo) stepTo = r.y; }
+        continue;
+      }
       const rise = bot - r.y;
       if (opts && opts.step && rise > 0 && rise <= PHYS.stepHeight) {
         if (stepTo === null || r.y < stepTo) stepTo = r.y;

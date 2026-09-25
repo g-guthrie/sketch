@@ -29,8 +29,8 @@ export const WEAPONS = {
     ammoWords: ['BOOM', 'POW', 'WHAM', 'BLAM', 'KRAK', 'ZAP'], color: '#ff4d2b', shake: 0.3,
   },
   rail: {
-    key: 'rail', name: 'INK RAILGUN', rate: 1.1, ammo: 9,
-    dmg: 82, hitscan: true, range: 2800, knock: 700, pierceFalloff: 0.8,
+    key: 'rail', name: 'INK RAILGUN', rate: 1.25, ammo: 8,
+    dmg: 70, hitscan: true, range: 2800, knock: 700, pierceFalloff: 0.8,
     len: 56, twoHand: true, recoil: 280,
     words: ['ZZAKK!', 'SHRAKOOM!', 'VWSSSH!'], color: '#23d5e8', shake: 0.4,
   },
@@ -56,7 +56,7 @@ export const BOMB = {
 };
 
 export const SUPER = {
-  windup: 0.6, radius: 520, dmg: 140, knock: 1300, chargePerDmg: 1 / 3.4, chargePerKO: 12,
+  windup: 0.6, radius: 430, dmg: 115, knock: 1250, chargePerDmg: 1 / 4.6, chargePerKO: 10,
 };
 
 export const EXPLOSION_SELF = 0.35;

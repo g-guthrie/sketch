@@ -353,8 +353,11 @@ export class Game {
     if (fx.land) this.emit({ t: 'land', id: p.id, v: Math.round(fx.land) });
     if (fx.superBlast) this.superBlast(p);
 
-    // kill plane (should never trigger, but never softlock a player)
-    if (p.y > this.level.height + 400) this.hurt(p, 9999, { by: p.id, byKind: 'env', w: 'fall', x: p.x, y: p.y, kx: 0, ky: 0 });
+    // safety net: anyone outside every panel and passage goes back in
+    if (this.tick % 20 === p.id % 20 && !this.inPlayArea(p)) {
+      p.outT = (p.outT || 0) + 20;
+      if (p.outT > 30) this.rescue(p);
+    } else if (this.tick % 20 === p.id % 20) p.outT = 0;
 
     if (p.superT > 0 || !p.alive) return;
     const seq = p.bot ? ++p.botSeq : cmd.seq;
@@ -374,6 +377,31 @@ export class Game {
       this.emit({ t: 'taunt', id: p.id, text: TAUNTS[Math.floor(this.rng.f() * TAUNTS.length)] });
     }
     this.touchPickups(p, cmd);
+  }
+
+  inPlayArea(p) {
+    const lv = this.level;
+    if (findPanel(lv, p.x, p.y - 4, 2)) return true;
+    for (const l of lv.links) {
+      if (p.x > l.x1 - 30 && p.x < l.x2 + 30 && p.y > l.y1 - 30 && p.y < l.y2 + 30) return true;
+    }
+    return false;
+  }
+
+  rescue(p) {
+    let best = null, bd = Infinity;
+    for (const s of this.level.spawns) {
+      const d = Math.hypot(s.x - p.x, s.y - p.y);
+      if (d < bd) { bd = d; best = s; }
+    }
+    if (!best) return;
+    p.x = best.x;
+    p.y = best.y;
+    p.vx = 0;
+    p.vy = 0;
+    p.climb = false;
+    p.outT = 0;
+    this.emit({ t: 'spawn', id: p.id, x: r1(p.x), y: r1(p.y) });
   }
 
   startReload(p) {

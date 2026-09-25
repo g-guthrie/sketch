@@ -718,8 +718,8 @@ export class ClientWorld {
             audio.play('superCharge', { x: ev.x, y: ev.y });
           }
         } else {
-          fx.ring(ev.x, ev.y, 520, '#ffffff', 0.6, 24);
-          fx.ring(ev.x, ev.y, 380, '#ffe14a', 0.5, 16);
+          fx.ring(ev.x, ev.y, 430, '#ffffff', 0.6, 24);
+          fx.ring(ev.x, ev.y, 320, '#ffe14a', 0.5, 16);
           fx.lines(ev.x, ev.y, 120, 900, 0.5);
           fx.impactFrame(ev.x, ev.y, 0.12);
           fx.shake(this.nearMe(ev.x, ev.y, 1400) * 0.9);

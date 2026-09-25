@@ -152,7 +152,8 @@ export function stepMovement(p, cmd, phys, dt, fx) {
 
     // ---- Jump / drop-through ----
     if (p.jbuf > 0 && !stunned) {
-      if (cmd.down && p.onGround && p.groundOneway) {
+      const hw = p.w / 2;
+      if (cmd.down && p.onGround && p.groundOneway && !phys.solidIn(p.x - hw, p.y - 1, p.x + hw, p.y + 3)) {
         p.dropT = 0.22;
         p.jbuf = 0;
         p.onGround = false;

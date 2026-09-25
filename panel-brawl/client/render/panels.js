@@ -54,11 +54,11 @@ export class PanelArt {
       g.fillStyle = '#e8dcc0';
       g.fillRect(0, 0, w, h);
     }
+    safe(() => paintFloor(g, { scene: P.scene, theme: th, w, h, seed: P.seed }));
     for (const d of lv.decor) {
       if (d.panel !== P.id) continue;
       safe(() => paintDecor(g, { kind: d.k, x: d.x - P.x1, y: d.y - P.y1, theme: th, seed: d.seed }));
     }
-    safe(() => paintFloor(g, { scene: P.scene, theme: th, w, h, seed: P.seed }));
     // soft vignette so the play area pops
     const vg = g.createRadialGradient(w / 2, h * 0.6, Math.min(w, h) * 0.3, w / 2, h * 0.6, Math.max(w, h) * 0.8);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
