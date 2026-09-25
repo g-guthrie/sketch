@@ -386,6 +386,7 @@ export class ClientWorld {
         vx: ca * BOMB.speed + p.vx * 0.4, vy: sa * BOMB.speed + p.vy * 0.3 - 140, g: BOMB.grav, l: BOMB.fuse + 0.2, r: PROJ_RADIUS.bomb, w: 'bomb', f: BOMB.fuse, b: BOMB.bounce,
       });
       audio.play('bombThrow', { x, y });
+      rp.anim.throw = 0.3;
     }
     if (out.fired) this.predictShot(out.fired, out.firedSeq || cmd.seq);
   }
@@ -526,7 +527,7 @@ export class ClientWorld {
         const dx = pos ? pos.dx : 0, dy = pos ? pos.dy : 0;
         for (const pr of ev.pr) this.spawnProjectile({ ...pr, x: pr.x + dx, y: pr.y + dy });
         if (pos) pos.ent.anim.recoil = 1;
-        if (ev.w === 'bomb') audio.play('bombThrow', { x: ev.x, y: ev.y });
+        if (ev.w === 'bomb') { audio.play('bombThrow', { x: ev.x, y: ev.y }); if (pos) pos.ent.anim.throw = 0.3; }
         else this.gunFx(ev.w, ev.x + dx, ev.y + dy, ev.a, Math.cos(ev.a) >= 0 ? 1 : -1, false);
         break;
       }

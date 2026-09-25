@@ -592,50 +592,56 @@ function punch(T, C) {
   const ext = p < 0.28 ? easeOut(p / 0.28) : p < 0.62 ? 1 : 1 - smooth((p - 0.62) / 0.38);
   const aim = clamp(C.aim, -0.7, 0.55);
   const ca = Math.cos(aim), sa = Math.sin(aim);
-  const sN = shoulderOfT(T, B, 1), sF = shoulderOfT(T, B, 0);
+  const gun = W.hold === 'pistol' || W.hold === 'rifle' || W.hold === 'heavy';
   const two = W.hold === 'rifle' || W.hold === 'heavy';
   const useFar = kind === 1 || two || (kind === 3 && W.hold !== 'none');
   T.fx |= 1;
   T.ex = 'grit';
   if (kind === 3) {
-    // uppercut: fist rises from the hip past the chin, body extends
+    // uppercut: body dips then extends; fist rises from the hip past the chin
     const q = easeOut(sat(p / 0.5));
     const k = Math.sin(sat(p / 0.75) * PI * 0.5) * (1 - smooth((p - 0.7) / 0.3));
-    const sh = useFar ? sF : sN;
-    const hx = sh[0] + lerp(4, 14, q), hy = sh[1] + lerp(20, -17, q);
-    if (useFar) { T.h1x = hx; T.h1y = hy; T.r1 = -1.35; T.hs1 = 'fist'; T.fk1 = 1 + 0.95 * k; T.sup = 0; T.e1x = 0.5; T.e1y = 1; }
-    else { T.h0x = hx; T.h0y = hy; T.r0 = -1.35; T.wa = -1.9; T.hs0 = 'fist'; T.fk0 = 1 + 0.95 * k; T.e0x = 0.4; T.e0y = 1; }
     T.py -= 4 * q; T.lean = lerp(T.lean + 0.25, T.lean - 0.18, q); T.tw = lerp(T.tw, useFar ? -0.3 : 1, 0.8);
     T.hd -= 0.2 * q;
     T.a0x -= 2; T.f0 = lerp(T.f0, 0.5, q);
+    const sh = shoulderOfT(T, B, useFar ? 0 : 1);
+    const hx = sh[0] + lerp(4, 13, q), hy = sh[1] + lerp(20, -18, q);
+    if (useFar) {
+      T.h1x = hx; T.h1y = hy; T.r1 = -1.35; T.hs1 = 'fist'; T.fk1 = 1 + 0.95 * k; T.sup = 0; T.e1x = 0.5; T.e1y = 1;
+      if (gun) { const sN = shoulderOfT(T, B, 1); T.h0x = sN[0] + 8; T.h0y = sN[1] + 19; T.wa = 0.8; T.r0 = T.wa; }
+    } else { T.h0x = hx; T.h0y = hy; T.r0 = -1.35; T.wa = -1.9; T.hs0 = 'fist'; T.fk0 = 1 + 0.95 * k; T.e0x = 0.4; T.e0y = 1; }
     T.fx |= 8;
     return;
   }
-  const reach = B.armLen * 0.98;
-  if (useFar && (W.hold === 'pistol' || W.hold === 'rifle' || W.hold === 'heavy')) {
-    // drop the gun to low ready so the punching fist reads
-    const k = Math.min(1, ext * 1.5);
-    T.h0x = lerp(T.h0x, sN[0] + 8, k); T.h0y = lerp(T.h0y, sN[1] + 19, k);
-    T.wa = lerpA(T.wa, 0.7, k); T.r0 = T.wa;
-  }
+  // torso first: jab = quick lead-hand snap, cross = full hip/shoulder rotation
   if (useFar) {
-    const gx = sF[0] + 9, gy = sF[1] + 6;
-    T.h1x = lerp(gx, sF[0] + ca * reach, ext); T.h1y = lerp(gy, sF[1] + sa * reach, ext);
-    T.r1 = aim; T.hs1 = 'fist'; T.fk1 = 1 + 0.6 * ext; T.sup = 0;
     T.tw = lerp(T.tw, kind === 2 ? 0.2 : -0.35, ext);
     T.lean += (kind === 2 ? 0.2 : 0.1) * ext;
-    T.e1x = 0; T.e1y = 1;
   } else {
-    T.h0x = lerp(sN[0] + 8, sN[0] + 4 + ca * reach, ext); T.h0y = lerp(sN[1] + 10, sN[1] + sa * reach, ext);
-    T.r0 = aim; T.wa = aim - 1.7; T.hs0 = 'fist'; T.fk0 = 1 + 0.6 * ext;
     T.tw = lerp(T.tw, 1.05, ext);
     T.lean += 0.2 * ext;
     T.f0 = lerp(T.f0, 0.55, ext);
+  }
+  T.px += 2.5 * ext;
+  const sN = shoulderOfT(T, B, 1), sF = shoulderOfT(T, B, 0);
+  const reach = B.armLen * 0.97;
+  if (useFar) {
+    if (gun) {
+      // drop the gun to low ready so the punching fist reads
+      const k = Math.min(1, ext * 1.5);
+      T.h0x = lerp(T.h0x, sN[0] + 8, k); T.h0y = lerp(T.h0y, sN[1] + 19, k);
+      T.wa = lerpA(T.wa, 0.7, k); T.r0 = T.wa;
+    }
+    T.h1x = lerp(sF[0] + 9, sF[0] + ca * reach, ext); T.h1y = lerp(sF[1] + 6, sF[1] + sa * reach, ext);
+    T.r1 = aim; T.hs1 = 'fist'; T.fk1 = 1 + 0.6 * ext; T.sup = 0;
+    T.e1x = 0; T.e1y = 1;
+  } else {
+    T.h0x = lerp(sN[0] + 8, sN[0] + ca * reach, ext); T.h0y = lerp(sN[1] + 10, sN[1] + sa * reach, ext);
+    T.r0 = aim; T.wa = aim - 1.7; T.hs0 = 'fist'; T.fk0 = 1 + 0.6 * ext;
     T.e0x = 0; T.e0y = 1;
     // lead hand guards the chin
     T.h1x = sF[0] + 10; T.h1y = sF[1] + 3; T.r1 = -0.8; T.hs1 = 'fist'; T.sup = 0;
   }
-  T.px += 2.5 * ext;
 }
 
 function reload(T, C) {
@@ -688,18 +694,23 @@ function throwAct(T, C) {
   }
   if (age < 0.34) {
     const k = easeOut(age / 0.26);
-    T.h0x = sN[0] + lerp(9, -15, k); T.h0y = sN[1] + lerp(14, -11, k); T.r0 = -2.4; T.hs0 = 'cup';
     T.lean -= 0.2 * k; T.tw = lerp(T.tw, -0.1, k); T.px -= 2 * k;
-    T.h1x = sF[0] + Math.cos(aim) * 22; T.h1y = sF[1] + Math.sin(aim) * 22 - 3; T.r1 = aim; T.hs1 = 'point';
     T.a1y -= 3 * k;
+    const sN = shoulderOfT(T, B, 1), sF = shoulderOfT(T, B, 0);
+    T.h0x = sN[0] + lerp(9, -15, k); T.h0y = sN[1] + lerp(14, -11, k); T.r0 = -2.4; T.hs0 = 'cup';
+    T.h1x = sF[0] + Math.cos(aim) * 22; T.h1y = sF[1] + Math.sin(aim) * 22 - 3; T.r1 = aim; T.hs1 = 'point';
     T.ex = 'grit';
     T.e0x = -0.8; T.e0y = -0.2;
   } else {
     const q = sat((age - 0.34) / 0.14);
-    const ang = lerp(-2.6, 0.9 + aim * 0.5, easeOut(q));
-    T.h0x = sN[0] + Math.cos(ang) * 26; T.h0y = sN[1] + Math.sin(ang) * 26; T.r0 = ang; T.hs0 = q > 0.4 ? 'open' : 'cup';
     T.lean += 0.35 * easeOut(q); T.tw = lerp(T.tw, 1, q); T.px += 3 * q;
-    T.h1x = sF[0] - 6; T.h1y = sF[1] + 18; T.hs1 = 'fist';
+    T.a0x -= 3 * q; T.f0 = lerp(T.f0, 0.6, q);
+    const sN = shoulderOfT(T, B, 1), sF = shoulderOfT(T, B, 0);
+    const ang = lerp(-2.6, 0.45 + aim * 0.4, easeOut(q));
+    const r = lerp(24, 29, q);
+    T.h0x = sN[0] + Math.cos(ang) * r; T.h0y = sN[1] + Math.sin(ang) * r; T.r0 = ang; T.hs0 = q > 0.4 ? 'open' : 'cup';
+    T.e0x = 0.2; T.e0y = 1;
+    T.h1x = sF[0] - 9; T.h1y = sF[1] + 14; T.r1 = 2.2; T.hs1 = 'fist'; T.e1x = -1; T.e1y = 0.3; T.sup = 0;
     T.toss = -1; // prop released
     T.ex = 'shout';
     T.fx |= 2;
@@ -731,7 +742,7 @@ function lying(T, C, onBack) {
     T.h0x = sN[0] - 7; T.h0y = sN[1] - 24; T.r0 = -1.8; T.hs0 = 'open';
     T.h1x = sF[0] - 6; T.h1y = sF[1] + 18; T.r1 = 1.4; T.hs1 = 'open';
     T.e0x = -0.5; T.e0y = 0; T.e1x = -1; T.e1y = 0.3;
-    T.rot = -PI / 2; T.rpx = T.px; T.rpy = T.py; T.rtx = -T.px + 2; T.rty = -8 - T.py;
+    T.rot = -PI / 2; T.rpx = T.px; T.rpy = T.py; T.rtx = -T.px + 2; T.rty = -13.5 * B.chest - T.py;
     T.hd = -0.25;
   } else {
     T.pel = 0.05; T.lean = 0.1; T.tw = 0.3;
@@ -741,7 +752,7 @@ function lying(T, C, onBack) {
     T.h0x = sN[0] + 5; T.h0y = sN[1] - 26; T.r0 = -1.5; T.hs0 = 'claw';
     T.h1x = sF[0] + 8; T.h1y = sF[1] - 20; T.r1 = -1.4; T.hs1 = 'claw';
     T.e0x = 1; T.e0y = 0; T.e1x = 1; T.e1y = 0;
-    T.rot = PI / 2; T.rpx = T.px; T.rpy = T.py; T.rtx = -T.px - 4; T.rty = -7 - T.py;
+    T.rot = PI / 2; T.rpx = T.px; T.rpy = T.py; T.rtx = -T.px - 4; T.rty = -12.5 * B.chest - T.py;
     T.hd = -0.75;
   }
   T.wv = 0;
