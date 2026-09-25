@@ -5,73 +5,392 @@
   <title>Character Sheet</title>
   <link rel="stylesheet" href="../style.css" />
   <style>
-    html, body { overflow: auto; background: #f3ead3; }
+    html, body { overflow: auto; background: #f3ead3; margin: 0; }
     canvas { display: block; }
+    #help { font: 12px monospace; padding: 4px 8px; color: #444; }
   </style>
 </head>
 <body>
+  <div id="help">?row=kapow,noir (key/name substrings or indices) &amp; ?pose=idle1,run0 &amp; ?scale=2 &amp; ?bg=dark (noir rim) &amp; ?w=smg (hero weapon) &amp; ?portraits=1[&amp;psize=150] &amp; ?weapons=1 &amp; ?anim=run|walk|backpedal|crouchwalk|jump|djump|land|dash|climb|punch|combo|slash|shoot|reload|throw|getup|shield|dodge|alert|draw|flee|tied|stagger|hurt|idle [&amp;frames=12&amp;step=0.05&amp;warm=1] &amp; ?perf=1[&amp;pm=noink|nofill|noshade] &amp; ?robust=1</div>
   <canvas id="c"></canvas>
   <script type="module">
-    import { drawCharacter, makeAnim, updateAnim, drawWeapon } from '../render/characters.js';
-    import { HEROES, HERO_KEYS, THEMES, THEME_KEYS } from '../../shared/themes.js';
-    import { comicText } from '../render/ink.js';
+    import { drawCharacter, makeAnim, updateAnim, drawWeapon, drawPortrait } from '../render/characters.js';
+    import { HEROES, HERO_KEYS, THEMES, THEME_KEYS, CIVILIANS } from '../../shared/themes.js';
+    import { ACT } from '../../shared/ai.js';
+    import { comicText, halftone, rgba } from '../render/ink.js';
 
-    const params = new URLSearchParams(location.search);
-    const scale = Number(params.get('scale') || 2);
+    const Q = new URLSearchParams(location.search);
+    const scale = Number(Q.get('scale') || 1);
+    const dark = Q.get('bg') === 'dark';
     const c = document.getElementById('c');
-    const W = 1600, cell = 180 * scale / 2;
-    const poses = [
-      { name: 'idle', ent: { vx: 0, vy: 0, onGround: true, aim: 0 } },
-      { name: 'run', ent: { vx: 390, vy: 0, onGround: true, aim: 0.1 }, phase: 1.1 },
-      { name: 'aim up', ent: { vx: 0, vy: 0, onGround: true, aim: -1.1 } },
-      { name: 'jump', ent: { vx: 200, vy: -600, onGround: false, aim: -0.3 } },
-      { name: 'fall', ent: { vx: 100, vy: 600, onGround: false, aim: 0.5 } },
-      { name: 'crouch', ent: { vx: 0, vy: 0, onGround: true, crouch: true, aim: 0.2, h: 56 } },
-      { name: 'punch', ent: { vx: 0, vy: 0, onGround: true, aim: 0 }, melee: 0.1 },
-      { name: 'asleep', ent: { vx: 0, vy: 0, onGround: true, aim: 0 }, opts: { asleep: true } },
-    ];
-    const weapons = ['pistol', 'shotgun', 'smg', 'launcher', 'rail', 'blade'];
-    const rows = [];
-    HERO_KEYS.forEach((k, i) => rows.push({ label: HEROES[k].name, look: HEROES[k].look, weapon: weapons[i % weapons.length] }));
-    for (const tk of THEME_KEYS) for (const ek of ['grunt', 'gunner', 'flyer', 'brute', 'boss']) {
-      const e = THEMES[tk].enemies[ek];
-      rows.push({ label: `${tk}: ${e.name}`, look: e.look, weapon: null, enemy: ek });
-    }
-    const cols = poses.length;
-    c.width = W * scale / 2 * 1.2;
-    const rowH = cell * 1.25;
-    c.height = rows.length * rowH + 60;
     const g = c.getContext('2d');
-    await document.fonts.load('30px Bangers');
-    g.fillStyle = '#f3ead3';
-    g.fillRect(0, 0, c.width, c.height);
-    rows.forEach((r, ri) => {
-      poses.forEach((p, pi) => {
-        const A = makeAnim(ri * 10 + pi);
-        const s = r.look.scale || 1;
-        const bigScale = Math.min(1, 1.6 / s);
-        const ent = { x: 0, y: 0, facing: 1, h: (p.ent.h || 92) * s, w: 36 * s, look: r.look, ...p.ent };
-        if (r.look.body === 'bat') { ent.h = 42; ent.w = 46; }
-        if (r.look.body === 'saucer') { ent.h = 34; ent.w = 64; }
-        if (r.look.body === 'brainjar') { ent.h = 150; ent.w = 150; }
-        for (let i = 0; i < 40; i++) updateAnim(A, ent, 1 / 60);
-        if (p.phase) A.phase = p.phase;
-        if (p.melee) { A.melee = p.melee; }
-        g.save();
-        const x = 150 + pi * cell * 1.05, y = 40 + ri * rowH + cell * 1.05;
-        g.translate(x, y);
-        g.scale(scale * bigScale, scale * bigScale);
-        drawCharacter(g, ent, A, { weapon: r.weapon, ...(p.opts || {}) });
-        g.restore();
-        if (ri === 0) comicText(g, p.name.toUpperCase(), x, 24, 22, { fill: '#fff', fill2: '#ffe14a', extrude: 2, outline: 3 });
-      });
+    await document.fonts.load('30px Bangers').catch(() => {});
+
+    // ------------------------------------------------------------ rows
+    const HERO_W = { kapow: 'pistol', nightink: 'shotgun', voltvixen: 'smg', ronin: 'blade', gumshoe: 'pistol', cosmo: 'launcher' };
+    const EH = { grunt: 90, gunner: 90, flyer: 42, brute: 132, boss: 184, shield: 92, grenadier: 90, artist: 94 };
+    const rows = [];
+    HERO_KEYS.forEach((k) => rows.push({ key: k, label: HEROES[k].name, look: HEROES[k].look, weapon: Q.get('w') || HERO_W[k], h: 92 }));
+    for (const tk of THEME_KEYS) for (const ek of ['grunt', 'gunner', 'shield', 'grenadier', 'artist', 'flyer', 'brute', 'boss']) {
+      const e = THEMES[tk].enemies[ek];
+      if (!e) continue;
+      let h = EH[ek] || 90;
+      if (e.look.body === 'bat') h = 42;
+      if (e.look.body === 'saucer') h = 34;
+      if (e.look.body === 'brainjar') h = 150;
+      rows.push({ key: tk + '.' + ek, label: `${tk}: ${e.name}`, look: e.look, weapon: null, k: ek, h: h / (e.look.scale || 1) });
+    }
+    CIVILIANS.forEach((cv, i) => rows.push({ key: 'civ' + i, label: 'CIV: ' + cv.name, look: cv.look, weapon: null, k: 'civilian', h: 88 }));
+
+    // ------------------------------------------------------------ poses
+    const S = (o) => o;
+    const run = (ph) => S({ ent: { vx: 390, onGround: true, aim: 0.05 }, post: (e, A) => { A.phase = ph; } });
+    const act = (a, age = 0.5, extra = {}) => S({ ent: { act: a, ...extra }, actAt: age });
+    const poses = {
+      idle1: S({ ent: {}, t: 0.2 }),
+      idle2: S({ ent: {}, t: 1.7 }),
+      run0: run(0), run1: run(Math.PI * 0.5), run2: run(Math.PI), run3: run(Math.PI * 1.5),
+      backpedal: S({ ent: { vx: -300, aim: 0.05 }, post: (e, A) => { A.phase = 1.2; } }),
+      walk: S({ ent: { vx: 150 }, post: (e, A) => { A.phase = 0.8; } }),
+      jump: S({ ent: { vx: 200, vy: -700, onGround: false, aim: -0.2 }, airFrames: 10 }),
+      apex: S({ ent: { vx: 150, vy: 0, onGround: false, aim: 0 }, airFrames: 30 }),
+      fall: S({ ent: { vx: 100, vy: 800, onGround: false, aim: 0.3 }, airFrames: 30 }),
+      dflip: S({ ent: { vx: 150, vy: -200, onGround: false }, airFrames: 30, post: (e, A) => { A.flipT = 0.18; A.airK = 1; } }),
+      land: S({ ent: {}, post: (e, A) => { A.land = 0.8; } }),
+      crouch: S({ ent: { crouch: true, h: 56, aim: 0.1 } }),
+      climb: S({ ent: { climb: true, vy: -200 }, post: (e, A) => { A.climbPhase = 1.1; } }),
+      dash: S({ ent: { dash: true, vx: 1000 } }),
+      aimUp: S({ ent: { aim: -1.1 }, post: (e, A) => { A.lastFire = 0; A.engage = 1; } }),
+      aimLevel: S({ ent: { aim: 0 }, post: (e, A) => { A.lastFire = 0; A.engage = 1; } }),
+      aimDown: S({ ent: { aim: 0.8 }, post: (e, A) => { A.lastFire = 0; A.engage = 1; } }),
+      jab: S({ ent: {}, post: (e, A) => { A.melee = 0.13; A.punchKind = 1; A.engage = 1; } }),
+      cross: S({ ent: {}, post: (e, A) => { A.melee = 0.13; A.punchKind = 2; A.engage = 1; } }),
+      uppercut: S({ ent: {}, post: (e, A) => { A.melee = 0.12; A.punchKind = 3; A.meleeBig = true; } }),
+      slash: S({ ent: {}, weapon: 'blade', post: (e, A) => { A.slash = 0.14; A.slashN = 1; } }),
+      recoil: S({ ent: { aim: -0.1 }, post: (e, A) => { A.recoil = 0.8; A.engage = 1; A.lastFire = 0; } }),
+      reload: S({ ent: { reloading: true }, reloadAt: 0.3 }),
+      throw: act(ACT.throw, 0.3),
+      throw2: act(ACT.throw, 0.42),
+      hurt: S({ ent: {}, post: (e, A) => { A.hurt = 0.25; A.flinch.x = 0.6; } }),
+      stagger: S({ ent: { stagger: true } , act: ACT.stagger, actAt: 0.4 }),
+      knockdown: act(ACT.knockdown, 0.8),
+      getup: act(ACT.getup, 0.3),
+      downed: S({ ent: { downed: true } }),
+      reviving: S({ ent: { reviving: true } }),
+      cover: act(ACT.cover, 0.6),
+      peek: act(ACT.peek, 0.4),
+      shield: act(ACT.shield, 0.4, { vx: 60 }),
+      bash: act(ACT.bash, 0.15),
+      dodge: act(ACT.dodge, 0.16, { vx: -300 }),
+      callout: act(ACT.callout, 0.4),
+      draw: act(ACT.draw, 0.5),
+      flee: act(ACT.flee, 0.5, { vx: -400 }),
+      patrol: act(ACT.patrol, 0.5, { vx: 80 }),
+      alert: act(ACT.alert, 0.12),
+      zdowned: act(ACT.downed, 0.8),
+      tied: act(ACT.tied, 0.8),
+      windup: act(ACT.windup, 0.25),
+      attack: act(ACT.attack, 0.08),
+      aim: act(ACT.aim, 0.3),
+      asleep: S({ ent: {}, opts: { asleep: true } }),
+      wake50: S({ ent: {}, opts: { wake: 0.5 } }),
+      draw30: S({ ent: {}, opts: { draw: 0.3 } }),
+      draw70: S({ ent: {}, opts: { draw: 0.7 } }),
+    };
+    let poseNames = Object.keys(poses);
+    if (Q.get('pose')) poseNames = Q.get('pose').split(',').filter((p) => poses[p]);
+    let rowList = rows;
+    if (Q.get('row')) {
+      const want = Q.get('row').toLowerCase().split(',');
+      rowList = rows.filter((r, i) => want.some((w) => String(i) === w || r.key.toLowerCase().includes(w) || r.label.toLowerCase().includes(w)));
+    }
+
+    const scratch = document.createElement('canvas').getContext('2d');
+    function makeScene(row, pose, seed) {
+      const look = row.look;
+      const s = look.scale || 1;
+      const ent = { x: 0, y: 0, vx: 0, vy: 0, facing: 1, aim: 0, h: row.h * s, w: 36 * s, onGround: true, look, k: row.k };
+      Object.assign(ent, pose.ent || {});
+      if (pose.ent && pose.ent.h) ent.h = pose.ent.h * s;
+      const A = makeAnim(seed);
+      const N = 90;
+      const liveAct = ent.act;
+      if (pose.actAt != null) ent.act = ACT.idle;
+      const reloading = ent.reloading;
+      if (pose.reloadAt != null) ent.reloading = false;
+      for (let i = 0; i < N; i++) {
+        const tLeft = (N - i) / 60;
+        if (pose.actAt != null && tLeft <= pose.actAt + 1e-6 && ent.act !== (pose.act ?? liveAct)) ent.act = pose.act ?? liveAct;
+        if (pose.reloadAt != null && tLeft <= pose.reloadAt + 1e-6) ent.reloading = reloading;
+        if (pose.airFrames != null) ent.onGround = i < N - pose.airFrames;
+        if (pose.airFrames != null && i === N - pose.airFrames) { ent.vy = -700; }
+        if (pose.airFrames != null && i > N - pose.airFrames) ent.vy = pose.ent.vy;
+        ent.x += (ent.vx || 0) / 60;
+        if (!ent.onGround) ent.y = Math.min(0, ent.y + (ent.vy || 0) / 60); else ent.y = 0;
+        updateAnim(A, ent, 1 / 60);
+        // run the cloth sim during the last frames so capes settle into the motion
+        if (i >= N - 24 && (look.cape || look.scarf || look.ponytail || look.torso === 'trench' || look.torso === 'labcoat' || look.torso === 'robe')) {
+          scratch.save(); drawCharacter(scratch, ent, A, { weapon: row.weapon, noShadow: true }); scratch.restore();
+        }
+      }
+
+      if (pose.t != null) A.t = pose.t + A.idleOff * 0;
+      if (pose.post) pose.post(ent, A);
+      return { ent, A };
+    }
+
+    const CELL = 118 * scale;
+    const ROWH = 150 * scale;
+    const LABEL = 150;
+
+    function drawCell(row, pname, x, y, seed, big = 1) {
+      const pose = poses[pname];
+      const { ent, A } = makeScene(row, pose, seed);
+      const s = row.look.scale || 1;
+      const fit = Math.min(1, 1.25 / s) * scale * big;
       g.save();
-      g.font = '18px Bangers';
-      g.fillStyle = '#141414';
-      g.fillText(r.label, 8, 40 + ri * rowH + 18);
+      g.translate(x, y);
+      g.scale(fit, fit);
+      g.translate(-ent.x, ent.onGround === false && pose.airFrames != null ? -ent.y - 30 : 0);
+      const opts = { weapon: pose.weapon && !row.k ? pose.weapon : row.weapon, ...(pose.opts || {}) };
+      if (dark) opts.rim = '#f2efe6';
+      drawCharacter(g, ent, A, opts);
       g.restore();
-    });
-    document.title = 'ready';
+    }
+
+    function sheet() {
+      const W = LABEL + poseNames.length * CELL + 20;
+      const H = 40 + rowList.length * ROWH + 20;
+      c.width = W; c.height = H;
+      g.fillStyle = dark ? '#1a1a1e' : '#f3ead3';
+      g.fillRect(0, 0, W, H);
+      poseNames.forEach((p, pi) => {
+        const x = LABEL + pi * CELL + CELL / 2;
+        g.font = `${13 * Math.min(1.5, scale)}px Bangers`;
+        g.fillStyle = dark ? '#eee' : '#141414';
+        g.textAlign = 'center';
+        g.fillText(p.toUpperCase(), x, 24);
+      });
+      rowList.forEach((r, ri) => {
+        const y0 = 40 + ri * ROWH;
+        g.fillStyle = ri % 2 ? (dark ? '#202026' : '#ece2c8') : (dark ? '#1a1a1e' : '#f3ead3');
+        g.fillRect(0, y0, W, ROWH);
+        g.strokeStyle = 'rgba(0,0,0,0.15)';
+        g.beginPath(); g.moveTo(0, y0 + ROWH * 0.86); g.lineTo(W, y0 + ROWH * 0.86); g.stroke();
+        g.font = '15px Bangers';
+        g.textAlign = 'left';
+        g.fillStyle = dark ? '#eee' : '#141414';
+        g.fillText(r.label, 8, y0 + 20);
+        g.font = '10px monospace';
+        g.fillText(r.key + (r.weapon ? ' / ' + r.weapon : ''), 8, y0 + 34);
+        poseNames.forEach((p, pi) => drawCell(r, p, LABEL + pi * CELL + CELL / 2, y0 + ROWH * 0.86, ri * 31 + pi + 1));
+      });
+    }
+
+    function portraits() {
+      const list = rowList.filter((r) => !r.k || Q.get('all'));
+      if (Q.get('psize')) {
+        const ps = Number(Q.get('psize'));
+        c.width = 40 + list.length * (ps * 2 + 20); c.height = ps * 2 + 40;
+        g.fillStyle = '#fff7dc'; g.fillRect(0, 0, c.width, c.height);
+        list.forEach((r, i) => {
+          const x = 20 + i * (ps * 2 + 20);
+          g.save(); g.beginPath(); g.rect(x, 20, ps * 2, ps * 2); g.clip();
+          drawPortrait(g, r.look, x + ps, 20 + ps, ps, { anim: makeAnim(i + 1) });
+          g.restore();
+          g.strokeStyle = '#141414'; g.lineWidth = 3; g.strokeRect(x, 20, ps * 2, ps * 2);
+        });
+        return;
+      }
+      const W = 60 + list.length * 280, H = 520;
+      c.width = W; c.height = H;
+      g.fillStyle = '#f3ead3'; g.fillRect(0, 0, W, H);
+      list.forEach((r, i) => {
+        const x = 40 + i * 280;
+        // big card
+        g.save();
+        g.fillStyle = '#fff7dc'; g.fillRect(x, 20, 240, 240);
+        g.beginPath(); g.rect(x, 20, 240, 240); g.clip();
+        drawPortrait(g, r.look, x + 120, 140, 100, { anim: makeAnim(i + 1) });
+        g.restore();
+        g.strokeStyle = '#141414'; g.lineWidth = 4; g.strokeRect(x, 20, 240, 240);
+        // 180 card (hero select size)
+        g.save();
+        g.fillStyle = '#fff7dc'; g.fillRect(x, 280, 180, 180);
+        g.beginPath(); g.rect(x, 280, 180, 180); g.clip();
+        drawPortrait(g, r.look, x + 88, 280 + 96, 74, { anim: makeAnim(i + 1) });
+        g.restore();
+        g.strokeRect(x, 280, 180, 180);
+        // HUD size
+        g.save();
+        g.fillStyle = '#ffe36e'; g.fillRect(x + 190, 280, 72, 72);
+        g.beginPath(); g.rect(x + 190, 280, 72, 72); g.clip();
+        drawPortrait(g, r.look, x + 226, 280 + 32, 32, { anim: makeAnim(i + 1) });
+        g.restore();
+        g.strokeRect(x + 190, 280, 72, 72);
+        g.font = '16px Bangers'; g.fillStyle = '#141414'; g.fillText(r.label, x, 490);
+      });
+    }
+
+    function weapons() {
+      const keys = ['pistol', 'shotgun', 'smg', 'launcher', 'rail', 'blade', 'raygun', 'blaster', 'tommy', 'crowbar', 'bat', 'baton', 'grenade', 'molotov', 'pencil'];
+      c.width = 5 * 260 + 40; c.height = Math.ceil(keys.length / 5) * 170 + 40;
+      g.fillStyle = '#f3ead3'; g.fillRect(0, 0, c.width, c.height);
+      keys.forEach((k, i) => {
+        const x = 30 + (i % 5) * 260, y = 40 + Math.floor(i / 5) * 170;
+        g.fillStyle = '#ffffff'; g.fillRect(x, y, 240, 140);
+        g.fillStyle = halftone(g, rgba('#ffe14a', 0.55), 7, 2.2); g.fillRect(x, y, 240, 140);
+        g.strokeStyle = '#141414'; g.lineWidth = 3; g.strokeRect(x, y, 240, 140);
+        g.save(); g.translate(x + 70, y + 80); g.scale(2.3, 2.3); g.rotate(-0.12); drawWeapon(g, k, {}); g.restore();
+        g.font = '16px Bangers'; g.fillStyle = '#141414'; g.fillText(k.toUpperCase(), x + 8, y + 20);
+      });
+    }
+
+    // filmstrip of a live animation: ?anim=run|idle|jump|punch|combo|slash|reload|throw|dash|crouchwalk|backpedal|getup|shield
+    function filmstrip(kind) {
+      const list = rowList.slice(0, 6);
+      const frames = Number(Q.get('frames') || 12);
+      const step = Number(Q.get('step') || 1 / 30);
+      const cw = 120 * scale, ch = 150 * scale;
+      c.width = 150 + frames * cw; c.height = list.length * ch + 30;
+      g.fillStyle = dark ? '#1a1a1e' : '#f3ead3'; g.fillRect(0, 0, c.width, c.height);
+      list.forEach((row, ri) => {
+        const s = row.look.scale || 1;
+        const ent = { x: 0, y: 0, vx: 0, vy: 0, facing: 1, aim: 0, h: row.h * s, w: 36 * s, onGround: true, look: row.look, k: row.k };
+        const A = makeAnim(ri + 7);
+        let t = 0;
+        const warm = Number(Q.get('warm') || 1.0);
+        let jy = 0, jvy = 0, jumps = 0;
+        const at = (te, dt, when) => te - dt < when && te >= when;
+        const drive = (dt) => {
+          t += dt;
+          const te = t - warm; // event clock: 0 = first filmstrip frame
+          switch (kind) {
+            case 'run': ent.vx = 390; break;
+            case 'walk': ent.vx = 150; break;
+            case 'climb': ent.climb = true; ent.onGround = false; ent.vy = -300; ent.vx = 0; break;
+            case 'backpedal': ent.vx = -300; break;
+            case 'crouchwalk': ent.crouch = true; ent.h = 56 * s; ent.vx = 170; break;
+            case 'dash': ent.dash = te > 0 && te < 0.17; ent.vx = ent.dash ? 1000 : 200; break;
+            case 'jump': case 'djump': {
+              ent.vx = 150;
+              if (at(te, dt, 0)) { jvy = -900; jumps = 1; }
+              if (kind === 'djump' && at(te, dt, 0.32)) { jvy = -780; jumps = 2; }
+              if (jumps) { jvy += 2300 * dt; jy += jvy * dt; if (jy >= 0) { jy = 0; jvy = 0; jumps = 0; } }
+              ent.vy = jumps ? jvy : 0; ent.onGround = !jumps; ent.y = jy;
+              break;
+            }
+            case 'punch': case 'combo': {
+              if (at(te, dt, 0)) { A.melee = 0.2; A.combo = 1; }
+              if (kind === 'combo' && at(te, dt, 0.3)) { A.melee = 0.2; A.combo = 2; }
+              if (kind === 'combo' && at(te, dt, 0.6)) { A.melee = 0.2; A.meleeBig = true; }
+              break;
+            }
+            case 'slash': if (at(te, dt, 0) || at(te, dt, 0.4)) A.slash = 0.22; break;
+            case 'shoot': if (te > 0 && Math.floor(te / 0.17) !== Math.floor((te - dt) / 0.17)) A.recoil = 1; break;
+            case 'reload': ent.reloading = te > 0 && te < 0.9; break;
+            case 'throw': ent.act = te > 0 ? ACT.throw : ACT.idle; break;
+            case 'getup': ent.act = te < 0 ? ACT.knockdown : ACT.getup; break;
+            case 'shield': ent.act = te < 0.2 ? ACT.shield : ACT.bash; ent.vx = 60; break;
+            case 'dodge': ent.act = te > 0 ? ACT.dodge : ACT.idle; ent.vx = te > 0 && te < 0.4 ? -300 : 0; break;
+            case 'alert': ent.act = te > 0 ? ACT.alert : ACT.patrol; ent.vx = te > 0 ? 0 : 80; break;
+            case 'draw': ent.act = ACT.draw; break;
+            case 'flee': ent.act = ACT.flee; ent.vx = -400; break;
+            case 'tied': ent.act = ACT.tied; break;
+            case 'stagger': ent.act = ACT.stagger; ent.stagger = true; break;
+            case 'hurt': if (at(te, dt, 0.05)) { A.hurt = 0.3; A.flash = 0.07; } break;
+            case 'land': {
+              if (te < 0) { ent.onGround = false; ent.vy = 1100; } else { ent.onGround = true; ent.vy = 0; }
+              break;
+            }
+            default: break;
+          }
+        };
+        const phys = (dt) => { ent.x += (ent.vx || 0) * dt; };
+        for (let i = 0; i < warm * 60; i++) { drive(1 / 60); phys(1 / 60); updateAnim(A, ent, 1 / 60); }
+        g.font = '14px Bangers'; g.fillStyle = dark ? '#eee' : '#141414'; g.textAlign = 'left';
+        g.fillText(row.label, 6, 20 + ri * ch + 14);
+        for (let f = 0; f < frames; f++) {
+          const sub = Math.max(1, Math.round(step * 60));
+          for (let k = 0; k < sub; k++) { drive(step / sub); phys(step / sub); updateAnim(A, ent, step / sub); }
+          const fit = Math.min(1, 1.25 / s) * scale;
+          g.save();
+          g.translate(150 + f * cw + cw / 2, 20 + ri * ch + ch * 0.85);
+          g.scale(fit, fit);
+          g.translate(-ent.x, 0);
+          if (kind === 'jump' || kind === 'djump') g.translate(0, -ent.y * 0.85);
+          const opts = { weapon: row.weapon };
+          if (dark) opts.rim = '#f2efe6';
+          drawCharacter(g, ent, A, opts);
+          g.restore();
+        }
+      });
+    }
+
+    function perf() {
+      c.width = 1200; c.height = 400;
+      g.fillStyle = '#f3ead3'; g.fillRect(0, 0, 1200, 400);
+      const list = rows.slice(0, 20);
+      const scenes = list.map((r, i) => {
+        const s = r.look.scale || 1;
+        const ent = { x: 60 + i * 55, y: 300, vx: 390, vy: 0, facing: 1, aim: 0.1, h: r.h * s, w: 36, onGround: true, look: r.look, k: r.k };
+        return { r, ent, A: makeAnim(i + 1) };
+      });
+      const N = 200;
+      const t0 = performance.now();
+      for (let f = 0; f < N; f++) {
+        g.fillStyle = '#f3ead3'; g.fillRect(0, 0, 1200, 400);
+        const pm = Q.get('pm') || ''; const po = { noInk: pm.includes('noink'), noFill: pm.includes('nofill'), noShade: pm.includes('noshade') };
+        for (const sc of scenes) { updateAnim(sc.A, sc.ent, 1 / 60); drawCharacter(g, sc.ent, sc.A, { weapon: sc.r.weapon, ...po }); }
+      }
+      g.getImageData(0, 0, 1, 1);
+      const ms = (performance.now() - t0) / N / scenes.length;
+      g.font = '20px monospace'; g.fillStyle = '#141414';
+      g.fillText(`${ms.toFixed(3)} ms per character (update+draw), ${scenes.length} chars`, 20, 40);
+      document.title = 'ready ' + ms.toFixed(3);
+      return ms;
+    }
+
+    function robust() {
+      c.width = 900; c.height = 300;
+      g.fillStyle = '#f3ead3'; g.fillRect(0, 0, 900, 300);
+      const looks = [HEROES.kapow.look, THEMES.zombie.enemies.flyer.look, THEMES.space.enemies.flyer.look, THEMES.space.enemies.boss.look, THEMES.hero.enemies.brute.look, {}, undefined, { body: 'humanoid' }];
+      const ents = [
+        { x: 100, y: 250 }, { x: 200, y: 250, facing: 0, aim: NaN, vx: undefined, vy: null, h: undefined },
+        { x: 300, y: 250, act: 999, at: -1, k: 'weird', downed: true }, { x: 400, y: 250, reviving: true, stagger: true, stun: true },
+        { x: 500, y: 250, vx: 1e6, vy: -1e6, onGround: false, climb: true, dash: true, crouch: true },
+        { x: 600, y: 250, eshield: 0.5, shieldUp: false, reloading: true, act: 23 },
+      ];
+      let n = 0;
+      const t0 = g.getTransform();
+      for (const look of looks) for (const e0 of ents) {
+        const e = { ...e0, look };
+        const A = makeAnim(n++);
+        for (let i = 0; i < 20; i++) { updateAnim(A, e, i % 3 ? 1 / 60 : 0); updateAnim(A, e, 0.5); }
+        e.x = 60 + (n % 12) * 70; e.y = 120 + Math.floor(n / 12) * 60;
+        drawCharacter(g, e, A, { weapon: n % 2 ? 'shotgun' : 'nope', rim: '#fff', alpha: 0.9, draw: n % 5 === 0 ? 0.5 : undefined, wake: n % 7 === 0 ? 0.3 : undefined });
+      }
+      drawWeapon(g, 'unknown', {}); drawPortrait(g, {}, 50, 50, 40, {}); drawPortrait(g, HEROES.cosmo.look, 50, 50, 40);
+      const t1 = g.getTransform();
+      const ok = t0.a === t1.a && t0.e === t1.e && g.globalAlpha === 1;
+      document.title = 'ready robust ' + (ok ? 'OK' : 'STATE LEAK') + ' n=' + n;
+    }
+
+    try {
+      if (Q.get('robust')) { robust(); }
+      else if (Q.get('perf')) { perf(); }
+      else {
+        if (Q.get('portraits')) portraits();
+        else if (Q.get('weapons')) weapons();
+        else if (Q.get('anim')) filmstrip(Q.get('anim'));
+        else sheet();
+        if (!Q.get('robust')) document.title = 'ready';
+      }
+    } catch (e) {
+      console.error(e);
+      document.title = 'ERR ' + e.message;
+      document.body.insertAdjacentHTML('beforeend', `<pre>${e.stack}</pre>`);
+    }
   </script>
 </body>
 </html>
