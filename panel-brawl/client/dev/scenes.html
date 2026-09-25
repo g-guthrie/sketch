@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PANEL BRAWL — scene art preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<style>
+  :root { --paper: #efe4c8; --ink: #141414; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: var(--paper); color: var(--ink); font-family: 'Bangers', Impact, sans-serif; letter-spacing: 1px; }
+  h1 { font-size: 56px; margin: 0 0 4px; text-shadow: 3px 3px 0 #e8262b; }
+  h2 { font-size: 34px; margin: 28px 0 10px; }
+  .sub { font-family: system-ui, sans-serif; font-size: 13px; letter-spacing: 0; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(4, max-content); gap: 22px 18px; }
+  .card { display: flex; flex-direction: column; gap: 4px; }
+  .card canvas { display: block; }
+  .label { font-size: 22px; display: flex; justify-content: space-between; }
+  .label small { font-family: system-ui, sans-serif; font-size: 11px; letter-spacing: 0; opacity: .6; align-self: end; }
+  .props canvas { display: block; margin-bottom: 18px; }
+  #errors { color: #b00; font-family: monospace; white-space: pre; }
+</style>
+</head>
+<body>
+<h1>PANEL BRAWL · SCENE ART</h1>
+<div class="sub">client/render/scenes.js — 16 backdrops with decor, a block, a platform, stairs + balcony and a ladder placed in each. Grey mannequins are 36×92 stand-ins for characters.</div>
+<div id="errors"></div>
+<div id="scenes"><div class="grid" id="grid"></div></div>
+<div id="props" class="props"></div>
+<script type="module">
+import { paintBackdrop, paintFloor, paintDecor, paintBlock, paintPlatform, paintStairs, paintLadder, SCENE_LIST } from '../render/scenes.js';
+import { THEMES } from '../../shared/themes.js';
+
+const errs = [];
+window.__errors = errs;
+window.addEventListener('error', (e) => { errs.push(String(e.message)); document.getElementById('errors').textContent = errs.join('\n'); });
+window.__timings = {};
+
+const q = new URLSearchParams(location.search);
+const VIEW = q.get('view') || 'all';
+const DPR = +(q.get('dpr') || 1);
+const B = 12;
+
+const DECOR = {
+  hero: { rooftop: ['antenna', 'watertower', 'chimney', 'billboard'], street: ['lamp', 'hydrant', 'mailbox', 'newsstand'], lab: ['tesla', 'tank', 'screen', 'pipes'], lair: ['tesla', 'screen', 'tank', 'statue'] },
+  zombie: { graveyard: ['tombstone', 'deadtree', 'cross', 'lamp'], street: ['lamp', 'hydrant', 'wreckage', 'sign'], hospital: ['iv', 'curtain', 'cabinet', 'sign'], mall: ['plant', 'mannequin', 'sign', 'bench'] },
+  space: { bridge: ['screen', 'terminal', 'antenna', 'pipes'], hangar: ['pipes', 'rocket', 'terminal', 'antenna'], planet: ['crystal', 'rock', 'antenna', 'plant'], reactor: ['pipes', 'tesla', 'tank', 'screen'] },
+  noir: { alley: ['lamp', 'trash', 'fireplug', 'sign'], office: ['cabinet', 'plant', 'coatrack', 'fan'], club: ['piano', 'mic', 'plant', 'lamp'], docks: ['bollard', 'crate', 'lamp', 'rope'] },
+};
+const ALL_DECOR = ['antenna', 'watertower', 'chimney', 'billboard', 'lamp', 'hydrant', 'mailbox', 'newsstand', 'tesla', 'tank', 'screen', 'pipes', 'statue', 'tombstone', 'deadtree', 'cross', 'wreckage', 'sign', 'iv', 'curtain', 'cabinet', 'plant', 'mannequin', 'bench', 'terminal', 'rocket', 'crystal', 'rock', 'trash', 'fireplug', 'coatrack', 'fan', 'piano', 'mic', 'bollard', 'crate', 'rope'];
+const BLOCKS = { car: [210, 74], vent: [110, 78], crates: [112, 100], console: [120, 88], tomb: [60, 78], coffin: [128, 50], wreck: [170, 70], reactor: [95, 110], pod: [83, 103], desk: [145, 70], drums: [93, 66] };
+const PLATS = ['girder', 'ledge', 'catwalk', 'plank', 'scaffold', 'hover', 'fireescape', 'balcony'];
+
+function makeCanvas(parent, w, h, scale = 1) {
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * DPR * scale);
+  c.height = Math.round(h * DPR * scale);
+  c.style.width = Math.round(w * scale) + 'px';
+  c.style.height = Math.round(h * scale) + 'px';
+  parent.appendChild(c);
+  const ctx = c.getContext('2d');
+  ctx.scale(DPR * scale, DPR * scale);
+  return ctx;
+}
+
+// Stand-in character so we can judge figure/ground contrast.
+function mannequin(ctx, x, y, col = '#1f5fd1', col2 = '#e8262b', face = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(face, 1);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.lineWidth = 3.2; ctx.strokeStyle = '#141414';
+  const path = (fn, fill) => { ctx.beginPath(); fn(); ctx.fillStyle = fill; ctx.fill(); ctx.stroke(); };
+  path(() => { ctx.moveTo(-8, -40); ctx.quadraticCurveTo(-22, -20, -20, -8); ctx.lineTo(-6, -40); }, col2);
+  path(() => { ctx.rect(-12, -42, 10, 42); ctx.rect(2, -42, 10, 42); }, col);
+  path(() => { ctx.moveTo(-16, -74); ctx.lineTo(16, -74); ctx.lineTo(13, -40); ctx.lineTo(-13, -40); ctx.closePath(); }, col);
+  path(() => { ctx.rect(-14, -46, 28, 7); }, '#ffd23f');
+  path(() => { ctx.rect(14, -72, 8, 26); }, col);
+  path(() => { ctx.arc(0, -82, 11, 0, Math.PI * 2); }, '#f2c49b');
+  path(() => { ctx.rect(-11, -88, 22, 7); }, col);
+  path(() => { ctx.rect(-13, -6, 12, 6); ctx.rect(1, -6, 14, 6); }, col2);
+  ctx.restore();
+}
+
+function scenePanel(ctx, theme, scene, w, h, seed) {
+  const th = THEMES[theme];
+  const t0 = performance.now();
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+  paintBackdrop(ctx, { scene, theme: th, w, h, seed });
+  const tb = performance.now() - t0;
+  paintFloor(ctx, { scene, theme: th, w, h, seed });
+  const kinds = DECOR[theme][scene];
+  paintDecor(ctx, { kind: kinds[seed % kinds.length], x: w * 0.36, y: h, theme: th, seed: seed + 1 });
+  paintDecor(ctx, { kind: kinds[(seed + 1) % kinds.length], x: w * 0.9, y: h, theme: th, seed: seed + 2 });
+  // stairs + balcony on the left
+  const n = 7, sw = 28, sh = 22;
+  const sx = 40, sy = h - n * sh;
+  paintStairs(ctx, { x: sx, y: sy, w: n * sw, h: n * sh, dir: 1, n, theme: th });
+  paintPlatform(ctx, { style: 'balcony', x: sx + n * sw, y: sy, w: 150, h: 14, theme: th, seed });
+  // a platform
+  const ps = th.geo.platform[seed % th.geo.platform.length];
+  paintPlatform(ctx, { style: ps, x: w * 0.44, y: h - 270, w: 230, h: 14, theme: th, seed: seed + 3 });
+  // ladder from a hole in the ceiling-ish
+  paintLadder(ctx, { x: w - 110, y: h - 380, w: 52, h: 380, theme: th });
+  // a block
+  const bs = th.geo.block[seed % th.geo.block.length];
+  const [bw, bh] = BLOCKS[bs];
+  paintBlock(ctx, { style: bs, x: w * 0.55, y: h - bh, w: bw, h: bh, theme: th, seed: seed + 5 });
+  mannequin(ctx, w * 0.47, h, '#1f5fd1', '#e8262b', 1);
+  mannequin(ctx, w * 0.52, h - 270, '#ffd23f', '#1b1b1b', -1);
+  mannequin(ctx, w * 0.55 + bw / 2, h - bh, '#9cc47a', '#6e5a3f', -1);
+  ctx.restore();
+  return tb;
+}
+
+function drawBorder(ctx, w, h) {
+  ctx.save();
+  ctx.lineWidth = B;
+  ctx.strokeStyle = '#141414';
+  ctx.strokeRect(-B / 2, -B / 2, w + B, h + B);
+  ctx.restore();
+}
+
+async function main() {
+  await document.fonts.load('40px Bangers').catch(() => {});
+  await document.fonts.ready;
+  const W = +(q.get('w') || 720), H = +(q.get('h') || 600);
+  if (VIEW === 'single') {
+    const [theme, scene] = (q.get('scene') || 'hero/rooftop').split('/');
+    const seed = +(q.get('seed') || 3);
+    document.querySelector('h1').remove();
+    document.querySelector('.sub').remove();
+    document.body.style.padding = '0';
+    const host = document.getElementById('grid');
+    host.style.display = 'block';
+    const ctx = makeCanvas(host, W + 2 * B, H + 2 * B);
+    ctx.translate(B, B);
+    const t = scenePanel(ctx, theme, scene, W, H, seed);
+    drawBorder(ctx, W, H);
+    window.__timings[theme + '/' + scene] = t;
+  }
+  if (VIEW === 'all' || VIEW === 'scenes') {
+    const grid = document.getElementById('grid');
+    let i = 0;
+    for (const { theme, scene } of SCENE_LIST) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      grid.appendChild(card);
+      const ctx = makeCanvas(card, W + 2 * B, H + 2 * B);
+      ctx.translate(B, B);
+      const seed = +(q.get('seed') || 0) + 11 + i++;
+      const t = scenePanel(ctx, theme, scene, W, H, seed);
+      drawBorder(ctx, W, H);
+      window.__timings[theme + '/' + scene] = t;
+      const lab = document.createElement('div');
+      lab.className = 'label';
+      lab.innerHTML = `<span>${THEMES[theme].label} · ${scene.toUpperCase()}</span><small>${t.toFixed(1)} ms</small>`;
+      card.appendChild(lab);
+    }
+  }
+  if (VIEW === 'all' || VIEW === 'props') {
+    const host = document.getElementById('props');
+    const h2 = document.createElement('h2');
+    h2.textContent = 'BLOCKS · PLATFORMS · STAIRS · LADDERS · DECOR';
+    host.appendChild(h2);
+    const themes = q.get('theme') ? [q.get('theme')] : Object.keys(THEMES);
+    for (const key of themes) {
+      const th = THEMES[key];
+      const PW = 1900, PH = 1440;
+      const t = document.createElement('div');
+      t.style.fontSize = '26px';
+      t.textContent = th.label;
+      host.appendChild(t);
+      const ctx = makeCanvas(host, PW + 2 * B, PH + 2 * B, +(q.get('pscale') || 0.8));
+      ctx.translate(B, B);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, PW, PH); ctx.clip();
+      // rows get a real backdrop strip so decor contrast can be judged
+      const rows = [[0, 230], [230, 580], [580, 880], [880, 1160], [1160, 1440]];
+      rows.forEach(([y0, y1], ri) => {
+        ctx.save();
+        ctx.translate(0, y0);
+        ctx.beginPath(); ctx.rect(0, 0, PW, y1 - y0); ctx.clip();
+        paintBackdrop(ctx, { scene: th.scenes[ri % th.scenes.length], theme: th, w: PW, h: y1 - y0, seed: 5 + ri });
+        paintFloor(ctx, { scene: th.scenes[ri % th.scenes.length], theme: th, w: PW, h: y1 - y0, seed: 5 + ri });
+        ctx.restore();
+        ctx.fillStyle = '#141414';
+        ctx.fillRect(0, y1 - 3, PW, 6);
+      });
+      // blocks
+      let x = 30;
+      for (const [s, [bw, bh]] of Object.entries(BLOCKS)) {
+        paintBlock(ctx, { style: s, x, y: 230 - bh, w: bw, h: bh, theme: th, seed: 7 + x });
+        label(ctx, s, x + bw / 2, 230 - bh - 16);
+        x += bw + 36;
+      }
+      // platforms + stairs + ladder
+      x = 30;
+      PLATS.forEach((s, i) => {
+        const py = 230 + (i % 2 ? 190 : 110);
+        paintPlatform(ctx, { style: s, x, y: py, w: 170, h: 14, theme: th, seed: 3 + i });
+        label(ctx, s, x + 85, py - 18);
+        x += 200;
+      });
+      paintStairs(ctx, { x: x + 10, y: 580 - 154, w: 196, h: 154, dir: 1, n: 7, theme: th });
+      paintStairs(ctx, { x: x + 240, y: 580 - 154, w: 196, h: 154, dir: -1, n: 7, theme: th });
+      paintLadder(ctx, { x: PW - 90, y: 250, w: 52, h: 330, theme: th });
+      mannequin(ctx, 130, 230 + 110, '#1f5fd1', '#e8262b', 1);
+      // decor (3 rows)
+      ALL_DECOR.forEach((k, i) => {
+        const row = Math.floor(i / 13), col = i % 13;
+        const dx = 70 + col * 142, dy = 880 + row * 280;
+        paintDecor(ctx, { kind: k, x: dx, y: dy, theme: th, seed: 17 + i });
+        label(ctx, k, dx, dy - 268);
+      });
+      ctx.restore();
+      drawBorder(ctx, PW, PH);
+    }
+  }
+  window.__done = true;
+}
+
+function label(ctx, text, x, y) {
+  ctx.save();
+  ctx.font = '18px Bangers, Impact';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#141414';
+  ctx.strokeText(text.toUpperCase(), x, y);
+  ctx.fillStyle = '#fff36b';
+  ctx.fillText(text.toUpperCase(), x, y);
+  ctx.restore();
+}
+
+main().catch((e) => { errs.push(String(e && e.stack || e)); document.getElementById('errors').textContent = errs.join('\n'); window.__done = true; });
+</script>
+</body>
+</html>

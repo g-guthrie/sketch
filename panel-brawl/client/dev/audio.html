@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PANEL BRAWL — audio lab</title>
+<style>
+  :root {
+    --paper: #f3ead3; --ink: #141414; --red: #e8262b; --blue: #1f5fd1; --yellow: #ffd23f;
+    --muted: #6d655a; --ok: #1d7a3a; --bad: #c21818; --card: #fffaf0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; background: var(--paper); color: var(--ink);
+    font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  h1 { font: 900 28px/1 'Impact', 'Arial Black', sans-serif; letter-spacing: 1px; margin: 0 0 4px; }
+  h1 span { color: var(--red); }
+  .sub { color: var(--muted); margin: 0 0 14px; }
+  section { background: var(--card); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 12px; margin: 0 0 16px; }
+  h2 { font: 900 16px/1 'Impact', 'Arial Black', sans-serif; letter-spacing: 1px; margin: 0 0 10px; text-transform: uppercase; }
+  .grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  button {
+    font: 700 13px/1 system-ui, sans-serif; padding: 8px 10px; border: 2px solid var(--ink); background: #fff;
+    color: var(--ink); cursor: pointer; box-shadow: 2px 2px 0 var(--ink); border-radius: 2px;
+  }
+  button:hover { background: var(--yellow); }
+  button:active { transform: translate(2px, 2px); box-shadow: none; }
+  button.primary { background: var(--red); color: #fff; }
+  button.on { background: var(--blue); color: #fff; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  label { display: flex; gap: 6px; align-items: center; font-weight: 600; }
+  input[type=range] { width: 140px; }
+  #status { font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; font: 12px/1.3 ui-monospace, 'SFMono-Regular', Menlo, monospace; }
+  th, td { border-bottom: 1px solid #d8ceb8; padding: 3px 6px; text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  td.ok { color: var(--ok); font-weight: 700; } td.bad { color: var(--bad); font-weight: 700; }
+  canvas { display: block; }
+  .tablewrap { overflow-x: auto; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --paper: #1c1a17; --ink: #efe6d2; --card: #26231f; --muted: #a79d8c; }
+    :root:not([data-theme="light"]) button { background: #2f2b26; }
+    :root:not([data-theme="light"]) button:hover { background: #5a4a14; }
+  }
+</style>
+</head>
+<body>
+<h1>PANEL BRAWL <span>AUDIO LAB</span></h1>
+<p class="sub">Every sound is synthesized live (client/audio.js). Click anything to unlock audio.</p>
+
+<section>
+  <h2>Mixer</h2>
+  <div class="row">
+    <button id="unlock" class="primary">Unlock audio</button>
+    <span id="status">locked</span>
+    <label>Master <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8"></label>
+    <label><input id="mute" type="checkbox"> Mute</label>
+    <label>Music <input id="mvol" type="range" min="0" max="1" step="0.01" value="0.6"></label>
+    <label>Intensity <input id="int" type="range" min="0" max="1" step="0.01" value="0.3"> <span id="intv">0.30</span></label>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <label>Source X offset <input id="sx" type="range" min="-4000" max="4000" step="50" value="0"> <span id="sxv">0</span></label>
+    <label>Zoom <select id="zoom"><option value="1.3" selected>1.3 (gameplay)</option><option value="0.3">0.3 (whole comic)</option></select></label>
+    <label>Pitch <input id="pitch" type="range" min="0.5" max="2" step="0.01" value="1"> <span id="pv">1.00</span></label>
+    <span>voices: <b id="voices">0</b></span>
+  </div>
+</section>
+
+<section>
+  <h2>Music</h2>
+  <div class="grid" id="music"></div>
+</section>
+
+<div id="groups"></div>
+
+<section>
+  <h2>Stress tests</h2>
+  <div class="grid">
+    <button id="st-smg">SMG 14/s for 2s</button>
+    <button id="st-shotgun">Shotgun + 8 pellet hits</button>
+    <button id="st-chaos">Chaos (everything at once)</button>
+    <button id="st-far">Pistol walking away (0 → 4000)</button>
+  </div>
+</section>
+
+<section>
+  <h2>Offline analysis</h2>
+  <div class="row" style="margin-bottom:8px">
+    <button id="analyze" class="primary">Render + analyze every sound</button>
+    <span id="astatus"></span>
+  </div>
+  <div class="tablewrap"><table id="table"></table></div>
+</section>
+
+<script type="module">
+import { GameAudio, SOUND_GROUPS, SOUND_NAMES, MUSIC_KEYS, SOUNDS, renderSound, renderMusic, renderScene, analyze } from '../audio.js';
+
+const audio = new GameAudio();
+window.audio = audio;
+window.AudioLab = { GameAudio, SOUND_GROUPS, SOUND_NAMES, MUSIC_KEYS, SOUNDS, renderSound, renderMusic, renderScene, analyze };
+
+const $ = (id) => document.getElementById(id);
+const status = () => {
+  $('status').textContent = audio.ctx ? audio.ctx.state : 'locked';
+  $('voices').textContent = audio.voiceCount;
+};
+setInterval(status, 250);
+
+function unlock() {
+  audio.unlock();
+  audio.setListener(0, 0, +$('zoom').value);
+  status();
+}
+document.addEventListener('pointerdown', unlock, { capture: true });
+document.addEventListener('keydown', unlock, { capture: true });
+$('unlock').onclick = unlock;
+
+$('vol').oninput = (e) => audio.setVolume(+e.target.value);
+$('mute').onchange = (e) => audio.setMuted(e.target.checked);
+$('mvol').oninput = (e) => audio.setMusicVolume(+e.target.value);
+$('int').oninput = (e) => { audio.setIntensity(+e.target.value); $('intv').textContent = (+e.target.value).toFixed(2); };
+$('sx').oninput = (e) => { $('sxv').textContent = e.target.value; };
+$('pitch').oninput = (e) => { $('pv').textContent = (+e.target.value).toFixed(2); };
+$('zoom').onchange = (e) => audio.setListener(0, 0, +e.target.value);
+
+const opts = () => {
+  const x = +$('sx').value;
+  const o = { pitch: +$('pitch').value };
+  if (x !== 0) { o.x = x; o.y = 0; }
+  return o;
+};
+
+// music buttons
+const mus = $('music');
+for (const key of [...MUSIC_KEYS, null]) {
+  const b = document.createElement('button');
+  b.textContent = key ? key.toUpperCase() : 'STOP';
+  b.dataset.theme = key || '';
+  b.onclick = () => {
+    audio.music(key);
+    mus.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b && !!key));
+  };
+  mus.appendChild(b);
+}
+
+// one button per sound, grouped
+const groups = $('groups');
+for (const [group, names] of Object.entries(SOUND_GROUPS)) {
+  const sec = document.createElement('section');
+  sec.innerHTML = `<h2>${group}</h2>`;
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  for (const n of names) {
+    const b = document.createElement('button');
+    b.textContent = n;
+    b.dataset.sound = n;
+    b.onclick = () => audio.play(n, opts());
+    if (n === 'uiHover') b.onmouseenter = () => audio.play('uiHover');
+    grid.appendChild(b);
+  }
+  sec.appendChild(grid);
+  groups.appendChild(sec);
+}
+
+// stress tests
+$('st-smg').onclick = () => {
+  let i = 0;
+  const id = setInterval(() => {
+    audio.play('smg', opts());
+    if (i % 3 === 0) audio.play('hit', { x: 300, y: 0 });
+    if (++i >= 28) clearInterval(id);
+  }, 1000 / 14);
+};
+$('st-shotgun').onclick = () => {
+  audio.play('shotgun', opts());
+  for (let i = 0; i < 8; i++) audio.play('hit', { x: 200 + i * 10, y: 0 });
+  audio.play('hitmarker');
+};
+$('st-chaos').onclick = () => {
+  for (const n of ['explosionBig', 'explosion', 'barrel', 'shotgun', 'rail', 'ko', 'punchBig', 'quake', 'hit', 'hitCrit', 'killmarker']) {
+    audio.play(n, { x: (Math.random() - 0.5) * 1200, y: 0 });
+  }
+};
+$('st-far').onclick = () => {
+  let i = 0;
+  const id = setInterval(() => {
+    audio.play('pistol', { x: i * 250, y: 0 });
+    if (++i > 16) clearInterval(id);
+  }, 180);
+};
+
+// ---- offline analysis
+const fmt = (v, d = 3) => v.toFixed(d);
+const db = (v) => (v > 0 ? (20 * Math.log10(v)).toFixed(1) : '-inf');
+
+function sparkline(buffer, w = 160, h = 26) {
+  const c = document.createElement('canvas');
+  const dpr = window.devicePixelRatio || 1;
+  c.width = w * dpr; c.height = h * dpr; c.style.width = w + 'px'; c.style.height = h + 'px';
+  const g = c.getContext('2d');
+  g.scale(dpr, dpr);
+  const d = buffer.getChannelData(0);
+  const step = Math.max(1, Math.floor(d.length / w));
+  g.fillStyle = getComputedStyle(document.body).color;
+  for (let x = 0; x < w; x++) {
+    let m = 0;
+    for (let i = x * step; i < (x + 1) * step && i < d.length; i++) m = Math.max(m, Math.abs(d[i]));
+    const bh = Math.max(1, m * h);
+    g.fillRect(x, (h - bh) / 2, 1, bh);
+  }
+  return c;
+}
+
+// Renders every sound (at pitch 1 and at the +-4% extremes) and checks it.
+// peak = what the voice sends into the mix; preKnee = before the per-voice
+// safety knee (shows the design margin); loud = loudest 50 ms RMS window.
+// Returns rows: { name, peak, preKnee, rms, loud, duration, nominal, nodes, ok, notes }
+async function analyzeAll({ draw = true } = {}) {
+  const rows = [];
+  const tbl = $('table');
+  if (draw) tbl.innerHTML = '<tr><th>sound</th><th>peak</th><th>pre-knee</th><th>peak dBFS</th><th>RMS dBFS</th><th>50ms dBFS</th><th>audible s</th><th>nominal s</th><th>nodes</th><th>check</th><th>wave</th></tr>';
+  for (const name of SOUND_NAMES) {
+    let worst = null, preKnee = 0, durMax = 0;
+    for (const pitch of [1, 0.96, 1.04]) {
+      const r = await renderSound(name, { pitch });
+      const a = analyze(r.buffer);
+      durMax = Math.max(durMax, a.duration);
+      if (!worst || a.peak > worst.peak) worst = { ...a, nominal: r.nominal, budget: r.budget, nodes: r.nodes, buffer: r.buffer };
+      preKnee = Math.max(preKnee, analyze((await renderSound(name, { pitch, clip: false })).buffer).peak);
+    }
+    const notes = [];
+    if (worst.peak < 0.02) notes.push('silent');
+    if (worst.peak >= 1) notes.push('clips');
+    if (worst.nonFinite) notes.push('NaN');
+    if (durMax > worst.nominal + 1.2) notes.push('rings too long');
+    if (durMax >= worst.budget - 0.01) notes.push('hit render budget');
+    if (durMax < 0.02) notes.push('too short');
+    const row = {
+      name, peak: +worst.peak.toFixed(4), preKnee: +preKnee.toFixed(4), rms: +worst.rms.toFixed(4), loud: +worst.loud.toFixed(4),
+      duration: +durMax.toFixed(3), nominal: worst.nominal, nodes: worst.nodes, ok: notes.length === 0, notes: notes.join(', '),
+    };
+    rows.push(row);
+    if (draw) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${name}</td><td>${fmt(row.peak)}</td><td>${fmt(row.preKnee)}</td><td>${db(row.peak)}</td><td>${db(row.rms)}</td><td>${db(row.loud)}</td><td>${fmt(row.duration, 2)}</td><td>${fmt(row.nominal, 2)}</td><td>${row.nodes}</td><td class="${row.ok ? 'ok' : 'bad'}">${row.ok ? 'OK' : row.notes}</td><td></td>`;
+      tr.lastElementChild.appendChild(sparkline(worst.buffer));
+      tbl.appendChild(tr);
+    }
+  }
+  return rows;
+}
+
+async function analyzeMusic() {
+  const rows = [];
+  for (const key of MUSIC_KEYS) {
+    for (const intensity of [0, 1]) {
+      const buf = await renderMusic(key, { seconds: 8, intensity });
+      const a = analyze(buf);
+      rows.push({ name: `music:${key}@${intensity}`, peak: +a.peak.toFixed(4), rms: +a.rms.toFixed(4), loud: +a.loud.toFixed(4), duration: +a.duration.toFixed(2), nonFinite: a.nonFinite });
+    }
+  }
+  return rows;
+}
+
+// worst-case pile-up through the real master chain (compressor, limiter, soft clip)
+async function analyzeStress() {
+  const ev = [];
+  // (events start at 0.6s: Chrome's compressor is "cold" for the first few hundred ms of a fresh context)
+  for (const n of ['explosionBig', 'explosion', 'barrel', 'shotgun', 'rail', 'ko', 'punchBig', 'quake', 'hitCrit', 'killmarker', 'boss', 'victory']) ev.push({ name: n, t: 0.6, vol: 1.5, pan: 0 });
+  for (let i = 0; i < 8; i++) ev.push({ name: 'hit', t: 0.6, vol: 1.5 });
+  for (let i = 0; i < 28; i++) ev.push({ name: 'smg', t: 0.6 + i / 14, vol: 1.5 });
+  const buf = await renderScene(ev, { seconds: 4.5, music: 'hero', intensity: 1 });
+  const a = analyze(buf);
+  const single = analyze(await renderScene([{ name: 'pistol', t: 0.6 }], { seconds: 1.2 }));
+  return { stressPeak: +a.peak.toFixed(4), stressRms: +a.rms.toFixed(4), nonFinite: a.nonFinite, pistolThroughMaster: +single.peak.toFixed(4) };
+}
+
+window.AudioLab.analyzeAll = analyzeAll;
+window.AudioLab.analyzeMusic = analyzeMusic;
+window.AudioLab.analyzeStress = analyzeStress;
+
+$('analyze').onclick = async () => {
+  $('astatus').textContent = 'rendering…';
+  const t0 = performance.now();
+  const rows = await analyzeAll();
+  const bad = rows.filter((r) => !r.ok).length;
+  const mus = await analyzeMusic();
+  for (const m of mus) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${m.name}</td><td>${fmt(m.peak)}</td><td>–</td><td>${db(m.peak)}</td><td>${db(m.rms)}</td><td>${db(m.loud)}</td><td>${fmt(m.duration, 2)}</td><td>8.00</td><td></td><td class="${m.peak < 1 && m.peak > 0.02 ? 'ok' : 'bad'}">${m.peak < 1 && m.peak > 0.02 ? 'OK' : 'check'}</td><td></td>`;
+    $('table').appendChild(tr);
+  }
+  const s = await analyzeStress();
+  $('astatus').textContent = `${rows.length} sounds, ${bad} flagged · stress pile-up peak ${s.stressPeak} · ${Math.round(performance.now() - t0)} ms`;
+};
+</script>
+</body>
+</html>

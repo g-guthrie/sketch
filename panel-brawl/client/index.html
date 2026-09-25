@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panel Brawl</title>
+  <meta name="description" content="An online multiplayer 2D comic-book shooter. Every match is a freshly printed comic issue." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="menu" class="screen">
+    <div class="menu-inner">
+      <div class="logo" aria-label="Panel Brawl">
+        <span class="logo-a">PANEL</span>
+        <span class="logo-b">BRAWL!</span>
+      </div>
+      <p class="tagline">Every match is a brand-new comic. Fight across the panels.</p>
+
+      <div class="row">
+        <label class="caption">YOUR HERO NAME
+          <input id="name" maxlength="14" autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="caption">GENRE
+          <select id="theme">
+            <option value="">RANDOM ISSUE</option>
+            <option value="hero">SUPERHERO</option>
+            <option value="zombie">HORROR</option>
+            <option value="space">SCI-FI</option>
+            <option value="noir">NOIR</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="heroes" class="heroes"></div>
+
+      <div class="modes">
+        <section class="panel-box">
+          <h2>SOLO</h2>
+          <button class="btn big" data-action="solo-story">STORY <small>fight through the issue</small></button>
+          <button class="btn big alt" data-action="solo-brawl">BRAWL <small>vs ink-bots</small></button>
+          <label class="check"><input type="checkbox" id="chaos" /> WAKE THE INK <small>(comic villains join the brawl)</small></label>
+        </section>
+        <section class="panel-box online">
+          <h2>ONLINE</h2>
+          <button class="btn" data-action="host-story">HOST CO-OP STORY</button>
+          <button class="btn alt" data-action="host-brawl">HOST BRAWL</button>
+          <div class="join">
+            <input id="code" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false" />
+            <button class="btn" data-action="join">JOIN</button>
+          </div>
+          <p id="online-note" class="note"></p>
+        </section>
+      </div>
+      <p id="error" class="error"></p>
+      <details class="controls">
+        <summary>CONTROLS</summary>
+        <div class="grid">
+          <span>A / D</span><span>Move</span>
+          <span>Space / W</span><span>Jump &mdash; press again mid-air to double jump</span>
+          <span>S</span><span>Crouch &middot; S + Space drops through platforms</span>
+          <span>Shift</span><span>Dash (brief invulnerability)</span>
+          <span>Mouse</span><span>Aim &middot; Left click fire</span>
+          <span>Right click / V</span><span>Punch &mdash; third hit in a row is a KA-POW finisher</span>
+          <span>G</span><span>Throw an ink bomb</span>
+          <span>Q / wheel</span><span>Swap sidearm &harr; heavy weapon</span>
+          <span>E</span><span>Swap weapon pickup &middot; flip tables for cover</span>
+          <span>F</span><span>SPLASH PAGE super (when charged)</span>
+          <span>R</span><span>Reload &middot; T taunt &middot; Tab scores &middot; M mute &middot; Esc menu</span>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="menu-inner small">
+      <div class="logo small"><span class="logo-b">PAUSED</span></div>
+      <p id="pause-code" class="tagline"></p>
+      <button class="btn big" data-action="resume">BACK TO THE ACTION</button>
+      <button class="btn" data-action="mute">SOUND: ON</button>
+      <button class="btn alt" data-action="leave">CLOSE THE COMIC</button>
+    </div>
+  </div>
+
+  <div id="loading" class="screen hidden"><div class="loading">PRINTING YOUR COMIC...</div></div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

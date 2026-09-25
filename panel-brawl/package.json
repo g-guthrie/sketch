@@ -1,0 +1,18 @@
+{
+  "name": "panel-brawl",
+  "version": "0.1.0",
+  "description": "Online multiplayer 2D comic-book shooter. Every match is a freshly generated comic issue.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node tools/simtest.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

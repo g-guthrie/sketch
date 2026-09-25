@@ -1,0 +1,77 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Character Sheet</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    html, body { overflow: auto; background: #f3ead3; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script type="module">
+    import { drawCharacter, makeAnim, updateAnim, drawWeapon } from '../render/characters.js';
+    import { HEROES, HERO_KEYS, THEMES, THEME_KEYS } from '../../shared/themes.js';
+    import { comicText } from '../render/ink.js';
+
+    const params = new URLSearchParams(location.search);
+    const scale = Number(params.get('scale') || 2);
+    const c = document.getElementById('c');
+    const W = 1600, cell = 180 * scale / 2;
+    const poses = [
+      { name: 'idle', ent: { vx: 0, vy: 0, onGround: true, aim: 0 } },
+      { name: 'run', ent: { vx: 390, vy: 0, onGround: true, aim: 0.1 }, phase: 1.1 },
+      { name: 'aim up', ent: { vx: 0, vy: 0, onGround: true, aim: -1.1 } },
+      { name: 'jump', ent: { vx: 200, vy: -600, onGround: false, aim: -0.3 } },
+      { name: 'fall', ent: { vx: 100, vy: 600, onGround: false, aim: 0.5 } },
+      { name: 'crouch', ent: { vx: 0, vy: 0, onGround: true, crouch: true, aim: 0.2, h: 56 } },
+      { name: 'punch', ent: { vx: 0, vy: 0, onGround: true, aim: 0 }, melee: 0.1 },
+      { name: 'asleep', ent: { vx: 0, vy: 0, onGround: true, aim: 0 }, opts: { asleep: true } },
+    ];
+    const weapons = ['pistol', 'shotgun', 'smg', 'launcher', 'rail', 'blade'];
+    const rows = [];
+    HERO_KEYS.forEach((k, i) => rows.push({ label: HEROES[k].name, look: HEROES[k].look, weapon: weapons[i % weapons.length] }));
+    for (const tk of THEME_KEYS) for (const ek of ['grunt', 'gunner', 'flyer', 'brute', 'boss']) {
+      const e = THEMES[tk].enemies[ek];
+      rows.push({ label: `${tk}: ${e.name}`, look: e.look, weapon: null, enemy: ek });
+    }
+    const cols = poses.length;
+    c.width = W * scale / 2 * 1.2;
+    const rowH = cell * 1.25;
+    c.height = rows.length * rowH + 60;
+    const g = c.getContext('2d');
+    await document.fonts.load('30px Bangers');
+    g.fillStyle = '#f3ead3';
+    g.fillRect(0, 0, c.width, c.height);
+    rows.forEach((r, ri) => {
+      poses.forEach((p, pi) => {
+        const A = makeAnim(ri * 10 + pi);
+        const s = r.look.scale || 1;
+        const bigScale = Math.min(1, 1.6 / s);
+        const ent = { x: 0, y: 0, facing: 1, h: (p.ent.h || 92) * s, w: 36 * s, look: r.look, ...p.ent };
+        if (r.look.body === 'bat') { ent.h = 42; ent.w = 46; }
+        if (r.look.body === 'saucer') { ent.h = 34; ent.w = 64; }
+        if (r.look.body === 'brainjar') { ent.h = 150; ent.w = 150; }
+        for (let i = 0; i < 40; i++) updateAnim(A, ent, 1 / 60);
+        if (p.phase) A.phase = p.phase;
+        if (p.melee) { A.melee = p.melee; }
+        g.save();
+        const x = 150 + pi * cell * 1.05, y = 40 + ri * rowH + cell * 1.05;
+        g.translate(x, y);
+        g.scale(scale * bigScale, scale * bigScale);
+        drawCharacter(g, ent, A, { weapon: r.weapon, ...(p.opts || {}) });
+        g.restore();
+        if (ri === 0) comicText(g, p.name.toUpperCase(), x, 24, 22, { fill: '#fff', fill2: '#ffe14a', extrude: 2, outline: 3 });
+      });
+      g.save();
+      g.font = '18px Bangers';
+      g.fillStyle = '#141414';
+      g.fillText(r.label, 8, 40 + ri * rowH + 18);
+      g.restore();
+    });
+    document.title = 'ready';
+  </script>
+</body>
+</html>

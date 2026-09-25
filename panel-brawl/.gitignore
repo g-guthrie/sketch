@@ -1,0 +1,3 @@
+node_modules/
+client/dev/shots/
+*.log
