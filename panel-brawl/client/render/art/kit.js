@@ -1006,3 +1006,22 @@ export function spans(x0, x1) {
     mark(a, b) { used.push([a, b]); },
   };
 }
+
+// Per-canvas scene atmosphere. A backdrop records its air color (what
+// distance fades toward) and which side its key light comes from, so decor
+// and props painted afterwards on the same canvas sit in the same light.
+const ATMO = new WeakMap();
+export function setAtmo(ctx, a) {
+  try { if (ctx && ctx.canvas) ATMO.set(ctx.canvas, a); } catch (e) { /* ignore */ }
+}
+export function getAtmo(ctx) {
+  try { return (ctx && ctx.canvas && ATMO.get(ctx.canvas)) || null; } catch (e) { return null; }
+}
+
+// Flat translucent "color hold" that pushes a band back toward the air color.
+export function airWash(ctx, x, y, w, h, color, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  fillP(ctx, rectP(x, y, w, h), color);
+  ctx.restore();
+}

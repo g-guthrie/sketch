@@ -41,7 +41,7 @@ world.onLevel = (msg, prev) => {
   renderer.onLevel(msg, prev);
   audio.music(msg.comic.theme);
   audio.play('pageTurn');
-  hud.hintT = msg.transition === 'cover' ? 18 : hud.hintT;
+  hud.hintT = msg.transition === 'cover' ? 12 : hud.hintT;
   $('#loading').classList.add('hidden');
 };
 world.onError = (m) => {
@@ -90,20 +90,53 @@ for (const key of HERO_KEYS) {
 }
 
 function drawHeroCards(dt) {
+  // Each card is a little comic panel: paper, a sunburst in the hero's colours,
+  // a halftone fade and the heroic bust. Rendered at device resolution.
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const hexA = (hex, a) => {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  };
   for (const [key, h] of heroAnims) {
-    const g = h.canvas.getContext('2d');
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.clearRect(0, 0, 180, 180);
-    g.fillStyle = key === hero ? '#ffe14a' : '#fff7dc';
+    const c = h.canvas;
+    const look = HEROES[key].look;
+    const sel = key === hero;
+    const px = Math.max(180, Math.round((c.clientWidth || 180) * dpr));
+    if (c.width !== px) { c.width = px; c.height = px; }
+    const g = c.getContext('2d');
+    g.setTransform(px / 180, 0, 0, px / 180, 0, 0);
+    const accent = look.suit2 && look.suit2 !== '#1b1b1b' ? look.suit2 : look.cape || look.suit;
+    g.fillStyle = sel ? '#ffe14a' : '#fff4d6';
     g.fillRect(0, 0, 180, 180);
-    g.fillStyle = 'rgba(232,38,43,0.25)';
-    for (let y = 0; y < 180; y += 9) for (let x = (y / 9) % 2 ? 4.5 : 0; x < 180; x += 9) {
-      g.beginPath();
-      g.arc(x, y, 2.2 * (y / 180), 0, Math.PI * 2);
-      g.fill();
+    // sunburst behind the head
+    g.save();
+    g.translate(92, 62);
+    g.rotate(h.anim.t * (sel ? 0.12 : 0.04));
+    g.fillStyle = sel ? 'rgba(255,255,255,0.6)' : hexA(accent, 0.13);
+    g.beginPath();
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      g.moveTo(0, 0);
+      g.arc(0, 0, 190, a, a + Math.PI / 18);
+      g.closePath();
     }
+    g.fill();
+    g.restore();
+    // halftone fade rising from the bottom in the hero's suit colour
+    g.fillStyle = hexA(look.suit, sel ? 0.4 : 0.28);
+    g.beginPath();
+    for (let y = 60, row = 0; y <= 186; y += 7, row++) {
+      const r = ((y - 60) / 126) * 3.4;
+      if (r < 0.3) continue;
+      for (let x = row % 2 ? 3.5 : 0; x <= 184; x += 7) { g.moveTo(x + r, y); g.arc(x, y, r, 0, Math.PI * 2); }
+    }
+    g.fill();
     h.anim.t += dt;
-    drawPortrait(g, HEROES[key].look, 88, 96, 74, { anim: h.anim });
+    drawPortrait(g, look, 90, 99, 78, { anim: h.anim });
+    // inner panel keyline
+    g.strokeStyle = 'rgba(20,20,20,0.9)';
+    g.lineWidth = 2;
+    g.strokeRect(5, 5, 170, 170);
   }
 }
 
@@ -224,10 +257,29 @@ function toggleMute() {
   document.querySelector('[data-action="mute"]').textContent = `SOUND: ${audio.muted ? 'OFF' : 'ON'}`;
 }
 
+function pickPerk(key) {
+  if (!transport || !key) return;
+  transport.send({ type: 'pick', perk: key });
+  audio.play('uiClick');
+}
+
+// Mail-order ad page: click an ad (or press its number) to clip the coupon.
+addEventListener('pointerdown', (e) => {
+  if (!running || world.phase !== 'ads' || !hud.adRects.length) return;
+  const x = e.clientX * renderer.cam.dpr, y = e.clientY * renderer.cam.dpr;
+  const hit = hud.adRects.find((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+  if (hit) pickPerk(hit.key);
+}, { capture: true });
+
 input.onKey = (code, down) => {
   if (!running) return;
   if (code === 'Tab') hud.showScores = down;
   if (!down) return;
+  if (world.phase === 'ads' && world.ads && /^Digit[1-5]$/.test(code)) {
+    const key = world.ads.o[Number(code.slice(5)) - 1];
+    const me = world.meState;
+    if (key && me && me.picks > 0 && !(me.perks || []).includes(key)) pickPerk(key);
+  }
   if (code === 'Escape') setPaused(!paused);
   if (code === 'KeyM') toggleMute();
 };
@@ -270,6 +322,7 @@ function loop(now) {
   audio.setListener(renderer.cam.x, renderer.cam.y, renderer.cam.zoom);
   if (running) audio.setIntensity(world.intensity || 0);
   hud.compact = touch.active;
+  if (running && !paused) canvas.style.cursor = world.phase === 'ads' ? 'pointer' : 'none';
   if (running) renderer.frame(localPaused ? 0 : dt, input, audio);
   else {
     const ctx = renderer.ctx;
@@ -285,6 +338,6 @@ requestAnimationFrame(loop);
 // dev hooks: ?solo=story|brawl auto-starts (handy for screenshots / testing)
 if (params.get('solo')) {
   const mode = params.get('solo') === 'brawl' ? 'brawl' : 'story';
-  start({ name: nameInput.value || 'TESTER', hero, theme: params.get('theme') || undefined, local: true, mode, chaos: params.has('chaos'), botFill: Number(params.get('bots')) || (mode === 'brawl' ? 6 : 0) });
+  start({ name: nameInput.value || 'TESTER', hero, theme: params.get('theme') || undefined, local: true, mode, chaos: params.has('chaos'), botFill: params.has('bots') ? Number(params.get('bots')) || 0 : mode === 'brawl' ? 6 : 0 });
 }
 window.__pb = { world, renderer, fx, hud, audio, get transport() { return transport; } };

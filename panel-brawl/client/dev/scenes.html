@@ -90,9 +90,15 @@ function scenePanel(ctx, theme, scene, w, h, seed) {
   paintBackdrop(ctx, { scene, theme: th, w, h, seed });
   const tb = performance.now() - t0;
   paintFloor(ctx, { scene, theme: th, w, h, seed });
+  // same soft vignette the game's panel renderer applies
+  const vg = ctx.createRadialGradient(w / 2, h * 0.6, Math.min(w, h) * 0.3, w / 2, h * 0.6, Math.max(w, h) * 0.8);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, th.mono ? 'rgba(0,0,0,0.25)' : 'rgba(20,10,40,0.16)');
   const kinds = DECOR[theme][scene];
   paintDecor(ctx, { kind: kinds[seed % kinds.length], x: w * 0.36, y: h, theme: th, seed: seed + 1 });
   paintDecor(ctx, { kind: kinds[(seed + 1) % kinds.length], x: w * 0.9, y: h, theme: th, seed: seed + 2 });
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, w, h);
   // stairs + balcony on the left
   const n = 7, sw = 28, sh = 22;
   const sx = 40, sy = h - n * sh;

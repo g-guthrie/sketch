@@ -33,6 +33,8 @@ export const PLAYER = {
   hp: 150,
   respawnBrawl: 3,
   respawnStory: 6,
+  bleedout: 15,
+  reviveTime: 1.4,
   spawnInvuln: 2,
   bombs: 2,
   bombMax: 3,
@@ -72,6 +74,10 @@ export const F = {
   SUPER: 256,
   MELEE: 512,
   BOT: 1024,
+  DOWN: 2048,    // co-op: knocked down, waiting for a revive
+  REVIVE: 4096,  // reviving a teammate
+  KEY: 8192,     // carrying the panel key
+  CHARGE: 16384, // railgun charging
 };
 
 // Input edge flags that must never be dropped when commands are merged.

@@ -95,6 +95,9 @@ wss.on('connection', (ws) => {
       case 'input':
         if (room) room.input(cid, msg.cmds);
         break;
+      case 'pick':
+        if (room && typeof msg.perk === 'string') room.pick(cid, msg.perk.slice(0, 16));
+        break;
       case 'ping':
         send({ type: 'pong', t: msg.t });
         break;

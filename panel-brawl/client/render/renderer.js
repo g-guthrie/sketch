@@ -8,7 +8,12 @@ import { PanelArt } from './panels.js';
 import { paintLadder } from './scenes.js';
 import { drawDesk, drawDeskProps, drawBookBase, drawSpine, drawHandsBack, drawHandsFront, coverImage, drawFlipSheet, bookShadow, PW, PH } from './book.js';
 import { WEAPONS, shoulderOf, weaponOf } from '../../shared/weapons.js';
-import { LAYOUT } from '../../shared/constants.js';
+import { LAYOUT, PLAYER } from '../../shared/constants.js';
+import { ACT } from '../../shared/ai.js';
+import {
+  drawSwitch, drawGate, drawSeal, drawKeyIcon, drawStampIcon, drawSightCone, drawLaser, drawDiveLine, drawRedrawSketch,
+  drawGrenadeWarning, drawGrenade, drawDownedRing, drawUntieRing, drawStandTimer, drawPadlock,
+} from './objects.js';
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -273,6 +278,7 @@ export class Renderer {
       this.drawPickups(ctx, view);
       this.fx.drawBack(ctx);
       this.drawEnemies(ctx, view);
+      this.drawCivilians(ctx, view);
       this.drawPlayers(ctx, view);
       this.drawProjectiles(ctx, view);
       ctx.fillStyle = INK;
@@ -280,6 +286,10 @@ export class Renderer {
       this.drawHoleCovers(ctx);
       this.fx.drawWorld(ctx);
       this.drawTags(ctx, view);
+      for (const sd of world.stand) {
+        const P = lv.panels[sd.p];
+        if (P && this.inView(view, P.x1, P.y1, P.x2, P.y1 + 120)) drawStandTimer(ctx, P, sd.t, P.standT || 34, this.time);
+      }
       this.fx.drawTop(ctx);
       drawSpine(ctx, lv);
       drawHandsFront(ctx, lv, this.time);
@@ -389,19 +399,10 @@ export class Renderer {
       if (!this.inView(view, g.x, g.y, g.x + g.w, g.y + g.h)) continue;
       ctx.save();
       if (fade != null) ctx.globalAlpha = 1 - fade;
-      ctx.fillStyle = '#141414';
-      ctx.fillRect(g.x, g.y, g.w, g.h);
-      ctx.strokeStyle = '#f3ead3';
-      ctx.lineWidth = 2;
-      const r = rand(g.id + 5);
-      ctx.beginPath();
-      for (let i = 0; i < 16; i++) {
-        ctx.moveTo(g.x + r() * g.w, g.y + r() * g.h);
-        ctx.lineTo(g.x + r() * g.w, g.y + r() * g.h);
-      }
-      ctx.stroke();
+      drawGate(ctx, g, world.theme, this.time, world.solved.has(g.panel));
       ctx.restore();
     }
+    for (const list of world.seals.values()) for (const r of list) drawSeal(ctx, r, r.t, this.time);
     // arrow to the next panel in story mode
     if (world.mode === 'story') {
       for (const l of lv.links) {
@@ -463,7 +464,25 @@ export class Renderer {
       else if (pr.k === 'barrel') drawBarrel(ctx, pr, th, this.time);
       else if (pr.k === 'table') drawTable(ctx, pr, th);
       ctx.restore();
+      if (pr.c === 'key' && this.xray()) {
+        // X-RAY SPECS: see what's inside
+        ctx.save();
+        ctx.translate(pr.x + pr.w / 2, pr.y + pr.h / 2);
+        ctx.globalAlpha = 0.6 + 0.3 * Math.sin(this.time * 5);
+        drawKeyIcon(ctx, th, 0.9);
+        ctx.restore();
+      }
     }
+    for (const sw of world.switches) {
+      if (!this.inView(view, sw.x - 60, sw.y - 60, sw.x + 60, sw.y + 140)) continue;
+      if (world.panelState[sw.panel] === 'locked') continue;
+      drawSwitch(ctx, sw, th, this.time, world.hints.get(sw.panel) === 'switch');
+    }
+  }
+
+  xray() {
+    const me = this.world.meState;
+    return !!(me && me.perks && me.perks.includes('xray'));
   }
 
   drawPickups(ctx, view) {
@@ -477,7 +496,7 @@ export class Renderer {
       ctx.scale(sp, sp);
       // glow badge
       const badge = starburstPath(0, 0, 26, 36, 10, pk.id % 50, pk.t * 0.8);
-      ctx.fillStyle = pk.k === 'health' ? '#ffffff' : pk.k === 'bomb' ? '#ffe14a' : '#fff36b';
+      ctx.fillStyle = pk.k === 'health' ? '#ffffff' : pk.k === 'bomb' ? '#ffe14a' : pk.k === 'key' ? '#ffffff' : pk.k === 'stamp' ? '#ff3fa4' : '#fff36b';
       ctx.globalAlpha = 0.9;
       ctx.fill(badge);
       ctx.globalAlpha = 1;
@@ -512,6 +531,19 @@ export class Renderer {
         ctx.fillRect(-8, -3.5, 16, 5);
       } else if (pk.k === 'bomb') {
         drawBombIcon(ctx, 0, 2, 13, pk.t);
+      } else if (pk.k === 'key') {
+        drawKeyIcon(ctx, world.theme, 1.1);
+        ctx.font = `15px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = INK;
+        const kn = world.theme.keyName || 'KEY';
+        ctx.strokeText(kn, 0, 50);
+        ctx.fillStyle = '#ffd23f';
+        ctx.fillText(kn, 0, 50);
+        comicText(ctx, '!', 0, -58 + Math.sin(pk.t * 6) * 6, 34, { fill: '#ffffff', fill2: '#ffd23f', extrude: 3, outline: 4, seed: 1 });
+      } else if (pk.k === 'stamp') {
+        drawStampIcon(ctx, pk.t);
       }
       ctx.restore();
     }
@@ -533,19 +565,11 @@ export class Renderer {
       const humanoid = look.body === 'humanoid' || look.body === 'robot';
       if (humanoid) opts.weapon = null;
       // telegraphs
-      if (!e.asleep && e.act === 6) {
-        // gunner aiming: laser sight
-        const sx = e.x + e.facing * 10, sy = e.y - e.h * 0.72;
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255,40,40,0.8)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([10, 8]);
-        ctx.lineDashOffset = -this.time * 60;
-        ctx.beginPath();
-        ctx.moveTo(sx, sy);
-        ctx.lineTo(sx + Math.cos(e.aim) * 900, sy + Math.sin(e.aim) * 900);
-        ctx.stroke();
-        ctx.restore();
+      if (!e.asleep && e.st === 3) {
+        if (e.aware === false && e.act !== ACT.alert) drawSightCone(ctx, world.phys, e, this.time);
+        if (e.act === ACT.aim) drawLaser(ctx, world.phys, e, this.time);
+        if (e.act === ACT.windup && e.telKind === 'dive' && e.telX != null && e.tel > 0) drawDiveLine(ctx, e, this.time);
+        if (e.act === ACT.draw && e.telX != null) drawRedrawSketch(ctx, e, this.time);
       }
       const windup = !e.asleep && (e.act === 2) && (e.k === 'brute' || e.k === 'boss');
       ctx.save();
@@ -568,14 +592,59 @@ export class Renderer {
         ctx.stroke();
         ctx.restore();
       }
+      if (e.elite && !e.asleep) opts.rim = '#ffd23f';
       drawCharacter(ctx, e, e.anim, opts);
       ctx.restore();
+      if (e.elite && !e.asleep && e.st === 3) {
+        const ny = e.y - e.h - 44;
+        ctx.font = `20px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = INK;
+        ctx.strokeText(e.name, e.x, ny + 8);
+        ctx.fillStyle = '#ffd23f';
+        ctx.fillText(e.name, e.x, ny + 8);
+        if (e.poise != null) {
+          const bw = 70;
+          ctx.fillStyle = INK;
+          ctx.fillRect(e.x - bw / 2 - 2, ny + 30, bw + 4, 7);
+          ctx.fillStyle = e.stagger ? '#fff36b' : '#23d5e8';
+          ctx.fillRect(e.x - bw / 2, ny + 32, bw * (e.stagger ? 1 : clamp(e.poise, 0, 1)), 3);
+        }
+      }
+      if (e.hasKey && this.xray() && !e.asleep) {
+        ctx.save();
+        ctx.translate(e.x, e.y - e.h - 30);
+        drawKeyIcon(ctx, world.theme, 0.8);
+        ctx.restore();
+      }
       if (!e.asleep && e.st === 3 && e.hp < e.maxHp && e.k !== 'boss') {
         const bw = Math.max(40, e.w * 1.2), by = e.y - e.h - 18;
         ctx.fillStyle = INK;
         ctx.fillRect(e.x - bw / 2 - 2, by - 2, bw + 4, 9);
         ctx.fillStyle = '#e8262b';
         ctx.fillRect(e.x - bw / 2, by, bw * clamp(e.hp / e.maxHp, 0, 1), 5);
+      }
+    }
+  }
+
+  drawCivilians(ctx, view) {
+    const world = this.world;
+    for (const c of world.civs.values()) {
+      if (!this.inView(view, c.x - 100, c.y - 160, c.x + 100, c.y + 40)) continue;
+      const opts = { flash: c.anim.flash > 0 ? 1 : 0, hurt: c.anim.hurt };
+      const ps = world.panelState[c.panel];
+      if (world.mode === 'story' && ps !== 'active' && ps !== 'cleared') opts.asleep = true;
+      if (world.theme.mono) opts.rim = '#f2efe6';
+      drawCharacter(ctx, c, c.anim, opts);
+      if (c.st === 'tied' && c.u > 0) drawUntieRing(ctx, c);
+      if (c.st === 'tied' && c.hp < 60) {
+        const bw = 44, by = c.y - 92;
+        ctx.fillStyle = INK;
+        ctx.fillRect(c.x - bw / 2 - 2, by - 2, bw + 4, 8);
+        ctx.fillStyle = '#ffd23f';
+        ctx.fillRect(c.x - bw / 2, by, bw * clamp(c.hp / 60, 0, 1), 4);
       }
     }
   }
@@ -603,7 +672,23 @@ export class Renderer {
         ctx.stroke(b);
         ctx.restore();
       }
+      if (p.charging || p.chargeT > 0) {
+        ctx.save();
+        const r = 18 + Math.sin(this.time * 40) * 4;
+        ctx.fillStyle = 'rgba(35,213,232,0.45)';
+        ctx.beginPath();
+        ctx.arc(p.x + Math.cos(p.aim) * 50, p.y - p.h + 22 + Math.sin(p.aim) * 50, r, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      }
       drawCharacter(ctx, p, p.anim, opts);
+      if (p.downed) drawDownedRing(ctx, p, this.time, PLAYER.bleedout);
+      if (p.hasKey) {
+        ctx.save();
+        ctx.translate(p.x, p.y - (p.h || 92) - (p.id === world.me ? 26 : 56));
+        drawKeyIcon(ctx, world.theme, 0.8);
+        ctx.restore();
+      }
     }
   }
 
@@ -620,12 +705,12 @@ export class Renderer {
       ctx.strokeText(p.name, p.x, y);
       ctx.fillStyle = p.color;
       ctx.fillText(p.name, p.x, y);
-      if (world.mode === 'brawl' || p.hp < 150) {
+      if (world.mode === 'brawl' || p.hp < (p.maxHp || 150)) {
         const bw = 44;
         ctx.fillStyle = INK;
         ctx.fillRect(p.x - bw / 2 - 2, y + 6, bw + 4, 8);
         ctx.fillStyle = p.hp > 75 ? '#35c24a' : p.hp > 38 ? '#ffc21f' : '#e8262b';
-        ctx.fillRect(p.x - bw / 2, y + 8, bw * clamp(p.hp / 150, 0, 1), 4);
+        ctx.fillRect(p.x - bw / 2, y + 8, bw * clamp(p.hp / (p.maxHp || 150), 0, 1), 4);
       }
     }
   }
@@ -683,6 +768,10 @@ export class Renderer {
         case 'bomb':
           drawBombIcon(ctx, pr.x, pr.y, 11, pr.age * 4, pr.fuse != null ? clamp(1 - pr.age / pr.fuse, 0, 1) : 1);
           break;
+        case 'egren':
+          drawGrenadeWarning(ctx, pr, this.time);
+          drawGrenade(ctx, pr, this.time);
+          break;
         case 'orb':
         case 'bossorb': {
           const r = pr.k === 'bossorb' ? 15 : 11;
@@ -706,6 +795,7 @@ export class Renderer {
         case 'acid': {
           ctx.translate(pr.x, pr.y);
           ctx.rotate(a);
+          if (pr.w === 'bile') ctx.scale(1.7, 1.7);
           const blob = cloudPath(0, 0, 11, 8, 6, 5);
           ctx.fillStyle = '#7fd13b';
           ctx.fill(blob);
@@ -837,14 +927,14 @@ function drawTable(ctx, pr, th) {
     ctx.translate(cx, y + h);
     ctx.rotate(-pr.dir * (1 - k) * Math.PI / 2);
     ctx.fillStyle = col;
-    ctx.fillRect(-9, -80, 18, 80);
+    ctx.fillRect(-9, -60, 18, 60);
     ctx.fillStyle = halftone(ctx, rgba(shade(col, -0.45), 0.8), 4, 1);
-    ctx.fillRect(-9, -80, 9, 80);
+    ctx.fillRect(-9, -60, 9, 60);
     ctx.lineWidth = 3.5;
-    ctx.strokeRect(-9, -80, 18, 80);
+    ctx.strokeRect(-9, -60, 18, 60);
     ctx.lineWidth = 3;
     ctx.fillStyle = shade(col, -0.3);
-    for (const ly of [-70, -18]) {
+    for (const ly of [-52, -16]) {
       ctx.fillRect(pr.dir * 9, ly, pr.dir * 40, 6);
       ctx.strokeRect(pr.dir * 9, ly, pr.dir * 40, 6);
     }

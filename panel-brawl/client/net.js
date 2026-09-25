@@ -32,6 +32,7 @@ export class LocalTransport {
   }
 
   send(msg) {
+    if (msg.type === 'pick') { this.room.pick(this.cid, msg.perk); return; }
     if (msg.type !== 'input') return;
     if (this.lag) this.outbox.push({ at: performance.now() + this.lag / 2, msg });
     else this.room.input(this.cid, msg.cmds);

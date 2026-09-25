@@ -92,6 +92,11 @@ export function botThink(g, p) {
     b.targetId = best ? best.id : null;
     b.targetKind = best ? best.kind : null;
   }
+  if (g.mode === 'story') for (const e of g.enemies.values()) if (e.st === 'active' && !e.aware && Math.hypot(e.x - p.x, e.y - p.y) < 900) {
+    // sneak up on unaware guards from behind and punch
+    const P = panelOf(g, e.x, e.y);
+    if (P.id === myP0(g, p).id) { b.targetId = e.id; b.targetKind = 'e'; b.sneak = true; }
+  }
   const t = b.targetId == null ? null : b.targetKind === 'p' ? g.players.get(b.targetId) : g.enemies.get(b.targetId);
   const target = t && (t.kind === 'p' ? t.alive : t.st === 'active') ? t : null;
 
@@ -116,7 +121,12 @@ export function botThink(g, p) {
     const tP = panelOf(g, target.x, target.y);
     const visible = los(g, sh.x, sh.y, target.x, target.y - target.h * 0.6);
     const dist = Math.hypot(target.x - p.x, target.y - p.y);
-    if (tP.id === myP.id || (visible && dist < 700)) {
+    if (target.kind === 'e' && !target.aware && tP.id === myP.id) {
+      // stealth: creep up behind and punch
+      goal = { x: target.x - target.facing * 30, y: target.y };
+      b.sneaking = true;
+    } else if (tP.id === myP.id || (visible && dist < 700)) {
+      b.sneaking = false;
       combat = true;
       const pref = PREF_DIST[wk] || 350;
       const dx = target.x - p.x;
@@ -125,7 +135,11 @@ export function botThink(g, p) {
         b.strafe = rng.f() < 0.5 ? -1 : 1;
       }
       let gx;
-      if (Math.abs(dx) > pref + 120) gx = target.x - Math.sign(dx) * pref;
+      if (target.shieldUp && Math.sign(p.x - target.x) === target.facing) {
+        // don't plink a riot shield: get in close, punch it or hop over it
+        gx = target.x - target.facing * 20;
+        if (Math.abs(dx) < 110 && p.onGround && rng.f() < 0.04) { cmd.jumpP = true; b.jumpHold = 0.35; }
+      } else if (Math.abs(dx) > pref + 120) gx = target.x - Math.sign(dx) * pref;
       else if (Math.abs(dx) < pref - 120) gx = p.x - Math.sign(dx || 1) * 200;
       else gx = p.x + b.strafe * 160;
       goal = { x: gx, y: target.y };
@@ -135,9 +149,24 @@ export function botThink(g, p) {
     }
   }
   if (pickupGoal && (!combat || pickupGoal.d < 260)) goal = { x: pickupGoal.x, y: pickupGoal.y };
+  let objective = null;
+  if (g.mode === 'story' && (!combat || !target)) {
+    objective = storyObjective(g, p, myP, sh, b);
+    // an objective we can't seem to reach gets shelved for a while
+    if (objective && objective.key) {
+      if (b.objKey !== objective.key) { b.objKey = objective.key; b.objT = 0; }
+      b.objT += DT;
+      if (b.objT > 9) { (b.skip ||= {})[objective.key] = b.t + 25; b.objKey = null; }
+    }
+    if (objective) {
+      goal = objective.goal;
+      if (objective.cmd) Object.assign(cmd, objective.cmd);
+    }
+  }
   if (!goal) {
     // wander toward the middle of a random panel
-    if (!b.wander || b.t > b.wanderUntil) {
+    if (b.wander == null || b.t > b.wanderUntil || b.wanderV !== g.levelVersion || !g.level.panels[b.wander]) {
+      b.wanderV = g.levelVersion;
       const P = g.level.panels[Math.floor(rng.f() * g.level.panels.length)];
       b.wander = P.id;
       b.wanderUntil = b.t + 8;
@@ -156,7 +185,16 @@ export function botThink(g, p) {
         if (goal.climb < 0) cmd.up = true; else cmd.down = true;
       } else cmd.mx = Math.sign(dx);
     } else if (Math.abs(dx) > 24) cmd.mx = Math.sign(dx);
-    if (p.climb && !goal.climb) cmd.up = goal.y < p.y;
+    if (p.climb && !goal.climb) {
+      if (goal.y < p.y - 30) cmd.up = true;
+      else if (goal.y > p.y + 30) cmd.down = true;
+      else { cmd.jumpP = true; b.jumpHold = 0.2; }
+    }
+    // goal far below but we're parked on something solid: walk off the edge
+    if (!p.climb && !goal.climb && goal.y > p.y + 80 && Math.abs(dx) <= 24 && p.onGround && !p.groundOneway) {
+      if (!b.edgeDir) b.edgeDir = rng.f() < 0.5 ? -1 : 1;
+      cmd.mx = b.edgeDir;
+    } else b.edgeDir = 0;
 
     if (!p.climb) {
       const above = goal.y < p.y - 90;
@@ -171,13 +209,26 @@ export function botThink(g, p) {
   if (cmd.mx !== 0 && Math.abs(p.x - b.lastX) < 1.2 && !p.climb) b.stuckT += DT; else b.stuckT = Math.max(0, b.stuckT - DT * 2);
   b.lastX = p.x;
   if (b.stuckT > 0.25 && p.onGround) { cmd.jumpP = true; b.jumpHold = 0.35; }
-  if (b.stuckT > 1.2) { b.unstickT = 0.7; b.unstickDir = -cmd.mx || 1; b.stuckT = 0; }
-  if (b.unstickT > 0) { b.unstickT -= DT; cmd.mx = b.unstickDir; }
+  if (b.stuckT > 1.2) { b.unstickT = 0.5 + rng.f() * 0.6; b.unstickDir = -cmd.mx || 1; b.stuckT = 0; b.runJump = 0; }
+  if (b.unstickT > 0) {
+    b.unstickT -= DT;
+    cmd.mx = b.unstickDir;
+    if (b.unstickT <= 0) b.runJump = 0.15 + rng.f() * 0.35;
+  } else if (b.runJump > 0) {
+    // take a running jump at whatever stopped us
+    b.runJump -= DT;
+    if (b.runJump <= 0 && p.onGround) { cmd.jumpP = true; b.jumpHold = 0.4; }
+  }
 
   if (b.jumpHold > 0) { b.jumpHold -= DT; cmd.jump = true; }
 
   // ---- aiming & attacking ----
-  if (target) {
+  if (target && b.sneaking && !target.aware) {
+    const dist = Math.hypot(target.x - p.x, target.y - p.y);
+    cmd.aim = Math.atan2(target.y - target.h * 0.5 - sh.y, target.x - sh.x);
+    if (dist < 330 && p.onGround && Math.abs(target.y - p.y) < 20 && !cmd.jumpP) cmd.down = true;
+    if (dist < 64) cmd.meleeP = true;
+  } else if (target) {
     const tx = target.x, ty = target.y - target.h * 0.55;
     const W = WEAPONS[wk];
     const spd = W.speed || 3000;
@@ -204,6 +255,7 @@ export function botThink(g, p) {
       }
     }
     if (dist < 75 && wk !== 'blade' && rng.f() < 0.25) cmd.meleeP = true;
+    if (target.shieldUp && Math.sign(p.x - target.x) === target.facing) { cmd.fire = false; if (dist < 80) cmd.meleeP = true; }
     if (p.heavy && p.slot === 0 && rng.f() < 0.05) cmd.swapP = true;
     if (visible && p.bombs > 0 && b.bombT <= 0 && dist < 520 && dist > 150) {
       cmd.bombP = true;
@@ -215,6 +267,15 @@ export function botThink(g, p) {
       cmd.dashP = true;
       b.dashT = 2 + rng.f() * 3;
     }
+  } else if (objective && objective.aimAt) {
+    const o = objective.aimAt;
+    cmd.aim = Math.atan2(o.y - sh.y, o.x - sh.x);
+    if (objective.fire) {
+      if (WEAPONS[wk].melee) { if (p.slot === 1 && p.cd <= 0) cmd.swapP = true; }
+      else cmd.fire = true;
+    }
+    if (objective.bomb && p.bombs > 0 && rng.f() < 0.2) cmd.bombP = true;
+    if (objective.punch) cmd.meleeP = rng.f() < 0.3;
   } else {
     const want = cmd.mx !== 0 ? (cmd.mx > 0 ? 0 : Math.PI) : p.aim;
     cmd.aim = want;
@@ -222,6 +283,84 @@ export function botThink(g, p) {
     if (p.heavy && p.slot === 0) cmd.swapP = true;
   }
   return cmd;
+}
+
+function myP0(g, p) { return panelOf(g, p.x, p.y); }
+
+// Story mode: what should a helpful bot be doing when nothing needs shooting?
+export function storyObjective(g, p, myP, sh, b) {
+  const skip = (k) => b.skip && b.skip[k] > b.t;
+  // pick up a downed buddy
+  for (const o of g.players.values()) {
+    if (o === p || !o.downed) continue;
+    const d = Math.hypot(o.x - p.x, o.y - p.y);
+    if (d < 70) return { goal: null, cmd: { interactP: !p.revTarget } };
+    if (panelOf(g, o.x, o.y).id === myP.id || d < 700) return { goal: { x: o.x, y: o.y } };
+  }
+  if (p.revTarget != null) return { goal: null };
+  // untie hostages
+  for (const c of g.civs.values()) {
+    if (c.st !== 'tied' || c.panel !== myP.id || skip('civ' + c.id)) continue;
+    if (Math.abs(c.x - p.x) < 50 && Math.abs(c.y - p.y) < 60) return { goal: null, cmd: { interactP: c.by !== p.id } };
+    return { goal: { x: c.x, y: c.y }, key: 'civ' + c.id };
+  }
+  const lv = g.level;
+  // stamps are always worth a detour inside the current panel
+  for (const pk of g.pickups.values()) {
+    if (pk.active && (pk.k === 'stamp' || (pk.k === 'key' && !p.hasKey)) && !skip('pk' + pk.id) && panelOf(g, pk.x, pk.y + 30).id === myP.id) return { goal: { x: pk.x, y: pk.y + 34 }, key: 'pk' + pk.id };
+  }
+  const frontierId = lv.path.find((id) => g.panelState[id] !== 'cleared');
+  // locked exit out of the panel we're in?
+  for (const gate of lv.gates) {
+    if (gate.panel !== myP.id || g.gatesOpen.has(gate.id) || !gate.lock || g.panelState[myP.id] !== 'cleared') continue;
+    const gx = gate.x + gate.w / 2, gy = gate.y + gate.h;
+    if (gate.lock === 'key') {
+      if (p.hasKey) return { goal: { x: gx + (gate.kind === 'door' ? (gx > myP.x2 - 5 ? -40 : 40) : 0), y: gate.kind === 'door' ? gy : gate.y } };
+      for (const pk of g.pickups.values()) if (pk.active && pk.k === 'key') return { goal: { x: pk.x, y: pk.y + 34 } };
+      for (const pr of g.props.values()) if (pr.contains === 'key') {
+        // bust the crate open: shoot it if we can see it, else walk up and punch
+        const cx = pr.x + pr.w / 2, cy = pr.y + pr.h / 2;
+        const hit = raycast(g.phys, sh.x, sh.y, cx, cy);
+        if (hit && hit.rect.prop === pr.id && Math.hypot(cx - sh.x, cy - sh.y) < 700) return { goal: null, aimAt: { x: cx, y: cy }, fire: true };
+        return { goal: { x: cx - Math.sign(cx - p.x) * 90, y: pr.y + pr.h }, aimAt: { x: cx, y: cy }, punch: true, key: 'crate' + pr.id };
+      }
+      for (const o of g.players.values()) if (o.hasKey && o !== p) return { goal: { x: gx, y: gy } };
+    } else if (gate.lock === 'switch') {
+      let near = null, nd = Infinity;
+      for (const sw of g.switches) {
+        if (sw.panel !== myP.id || sw.done || sw.t > 1.2) continue;
+        const d = Math.hypot(sw.x - sh.x, sw.y - sh.y);
+        if (los(g, sh.x, sh.y, sw.x, sw.y) && d < 900) return { goal: null, aimAt: sw, fire: true };
+        if (d < nd) { nd = d; near = sw; }
+      }
+      if (near) return { goal: { x: near.x, y: near.y + 70 } };
+    } else if (gate.lock === 'crack') {
+      const d = Math.hypot(gx - p.x, gate.y + gate.h / 2 - p.y);
+      for (const pr of g.props.values()) {
+        if (pr.k !== 'barrel' || pr.panel !== myP.id || Math.hypot(pr.x - gx, pr.y - gy) > 240) continue;
+        const bx = pr.x + pr.w / 2, by = pr.y + pr.h / 2;
+        const bd = Math.hypot(bx - p.x, by - p.y);
+        const hit = raycast(g.phys, sh.x, sh.y, bx, by);
+        const see = !hit || hit.rect.prop === pr.id;
+        // shoot the barrel from a safe distance
+        if (bd > 250 && see) return { goal: null, aimAt: { x: bx, y: by }, fire: true };
+      }
+      if (d < 300) return { goal: d < 150 ? { x: p.x - Math.sign(gx - p.x) * 80, y: p.y } : null, aimAt: { x: gx, y: gate.y + gate.h / 2 - 40 }, bomb: true };
+      return { goal: { x: gx - Math.sign(gx - p.x) * 200, y: gate.kind === 'door' ? gate.y + gate.h : myP.y2 } };
+    }
+  }
+  if (frontierId == null) return null;
+  let F = lv.panels[frontierId];
+  // a shut puzzle exit on the way? head for that panel first
+  for (const id of lv.path) {
+    if (id === frontierId) break;
+    const gate = lv.gates.find((gt) => gt.panel === id);
+    if (gate && !g.gatesOpen.has(gate.id)) { F = lv.panels[id]; break; }
+  }
+  if (F.id === myP.id) return { goal: { x: (F.x1 + F.x2) / 2 + Math.sin(g.tick / 90) * 120, y: F.y2 } };
+  const link = nextLink(g, myP.id, F.id);
+  if (link) return { goal: linkGoal(link, myP, p) };
+  return null;
 }
 
 function linkGoal(link, myP, p) {

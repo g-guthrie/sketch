@@ -11,7 +11,7 @@ const W = NW, B = NB, RED = NR;
 
 // White rain over dark areas, black rain over the lit areas.
 function noirRain(ctx, R, w, h, lit, n = 1, o = {}) {
-  const cnt = Math.round((w * h) / 2600 * n);
+  const cnt = Math.round((w * h) / 4200 * n);
   const seed = (R() * 1e6) | 0;
   rain(ctx, mkR(seed), 0, 0, w, h, cnt, { angle: o.angle || 1.38, len: o.len || 34, color: W, lw: 1.2 });
   if (lit) {
@@ -234,6 +234,7 @@ export function alley(ctx, w, h, R) {
   });
   strokeP(ctx, lineP(-5, groundY, w + 5, groundY), 2, W);
   noirRain(ctx, R, w, groundY, lit, 1);
+  return { air: '#9a9a9a', light: -1 };
 }
 
 // ------------------------------------------------------------------ office
@@ -245,31 +246,38 @@ export function office(ctx, w, h, R) {
   const ww = Math.min(Math.max(220, w * 0.3), 420), wh = Math.min(h * 0.5, 420);
   const wx = winLeft ? Math.max(40, w * 0.06) : w - Math.max(40, w * 0.06) - ww, wy = h * 0.1;
 
-  // --- projected venetian-blind light across the room
+  // lower wall: mid grey (dot screen) so fighters read against it
+  const railY = Math.round(h * 0.42);
+  const low = rectP(-5, railY, w + 10, floorY - railY);
+  fillP(ctx, low, W);
+  dotsIn(ctx, low, B, 5, 1.55);
+  fillP(ctx, rectP(-5, railY - 6, w + 10, 6), B);
+  strokeP(ctx, lineP(-5, railY, w + 5, railY), 1.4, W);
+
+  // --- light through the venetian blinds: a lit wedge crossed by slat shadows
   const dir = winLeft ? 1 : -1;
-  const stripes = P();
-  const slat = 26, gap = 16;
-  const sx0 = winLeft ? wx + ww * 0.4 : wx + ww * 0.6;
-  const skew = 0.55 * dir;
-  for (let i = 0; i < 20; i++) {
-    const y0 = wy + 30 + i * (slat + gap);
-    if (y0 > floorY + 40) break;
-    const len = w * 1.2;
-    stripes.moveTo(sx0, y0);
-    stripes.lineTo(sx0 + dir * len, y0 + len * 0.34);
-    stripes.lineTo(sx0 + dir * len, y0 + len * 0.34 + slat * 1.3);
-    stripes.lineTo(sx0, y0 + slat);
-    stripes.closePath();
-  }
-  void skew;
   const lightArea = polyP(winLeft
-    ? [[wx + ww, wy], [w + 40, wy + 120], [w + 40, h + 40], [wx + ww * 0.3, h + 40]]
-    : [[wx, wy], [-40, wy + 120], [-40, h + 40], [wx + ww * 0.7, h + 40]]);
+    ? [[wx + ww, wy + wh * 0.35], [w + 40, wy + wh * 0.6], [w + 40, h + 40], [wx + ww * 0.2, h + 40]]
+    : [[wx, wy + wh * 0.35], [-40, wy + wh * 0.6], [-40, h + 40], [wx + ww * 0.8, h + 40]]);
+  const shadows = P();
+  const sx0 = winLeft ? wx + ww * 0.5 : wx + ww * 0.5;
+  const period = 58;
+  for (let i = -2; i < 26; i++) {
+    const y0 = wy + wh * 0.3 + i * period;
+    if (y0 > h + 60) break;
+    const len = w * 1.3;
+    shadows.moveTo(sx0, y0);
+    shadows.lineTo(sx0 + dir * len, y0 + len * 0.3);
+    shadows.lineTo(sx0 + dir * len, y0 + len * 0.3 + 15);
+    shadows.lineTo(sx0, y0 + 7);
+    shadows.closePath();
+  }
   ctx.save();
   ctx.clip(lightArea);
-  fillP(ctx, stripes, W);
-  // light falls off with distance from the window
-  halftoneGradient(ctx, 0, 0, w, h, B, { spacing: 7, dir: winLeft ? 'right' : 'left', from: 0.35, maxR: 4.3 });
+  fillP(ctx, rectP(0, 0, w, h), W);
+  fillP(ctx, shadows, B);
+  // the light falls off with distance from the window
+  halftoneGradient(ctx, 0, 0, w, h, B, { spacing: 7, dir: winLeft ? 'right' : 'left', from: 0.4, to: 1.3, maxR: 4.3 });
   ctx.restore();
 
   // --- the window & city
@@ -384,15 +392,16 @@ export function office(ctx, w, h, R) {
   // floor boards
   const fl = rectP(-5, floorY, w + 10, h - floorY + 5);
   fillP(ctx, fl, W);
-  dotsIn(ctx, fl, B, 5, 1.6);
+  dotsIn(ctx, fl, B, 5, 1.1);
   clipped(ctx, fl, () => {
     const b = P();
-    for (let y = floorY + 10; y < h; y += 10) { b.moveTo(0, y); b.lineTo(w, y); }
-    strokeP(ctx, b, 1.2, B);
+    for (let y = floorY + 13; y < h; y += 13) { b.moveTo(0, y); b.lineTo(w, y); }
+    strokeP(ctx, b, 1.1, B);
   });
   strokeP(ctx, lineP(-5, floorY, w + 5, floorY), 3, B);
   fillP(ctx, rectP(-5, floorY - 12, w + 10, 12), B);
   strokeP(ctx, lineP(-5, floorY - 12, w + 5, floorY - 12), 1.4, W);
+  return { air: '#9a9a9a', light: winLeft ? -1 : 1 };
 }
 
 // ------------------------------------------------------------------ club
@@ -549,58 +558,36 @@ export function club(ctx, w, h, R) {
   // stage front
   const apron = rectP(-5, stageY + 4, w + 10, 34);
   fillP(ctx, apron, B);
+  fillP(ctx, rectP(-5, stageY + 30, w + 10, 8), W);
+  hatchIn(ctx, rectP(-5, stageY + 30, w + 10, 8), B, 3.6, 1.1, true);
   strokeP(ctx, lineP(-5, stageY + 4, w + 5, stageY + 4), 3, W);
   const bulbs = P();
   for (let x = 20; x < w; x += 40) circP(x, stageY + 20, 4, bulbs);
   fillP(ctx, bulbs, W);
 
-  // audience silhouettes (low, dark, rim-lit) + table lamps
+  // the room in front of the stage: smoky, lit by the stage (mid-light)
   const at = stageY + 38;
-  const aud = P();
-  let ax = R.r(10, 50);
-  while (ax < w) {
-    const kind = R();
-    const hx = ax, hy = at + R.r(34, 46);
-    circP(hx, hy, 11, aud);
-    aud.moveTo(hx - 24, at + 80); aud.quadraticCurveTo(hx - 22, hy + 14, hx, hy + 12); aud.quadraticCurveTo(hx + 22, hy + 14, hx + 24, at + 80); aud.closePath();
-    if (kind < 0.5) { ellP(hx, hy - 8, 17, 4, 0, aud); aud.rect(hx - 10, hy - 20, 20, 12); }
-    ax += R.r(46, 90);
-  }
-  fillP(ctx, aud, B);
-  strokeP(ctx, aud, 1.2, W);
-  const nt = Math.max(2, Math.round(w / 260));
+  const room = rectP(-5, at, w + 10, h - at + 5);
+  fillP(ctx, room, W);
+  clipped(ctx, room, () => halftoneGradient(ctx, 0, at, w, floorY - at, B, { spacing: 6, dir: 'down', from: 0, to: 1.6, maxR: 3.8 }));
+  // a few café tables: black pedestals, white cloths, red lamps
+  const nt = Math.max(1, Math.round(w / 420));
   for (let i = 0; i < nt; i++) {
-    const tx = ((i + R.r(0.2, 0.8)) / nt) * w, ty = at + 62;
-    ringGlow(ctx, tx, ty - 10, [{ r: 46, c: B }], { spacing: 5 });
-    halftoneGradient(ctx, tx - 46, ty - 56, 92, 92, W, { spacing: 5, dir: 'center', cx: tx, cy: ty - 10, from: 0.4, maxR: 3 });
-    inked(ctx, ellP(tx, ty + 6, 36, 7), W, 1.6, B);
-    const lampP = polyP([[tx - 10, ty - 22], [tx + 10, ty - 22], [tx + 14, ty - 6], [tx - 14, ty - 6]]);
-    inked(ctx, lampP, RED, 1.4, B);
+    const tx = ((i + R.r(0.25, 0.75)) / nt) * w, ty = floorY - 56;
+    const t = P();
+    t.rect(tx - 4, ty, 8, floorY - ty);
+    ellP(tx, floorY - 2, 22, 4, 0, t);
+    fillP(ctx, t, B);
+    inked(ctx, polyP([[tx - 34, ty], [tx + 34, ty], [tx + 30, ty + 14], [tx - 30, ty + 14]]), W, 1.8, B);
+    inked(ctx, polyP([[tx - 8, ty - 18], [tx + 8, ty - 18], [tx + 11, ty - 4], [tx - 11, ty - 4]]), RED, 1.4, B);
+    fillP(ctx, rectP(tx - 1.5, ty - 4, 3, 4), B);
   }
-
-  // dance floor: checker in perspective (greys via dots so it stays calm)
-  const fTop = at + 80;
-  const fl = rectP(-5, fTop, w + 10, h - fTop + 5);
+  // floor: plain boards
+  strokeP(ctx, lineP(-5, floorY, w + 5, floorY), 2.4, B);
+  const fl = rectP(-5, floorY, w + 10, h - floorY + 5);
   fillP(ctx, fl, W);
-  clipped(ctx, fl, () => {
-    const vx = w / 2, vy = fTop - 500;
-    const rows = [fTop];
-    let y = fTop, step = 10;
-    while (y < h + 40) { y += step; rows.push(y); step *= 1.25; }
-    const dark = P();
-    for (let r = 0; r < rows.length - 1; r++) {
-      const y0 = rows[r], y1 = rows[r + 1];
-      for (let c = -40; c < 40; c++) {
-        if ((r + c) % 2 === 0) continue;
-        const bx0 = vx + c * 70, bx1 = vx + (c + 1) * 70;
-        const t0 = (y0 - vy) / (h - vy), t1 = (y1 - vy) / (h - vy);
-        polyP([[vx + (bx0 - vx) * t0, y0], [vx + (bx1 - vx) * t0, y0], [vx + (bx1 - vx) * t1, y1], [vx + (bx0 - vx) * t1, y1]], true, dark);
-      }
-    }
-    fillP(ctx, dark, halftone(ctx, B, 4.5, 1.15));
-    halftoneGradient(ctx, 0, fTop, w, 50, B, { spacing: 6, dir: 'up', maxR: 3.8 });
-  });
-  strokeP(ctx, lineP(-5, fTop, w + 5, fTop), 2, W);
+  dotsIn(ctx, fl, B, 5, 1.2);
+  return { air: '#9a9a9a', light: from < 0 ? -1 : 1 };
 }
 
 // ------------------------------------------------------------------ docks
@@ -749,29 +736,30 @@ export function docks(ctx, w, h, R) {
   for (let t = 0; t < 1; t += 0.06) ellP(ax2 - bowDir * t * 30, ay + t * (waterY - ay), 4, 6, 0.3, ch);
   strokeP(ctx, ch, 2, W);
 
-  // near black crane
-  crane(shipLeft ? w * R.r(0.78, 0.9) : w * R.r(0.1, 0.22), waterY, R.r(280, 340), 'black', shipLeft ? -1 : 1);
 
-  // water
+  // water: black, with sparse moon glints
   const water = rectP(-5, waterY, w + 10, pierY - waterY + 5);
   fillP(ctx, water, B);
   clipped(ctx, water, () => {
     const rf = P();
-    for (let y = waterY + 6; y < pierY; y += 7) {
-      for (let i = 0; i < w / 90; i++) rf.rect(R() * w, y, R.r(10, 50) * (1 - (pierY - y) / (pierY - waterY) * 0.5), 1.6);
+    for (let y = waterY + 6; y < pierY; y += 9) {
+      for (let i = 0; i < w / 170; i++) rf.rect(R() * w, y, R.r(12, 44), 1.5);
     }
     fillP(ctx, rf, W);
     const mrf = P();
-    for (let y = waterY + 4; y < pierY; y += 5) mrf.rect(mx - R.r(10, 40), y, R.r(20, 80), 2);
+    for (let y = waterY + 4; y < pierY; y += 6) mrf.rect(mx - R.r(10, 40), y, R.r(20, 80), 2);
     fillP(ctx, mrf, W);
     const red = P();
-    for (let y = waterY + 4; y < waterY + 40; y += 5) red.rect(shipX + R() * sw2, y, R.r(10, 30), 1.6);
+    for (let y = waterY + 4; y < waterY + 30; y += 6) red.rect(shipX + R() * sw2, y, R.r(10, 30), 1.6);
     fillP(ctx, red, RED);
   });
-  // low fog over the water
+  // a thick bank of fog rolling in over the lower water: the fight happens in front of it
+  const fogTop = Math.max(waterY + 24, pierY - 96);
   const lf = P();
-  for (let fx = -60; fx < w + 60; fx += R.r(70, 120)) cloudPath(fx, pierY - R.r(4, 16), R.r(60, 110), R.r(12, 22), 7, (R() * 1e6) | 0, lf);
-  fillP(ctx, lf, halftone(ctx, W, 5, 1.8));
+  for (let fx = -80; fx < w + 80; fx += R.r(80, 130)) cloudPath(fx, fogTop + R.r(4, 16), R.r(70, 120), R.r(16, 26), 7, (R() * 1e6) | 0, lf);
+  lf.rect(-10, fogTop + 12, w + 20, pierY - fogTop);
+  fillP(ctx, lf, W);
+  clipped(ctx, lf, () => halftoneGradient(ctx, 0, fogTop - 30, w, pierY - fogTop + 30, B, { spacing: 6, dir: 'up', from: 0.25, to: 1.4, maxR: 3.6 }));
 
   // pier: planks (paper white w/ ink lines, calm behind the fight)
   const pier = rectP(-5, pierY, w + 10, h - pierY + 5);
@@ -788,4 +776,5 @@ export function docks(ctx, w, h, R) {
   for (let px = R.r(20, 60); px < w; px += R.r(150, 230)) { piles.rect(px - 9, pierY - 34, 18, 34); ellP(px, pierY - 34, 9, 3, 0, piles); }
   fillP(ctx, piles, B);
   strokeP(ctx, piles, 1.2, W);
+  return { air: '#9a9a9a', light: mx < w / 2 ? -1 : 1 };
 }

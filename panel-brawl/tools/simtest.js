@@ -77,7 +77,7 @@ function run(mode, seconds, opts = {}) {
 
 for (const theme of THEME_KEYS) {
   const r = run('story', 90, { theme, seed: 1000 + theme.length });
-  if (r.hits === 0) fail('story: no hits at all for ' + theme);
+  if (r.hits === 0 && r.g.level.panels[r.g.level.path[0]].beat !== 'establish') fail('story: no hits at all for ' + theme);
 }
 const b = run('brawl', 120, { botFill: 6, seed: 42 });
 if (b.kills < 3) fail('brawl: bots barely kill anyone (' + b.kills + ')');
@@ -111,6 +111,26 @@ run('brawl', 60, { botFill: 4, chaos: true, seed: 7 });
   }
   console.log('story progression phases:', [...seenPhases].join(','), 'final spread', g.spreadIndex);
   if (!seenPhases.has('victory')) fail('story never reached victory');
+}
+
+// ---------- INK-BOTS play the whole story: beats, puzzles, ad page, boss ----------
+for (const theme of THEME_KEYS) {
+  for (const seed of [44, 45]) {
+    const g = new Game({ mode: 'story', seed, theme });
+    g.addPlayer(1, 'BOT A', 'kapow', true);
+    g.addPlayer(2, 'BOT B', 'voltvixen', true);
+    const seen = new Set();
+    let t = 0;
+    for (; t < 60 * 60 * 15 && g.phase !== 'victory'; t++) {
+      g.step();
+      for (const e of g.events) seen.add(e.t === 'gate' ? 'gate:' + e.how : e.t === 'panel' && e.beat ? 'beat:' + e.beat : e.t);
+      g.events.length = 0;
+    }
+    const got = [...seen].filter((k) => k.startsWith('beat:') || k.startsWith('gate:')).sort().join(' ');
+    console.log(`playthrough ${theme} seed ${seed}: ${g.phase} in ${(t / 60) | 0}s | ${got}`);
+    if (g.phase !== 'victory') fail(`bots could not finish ${theme} seed ${seed} (stuck on spread ${g.spreadIndex})`);
+    if (!seen.has('ads') || !seen.has('perk')) fail('no mail-order ad page in ' + theme);
+  }
 }
 
 if (failures) {

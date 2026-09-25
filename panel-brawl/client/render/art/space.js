@@ -100,17 +100,7 @@ export function bridge(ctx, w, h, R) {
   solid(ctx, outer, '#4f5b73', { lw: 2.5, lx: 0, ly: -6 });
   clipped(ctx, vs, () => {
     starfield(ctx, R, vx0, vy0, vw, vh, { bg: '#0b0e28', nebula: '#4a2468' });
-    // hyperspace streaks
-    if (R.chance(0.35)) {
-      const cx = vx0 + vw / 2, cy = vy0 + vh / 2;
-      const sl = P();
-      for (let i = 0; i < 70; i++) {
-        const a = R() * TAU, r0 = R.r(20, 120), r1 = r0 + R.r(40, 200);
-        sl.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 0.6);
-        sl.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1 * 0.6);
-      }
-      strokeP(ctx, sl, 1.4, '#b8e8ff');
-    } else {
+    {
       const pr = Math.max(90, Math.min(vh * 0.95, vw * 0.3));
       const px = vx0 + vw * R.r(0.2, 0.8), py = vy1 + pr * R.r(0.05, 0.5);
       glow(ctx, px, py, pr * 1.35, '#3a6aa8', { from: 0.55, spacing: 6 });
@@ -145,38 +135,16 @@ export function bridge(ctx, w, h, R) {
   const wallTop = vy1 + 30;
   const pan = P();
   for (let x = -40; x < w; x += 120) pan.rect(x, wallTop, 120, floorY - wallTop);
-  strokeP(ctx, pan, 1.2, hullD);
-  fillP(ctx, rectP(-5, wallTop + 14, w + 10, 8), '#ff5fae');
-  strokeP(ctx, rectP(-5, wallTop + 14, w + 10, 8), 1.4);
+  strokeP(ctx, pan, 1.1, mix(hull, hullD, 0.6));
+  fillP(ctx, rectP(-5, wallTop + 14, w + 10, 5), '#c9709c');
+  strokeP(ctx, rectP(-5, wallTop + 14, w + 10, 5), 1.2);
   dotFade(ctx, 0, w, floorY, wallTop + 40, hullD, 8);
-  // wall status screens + ship plaque
-  const scY = wallTop + 34, scH = Math.min(60, floorY - 100 - scY);
-  if (scH > 30) {
-    const nsc = Math.max(2, Math.floor((vx1 - vx0) / 190));
-    for (let i = 0; i < nsc; i++) {
-      const sx = vx0 + ((i + 0.5) / nsc) * (vx1 - vx0) - 45;
-      if (i === Math.floor(nsc / 2)) {
-        const pl = rrectP(sx - 20, scY + 4, 130, 30, 6);
-        solid(ctx, pl, '#c9a64a', { lw: 2, lx: 0, ly: -3 });
-        letters(ctx, 'VALIANT', sx + 45, scY + 20, 20, '#3a2a10');
-        continue;
-      }
-      const sc = rrectP(sx, scY, 90, scH, 5);
-      inked(ctx, rrectP(sx - 5, scY - 5, 100, scH + 10, 7), '#4f5b73', 2);
-      fillP(ctx, sc, '#15303e');
-      clipped(ctx, sc, () => {
-        const g = P();
-        if (R() < 0.5) {
-          g.moveTo(sx + 4, scY + scH * 0.6);
-          for (let k = 0; k <= 10; k++) g.lineTo(sx + 4 + k * 8.2, scY + scH * (0.25 + R() * 0.5));
-          strokeP(ctx, g, 1.8, '#5fe0ec');
-        } else {
-          for (let k = 0; k < 6; k++) g.rect(sx + 8 + k * 13, scY + scH - 6 - R() * (scH - 14), 9, scH);
-          fillP(ctx, g, R() < 0.5 ? '#ff5fae' : '#ffe14a');
-        }
-      });
-      strokeP(ctx, sc, 1.6);
-    }
+  // ship plaque, centered under the screen
+  const scY = wallTop + 34;
+  if (floorY - 100 - scY > 30) {
+    const pcx = (vx0 + vx1) / 2;
+    solid(ctx, rrectP(pcx - 70, scY + 4, 140, 30, 6), '#b8a060', { lw: 2, lx: 0, ly: -3, shadow: false });
+    letters(ctx, R.pick(['VALIANT', 'INTREPID', 'ORION']), pcx, scY + 20, 20, '#3a2a10');
   }
   // side bulkhead ribs
   for (const sx of [vx0 - 20, vx1 + 20]) {
@@ -197,7 +165,7 @@ export function bridge(ctx, w, h, R) {
     const btn = P(), btn2 = P(), btn3 = P();
     for (let bx = x + 20; bx < x + cw - 20; bx += 13) {
       const r = R();
-      const tgt = r < 0.3 ? btn : r < 0.5 ? btn2 : r < 0.65 ? btn3 : null;
+      const tgt = r < 0.14 ? btn : r < 0.22 ? btn2 : r < 0.28 ? btn3 : null;
       if (tgt) tgt.rect(bx, cTop + 10 + (R() < 0.5 ? 0 : 9), 8, 5);
     }
     fillP(ctx, btn, '#5fe0ec'); fillP(ctx, btn2, '#ff5fae'); fillP(ctx, btn3, '#ffe14a');
@@ -214,8 +182,8 @@ export function bridge(ctx, w, h, R) {
   const fl = rectP(-5, floorY, w + 10, h - floorY + 5);
   fillP(ctx, fl, '#4a5670');
   strokeP(ctx, lineP(-5, floorY, w + 5, floorY), 2);
-  fillP(ctx, rectP(-5, floorY + 6, w + 10, 4), '#7fe6f0');
-  vignette(ctx, w, h, '#2b3348', { spacing: 10 });
+  fillP(ctx, rectP(-5, floorY + 6, w + 10, 3), '#8fd6e0');
+  return { air: '#7a88a0', light: -1 };
 }
 
 // ------------------------------------------------------------------ hangar
@@ -294,8 +262,8 @@ export function hangar(ctx, w, h, R) {
     const door = rectP(dx, by0, halfW, by1 - by0);
     solid(ctx, door, '#8a93a2', { lw: 2.5, lx: side * 4, ly: 0 });
     const ribs = P();
-    for (let y = by0 + 40; y < by1; y += 60) ribs.rect(dx + 6, y, halfW - 12, 8);
-    inked(ctx, ribs, '#727c8c', 1.4);
+    for (let y = by0 + 60; y < by1 - 20; y += 120) ribs.rect(dx + 6, y, halfW - 12, 8);
+    inked(ctx, ribs, '#7a8494', 1.2);
     const edge = rectP(side < 0 ? dx + halfW - 20 : dx, by0, 20, by1 - by0);
     hazardStripes(ctx, edge, side < 0 ? dx + halfW - 20 : dx, by0, 20, by1 - by0, '#e8c040', '#1d1f26', 10);
     strokeP(ctx, edge, 2);
@@ -312,16 +280,15 @@ export function hangar(ctx, w, h, R) {
 
   // wall ribs outside the bay
   const rib = P();
-  for (let x = 30; x < bx0 - 40; x += 110) rib.rect(x, 0, 22, floorY);
-  for (let x = bx1 + 60; x < w; x += 110) rib.rect(x, 0, 22, floorY);
-  fillP(ctx, rib, '#7c8797');
-  strokeP(ctx, rib, 1.6, '#4a5362');
+  for (let x = 40; x < bx0 - 60; x += 170) rib.rect(x, 0, 22, floorY);
+  for (let x = bx1 + 70; x < w; x += 170) rib.rect(x, 0, 22, floorY);
+  fillP(ctx, rib, '#737e8e');
+  strokeP(ctx, rib, 1.4, '#566070');
 
   // fuel pipes along the walls
   const py = h * R.r(0.25, 0.4);
-  pipe(ctx, [[-20, py], [bx0 - 50, py], [bx0 - 50, floorY - 40]], 10, '#c9794a', { flanges: 110 });
-  pipe(ctx, [[w + 20, py + 40], [bx1 + 50, py + 40], [bx1 + 50, floorY - 40]], 8, '#6fa36a', { flanges: 100 });
-  pipe(ctx, [[-20, py + 60], [bx0 - 90, py + 60], [bx0 - 90, floorY - 40]], 6, '#b8b0a0', { flanges: 90 });
+  pipe(ctx, [[-20, py], [bx0 - 50, py], [bx0 - 50, floorY - 40]], 10, '#b8805a', { flanges: 160 });
+  pipe(ctx, [[w + 20, py + 40], [bx1 + 50, py + 40], [bx1 + 50, floorY - 40]], 8, '#7a9a78', { flanges: 160 });
 
   // gantry crane girder across the top
   const gy = Math.max(20, by0 - 70);
@@ -347,22 +314,14 @@ export function hangar(ctx, w, h, R) {
   const rx = R.chance(0.5) ? bx0 + (bx1 - bx0) * 0.3 : bx0 + (bx1 - bx0) * 0.7;
   fillP(ctx, ellP(rx, floorY - 60, rs * 0.5, 14), 'rgba(0,0,0,0.25)');
   rocketShip(ctx, R, rx, floorY - 62, rs, { body: '#d9d2c2', trim: R.pick(['#c9544d', '#3f73b8', '#d99a3a']) });
-  // launch gantry tower next to rocket
-  const tx = rx + (rx > w / 2 ? -1 : 1) * rs * 0.45;
-  const tower = P();
-  tower.rect(tx - 16, floorY - 62 - rs * 0.85, 4, rs * 0.85);
-  tower.rect(tx + 12, floorY - 62 - rs * 0.85, 4, rs * 0.85);
-  for (let y = floorY - 62; y > floorY - 62 - rs * 0.85; y -= 26) { tower.moveTo(tx - 14, y); tower.lineTo(tx + 14, y - 26); tower.moveTo(tx - 14, y); tower.lineTo(tx + 14, y); }
-  strokeP(ctx, tower, 2.4, '#2a2e36');
-
   // raised deck the rocket stands on
   const deck = rectP(-5, floorY - 62, w + 10, 22);
   inked(ctx, deck, '#596373', 2);
   fillP(ctx, rectP(-5, floorY - 40, w + 10, 40), '#4e5767');
   strokeP(ctx, lineP(-5, floorY - 40, w + 5, floorY - 40), 1.6);
   const chev = P();
-  for (let x = 20; x < w; x += 80) polyP([[x, floorY - 36], [x + 20, floorY - 20], [x, floorY - 4], [x + 12, floorY - 4], [x + 32, floorY - 20], [x + 12, floorY - 36]], true, chev);
-  fillP(ctx, chev, '#b8a04a');
+  for (let x = 40; x < w; x += 160) polyP([[x, floorY - 32], [x + 16, floorY - 20], [x, floorY - 8], [x + 10, floorY - 8], [x + 26, floorY - 20], [x + 10, floorY - 32]], true, chev);
+  fillP(ctx, chev, '#7f7d62');
   // floor
   const fl = rectP(-5, floorY, w + 10, h - floorY + 5);
   fillP(ctx, fl, '#5b6576');
@@ -372,7 +331,7 @@ export function hangar(ctx, w, h, R) {
     for (let x = 0; x < w; x += 12) { g.moveTo(x, floorY); g.lineTo(x, h); }
     strokeP(ctx, g, 1, '#4d5666');
   });
-  vignette(ctx, w, h, '#353c48', { spacing: 10 });
+  return { air: '#707b8c', light: -1 };
 }
 
 // ------------------------------------------------------------------ planet
@@ -479,17 +438,17 @@ export function planet(ctx, w, h, R) {
   }
   fillP(ctx, near, pal.rock2);
   crescent(ctx, near, 5, 0, shade(pal.rock2, 0.18));
-  clipped(ctx, near, () => hatchLines(ctx, null, 0, 0, w, groundY, { spacing: 7, angle: 1.35, color: shade(pal.rock2, -0.35), lw: 1.1, R }));
+  clipped(ctx, near, () => hatchLines(ctx, null, 0, 0, w, groundY * 0.8, { spacing: 10, angle: 1.35, color: shade(pal.rock2, -0.2), lw: 1, R }));
   strokeP(ctx, near, 2.2);
 
   // crystals & alien flora on the mid ground
   const mound = hillPath([[-10, groundY - 36], [w * 0.3, groundY - 50], [w * 0.6, groundY - 30], [w + 10, groundY - 46]], groundY + 10);
   fillP(ctx, mound, shade(pal.ground, -0.12));
   strokeP(ctx, mound, 2);
-  const nc = Math.max(2, Math.round(w / 300));
+  const nc = Math.max(1, Math.round(w / 520));
   for (let i = 0; i < nc; i++) {
-    const cx = ((i + R.r(0.1, 0.9)) / nc) * w;
-    crystalCluster(ctx, R, cx, groundY - 36, R.r(40, 80), pal.crys, { glow: pal.crys, lw: 1.8 });
+    const cx = ((i + R.r(0.15, 0.85)) / nc) * w;
+    crystalCluster(ctx, R, cx, groundY - 36, R.r(46, 70), mix(pal.crys, pal.rock2, 0.25), { lw: 1.8 });
   }
   for (let i = 0; i < nc; i++) {
     const fx = R() * w;
@@ -508,59 +467,45 @@ export function planet(ctx, w, h, R) {
   fillP(ctx, g, pal.ground);
   strokeP(ctx, lineP(-5, groundY, w + 5, groundY), 2);
   dotFade(ctx, 0, w, groundY, groundY + 24, shade(pal.ground, -0.2), 6);
+  return { air: mix(pal.c, pal.rock1, 0.5), light: s1x < w / 2 ? -1 : 1 };
 }
 
 // ------------------------------------------------------------------ reactor
 
 export function reactor(ctx, w, h, R) {
   const floorY = h - 40;
-  const bg = '#141c28';
+  const bg = '#131b27';
   fillP(ctx, rectP(0, 0, w, h), bg);
   const cx = R.r(0.38, 0.62) * w;
-  const cw = Math.min(200, Math.max(120, w * 0.15));
-  const gy = h * 0.45;
+  const cw = Math.min(190, Math.max(120, w * 0.15));
+  const gy = h * 0.42;
   const big = Math.max(w, h);
-  // posterized glow bands behind the core (one screen, no moire)
+  // posterized glow bands: the whole room is lit by the core
   ringGlow(ctx, cx, gy, [
-    { r: big * 0.75, c: '#18293a' },
-    { r: big * 0.5, c: '#1d3a50' },
-    { r: big * 0.32, c: '#245672' },
-    { r: big * 0.2, c: '#2e7690' },
-  ], { spacing: 9, fade: 0.55, bounds: [0, 0, w, h] });
-  // containment wall: radial ribs + ring lines
-  const rib = P();
-  for (let k = 0; k < 24; k++) {
-    const a = (k / 24) * TAU;
-    rib.moveTo(cx + Math.cos(a) * cw * 0.9, gy + Math.sin(a) * cw * 0.9);
-    rib.lineTo(cx + Math.cos(a) * big, gy + Math.sin(a) * big);
-  }
-  for (let r = cw * 1.2; r < big; r += 90) circP(cx, gy, r, rib);
-  strokeP(ctx, rib, 1.6, 'rgba(8,14,22,0.55)');
+    { r: big * 0.72, c: '#172636' },
+    { r: big * 0.46, c: '#1c3548' },
+    { r: big * 0.28, c: '#23506a' },
+  ], { spacing: 10, fade: 0.55, bounds: [0, 0, w, h] });
 
-  // background catwalk silhouettes
-  const cwY = [h * R.r(0.2, 0.28), h * R.r(0.5, 0.56)];
-  for (const y of cwY) {
-    const walk = P();
-    walk.rect(-10, y, w + 20, 10);
-    walk.rect(-10, y - 34, w + 20, 4);
-    walk.rect(-10, y - 18, w + 20, 3);
-    for (let x = 0; x < w; x += 36) walk.rect(x, y - 34, 3, 34);
-    const truss = P();
-    for (let x = 0; x < w; x += 40) { truss.moveTo(x, y + 10); truss.lineTo(x + 20, y + 26); truss.lineTo(x + 40, y + 10); }
-    truss.moveTo(-10, y + 26); truss.lineTo(w + 10, y + 26);
-    fillP(ctx, walk, '#0a1018');
-    strokeP(ctx, truss, 2.4, '#0a1018');
-    // cyan rim light from the core on the rail tops
-    fillP(ctx, rectP(-10, y - 34, w + 20, 1.5), '#3f9ab0');
-  }
-  // pillars
-  for (let x = R.r(40, 120); x < w; x += R.r(220, 320)) {
-    if (Math.abs(x - cx) < cw) continue;
-    fillP(ctx, rectP(x - 16, 0, 32, floorY), '#0c131b');
-    fillP(ctx, rectP(x - 16 + (x < cx ? 26 : 0), 0, 5, floorY), '#3f9ab0');
+  // one catwalk silhouette high in the room
+  const y = h * R.r(0.2, 0.26);
+  const walk = P();
+  walk.rect(-10, y, w + 20, 9);
+  walk.rect(-10, y - 30, w + 20, 4);
+  for (let x = 0; x < w; x += 60) walk.rect(x, y - 30, 3, 30);
+  const truss = P();
+  for (let x = 0; x < w; x += 44) { truss.moveTo(x, y + 9); truss.lineTo(x + 22, y + 24); truss.lineTo(x + 44, y + 9); }
+  fillP(ctx, walk, '#0b1119');
+  strokeP(ctx, truss, 2.2, '#0b1119');
+  fillP(ctx, rectP(-10, y - 30, w + 20, 1.5), '#3f8fa4');
+  // two pillars, rim-lit on the core side
+  for (const px of [cx - cw * 1.6 - R.r(40, 120), cx + cw * 1.6 + R.r(40, 120)]) {
+    if (px < 10 || px > w - 10) continue;
+    fillP(ctx, rectP(px - 18, 0, 36, floorY), '#0d141d');
+    fillP(ctx, rectP(px < cx ? px + 13 : px - 18, 0, 5, floorY), '#3f8fa4');
   }
 
-  // the core
+  // focal: the core
   const top = -10, bot = floorY - 70;
   const core = rectP(cx - cw / 2, top, cw, bot - top);
   fillP(ctx, core, '#5fd8ea');
@@ -571,49 +516,44 @@ export function reactor(ctx, w, h, R) {
     ctx.save(); ctx.translate(cx * 2, 0); ctx.scale(-1, 1);
     halftoneGradient(ctx, cx - cw / 2, top, cw, bot - top, '#2fa8c0', { spacing: 6, dir: 'right', from: 0.62, maxR: 3.6 });
     ctx.restore();
-    for (let i = 0; i < 5; i++) {
-      const y0 = top + R() * (bot - top);
-      const a = arcLine(R, cx - cw / 2, y0, cx + cw / 2, y0 + R.r(-60, 60), 7, 0.25);
+    for (let i = 0; i < 3; i++) {
+      const y0 = top + (i + 0.5) / 3 * (bot - top) + R.r(-40, 40);
+      const a = arcLine(R, cx - cw / 2, y0, cx + cw / 2, y0 + R.r(-50, 50), 7, 0.22);
       strokeP(ctx, a, 4, '#5fd8ea');
       strokeP(ctx, a, 1.8, '#ffffff');
     }
   });
   strokeP(ctx, core, 2.6);
-  for (let y = top + 50; y < bot - 20; y += R.r(80, 110)) {
-    const ring = rrectP(cx - cw / 2 - 22, y, cw + 44, 26, 6);
-    solid(ctx, ring, '#5b6a7c', { lw: 2.4, lx: 0, ly: -5 });
-    rivetRow(ctx, cx - cw / 2 - 12, y + 13, cx + cw / 2 + 12, y + 13, 22, 2.2, '#9aa9b8', 1);
-    if (R() < 0.55) {
+  let arcs = 0;
+  for (let ry = top + 70; ry < bot - 30; ry += 130) {
+    const ring = rrectP(cx - cw / 2 - 22, ry, cw + 44, 26, 6);
+    solid(ctx, ring, '#566578', { lw: 2.4, lx: 0, ly: -5 });
+    if (arcs < 2 && R() < 0.6) {
+      arcs++;
       const side = R.sign();
-      const a = arcLine(R, cx + side * (cw / 2 + 22), y + 13, cx + side * (cw / 2 + R.r(90, 180)), y + R.r(-70, 70), 6, 0.3);
+      const a = arcLine(R, cx + side * (cw / 2 + 22), ry + 13, cx + side * (cw / 2 + R.r(80, 150)), ry + R.r(-60, 60), 6, 0.3);
       strokeP(ctx, a, 6, INK);
       strokeP(ctx, a, 3, '#9ff4ff');
       strokeP(ctx, a, 1.2, '#ffffff');
     }
   }
   const base = polyP([[cx - cw / 2 - 60, floorY], [cx - cw / 2 - 30, bot], [cx + cw / 2 + 30, bot], [cx + cw / 2 + 60, floorY]]);
-  solid(ctx, base, '#465466', { lw: 2.6, lx: 0, ly: -6 });
-  hazardStripes(ctx, rectP(cx - cw / 2 - 36, bot + 12, cw + 72, 16), cx - cw / 2 - 36, bot + 12, cw + 72, 16, '#e8c040', '#141a22', 12);
-  strokeP(ctx, rectP(cx - cw / 2 - 36, bot + 12, cw + 72, 16), 1.8);
-
-  pipe(ctx, [[-20, h * 0.66], [cx - cw / 2 - 80, h * 0.66], [cx - cw / 2 - 40, bot + 6]], 14, '#56657a', { flanges: 130, lw: 2.2 });
-  pipe(ctx, [[w + 20, h * 0.7], [cx + cw / 2 + 80, h * 0.7], [cx + cw / 2 + 40, bot + 6]], 12, '#8a5a7a', { flanges: 120, lw: 2.2 });
-
-  for (const sx of [cx - cw / 2 - 150, cx + cw / 2 + 110]) {
-    if (sx < 20 || sx > w - 60) continue;
-    const tri = polyP([[sx + 20, h * 0.36], [sx + 44, h * 0.36 + 40], [sx - 4, h * 0.36 + 40]]);
-    inked(ctx, tri, '#e8c040', 2);
-    letters(ctx, '!', sx + 20, h * 0.36 + 26, 24, INK);
-  }
-  letters(ctx, 'CORE ' + R.pick(['ALPHA', 'OMEGA', '7', 'X-9']), cx, bot + 44, 22, '#9fe8f0', { outline: 4 });
+  solid(ctx, base, '#435163', { lw: 2.6, lx: 0, ly: -6 });
+  const hz = rectP(cx - cw / 2 - 36, bot + 12, cw + 72, 12);
+  hazardStripes(ctx, hz, cx - cw / 2 - 36, bot + 12, cw + 72, 12, '#a89040', '#141a22', 12);
+  strokeP(ctx, hz, 1.6);
+  // one feed pipe per side, low
+  pipe(ctx, [[-20, floorY - 110], [cx - cw / 2 - 80, floorY - 110], [cx - cw / 2 - 44, bot + 8]], 11, '#4e5c70', { flanges: 180, lw: 2 });
+  pipe(ctx, [[w + 20, floorY - 96], [cx + cw / 2 + 80, floorY - 96], [cx + cw / 2 + 44, bot + 8]], 10, '#6a5070', { flanges: 180, lw: 2 });
 
   const fl = rectP(-5, floorY, w + 10, h - floorY + 5);
-  fillP(ctx, fl, '#2c3846');
+  fillP(ctx, fl, '#283442');
   clipped(ctx, fl, () => {
     const g = P();
-    for (let x = 0; x < w; x += 14) { g.moveTo(x, floorY); g.lineTo(x, h); }
-    strokeP(ctx, g, 1.2, '#1c2530');
-    fillP(ctx, ellP(cx, floorY + 10, cw * 1.4, 16), 'rgba(127,232,244,0.25)');
+    for (let x = 0; x < w; x += 18) { g.moveTo(x, floorY); g.lineTo(x, h); }
+    strokeP(ctx, g, 1, '#212c38');
+    fillP(ctx, ellP(cx, floorY + 10, cw * 1.4, 14), 'rgba(127,232,244,0.2)');
   });
   strokeP(ctx, lineP(-5, floorY, w + 5, floorY), 2);
+  return { air: '#27465a', light: cx < w / 2 ? -1 : 1 };
 }

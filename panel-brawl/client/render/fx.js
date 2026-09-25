@@ -172,7 +172,19 @@ export class FX {
       spikes: o.spikes || 12,
     };
     const spr = burstSprite(text, size, style, this.res, seed);
+    // readability budget: at most 3 big words on screen, the oldest bows out
+    const big = !!o.big || (size >= 40 && style.shape !== 'none');
+    if (big) {
+      let n = 0, oldest = null;
+      for (const sp of this.sprites) {
+        if (!sp.big || sp.t >= sp.dur - 0.12) continue;
+        n++;
+        if (!oldest || sp.t / sp.dur > oldest.t / oldest.dur) oldest = sp;
+      }
+      if (n >= 3 && oldest) oldest.t = Math.max(oldest.t, oldest.dur - 0.12);
+    }
     this.sprites.push({
+      big,
       spr, x, y, t: 0, dur: o.dur || 0.75, rot: o.rot != null ? o.rot : (Math.random() - 0.5) * 0.5,
       vx: o.vx || 0, vy: o.vy != null ? o.vy : -30, scale: o.scale || 1, pop: o.pop || 1, layer: o.layer || 0,
     });
@@ -321,7 +333,7 @@ export class FX {
 
   explosion(x, y, r, word, o = {}) {
     const pal = this.palette();
-    this.burst(x, y - 10, word, { size: o.size || Math.min(86, 40 + r * 0.22), dur: 1.0, fill: '#fffbe0', fill2: '#ffd23f', burst: o.burst || '#ff7a1a', edge: o.edge || '#e8262b', spikes: 16, vy: -40, pop: 1.3, layer: 1 });
+    this.burst(x, y - 10, word, { size: o.size || Math.min(58, 30 + r * 0.14), dur: 0.85, fill: '#fffbe0', fill2: '#ffd23f', burst: o.burst || '#ff7a1a', edge: o.edge || '#e8262b', spikes: 16, vy: -40, pop: 1.2, layer: 1, big: true });
     // fireball layers
     this.particle({ k: 'fireball', x, y, vx: 0, vy: 0, g: 0, drag: 0, life: 0.42, r: r * 0.75, seed: (Math.random() * 1e5) | 0 });
     this.smoke(x, y, 10, '#f4f1e8', r / 110, 80);

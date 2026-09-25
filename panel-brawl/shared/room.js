@@ -50,6 +50,11 @@ export class RoomCore {
     this.game.queueInput(c.pid, cmds.slice(0, 20));
   }
 
+  pick(cid, perk) {
+    const c = this.clients.get(cid);
+    if (c) this.game.pickPerk(c.pid, perk);
+  }
+
   syncBots() {
     const g = this.game;
     const bots = [...g.players.values()].filter((p) => p.bot);

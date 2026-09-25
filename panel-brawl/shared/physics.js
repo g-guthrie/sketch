@@ -14,6 +14,7 @@ export class Physics {
     this.cells = new Map();
     this.rects = new Map();
     this.ladders = [];
+    this.lowGrav = []; // panel rects with low gravity (sci-fi planet surfaces)
     this._q = 1;
     this._nid = 1;
   }
@@ -52,6 +53,11 @@ export class Physics {
   }
 
   has(id) { return this.rects.has(id); }
+
+  gravAt(x, y) {
+    for (const z of this.lowGrav) if (x >= z.x1 && x <= z.x2 && y >= z.y1 && y <= z.y2 + 2) return z.g;
+    return 1;
+  }
 
   query(x1, y1, x2, y2, out) {
     out.length = 0;

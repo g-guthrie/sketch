@@ -1234,6 +1234,106 @@ export const SOUNDS = {
       return 0.45;
     },
   },
+  alarm: {
+    max: 1, gap: 0.6, vol: 0.8, pv: 0, duck: [0.6, 0.6],
+    fn(k, t) {
+      // two-tone klaxon + a stinger hit
+      for (let i = 0; i < 3; i++) {
+        k.tone(t + i * 0.22, { type: 'square', f: 880, a: 0.005, hold: 0.09, d: 0.03, vol: 0.09, lp: 3000 });
+        k.tone(t + i * 0.22 + 0.11, { type: 'square', f: 660, a: 0.005, hold: 0.09, d: 0.03, vol: 0.09, lp: 3000 });
+      }
+      k.brass(t, mtof(62), 0.25, { vol: 0.12 });
+      k.crash(t, 0.08, 0.6);
+      return 0.8;
+    },
+  },
+  trap: {
+    max: 1, gap: 1, vol: 1.0, pv: 0, duck: [0.3, 1.0],
+    fn(k, t) {
+      k.thump(t, { f0: 120, f1: 35, d: 0.6, vol: 0.9, drive: 2 });
+      k.hiss(t, { type: 'lowpass', f: 1200, d: 0.4, vol: 0.4 });
+      [50, 53, 56, 59].forEach((m, i) => k.brass(t + 0.08 + i * 0.09, mtof(m), 0.18, { vol: 0.1 }));
+      k.crash(t + 0.1, 0.12, 1.2);
+      return 1.4;
+    },
+  },
+  stagger: {
+    max: 2, gap: 0.08, vol: 0.9, pv: 0.03,
+    fn(k, t) {
+      k.thump(t, { f0: 200, f1: 60, d: 0.18, vol: 0.6, drive: 1.5 });
+      k.tone(t + 0.02, { type: 'triangle', f: 900, f1: 500, glide: 0.25, a: 0.003, d: 0.35, vol: 0.14, vib: 40, vibRate: 22, vibDecay: 0.4 });
+      k.bell(t + 0.05, 1320, { d: 0.35, vol: 0.05 });
+      return 0.5;
+    },
+  },
+  splat: {
+    max: 2, gap: 0.08, vol: 1.1, pv: 0.03,
+    fn(k, t) {
+      k.thump(t, { f0: 160, f1: 40, d: 0.3, vol: 0.9, drive: 2.5 });
+      k.hiss(t, { type: 'lowpass', f: 900, d: 0.18, vol: 0.5 });
+      k.crackle(t + 0.01, 0.12, { n: 10, vol: 0.2, f: 1800 });
+      return 0.45;
+    },
+  },
+  block: {
+    max: 3, gap: 0.05, vol: 0.7, pv: 0.05,
+    fn(k, t) {
+      k.clack(t, 2400, 0.35);
+      k.bell(t, 1850, { d: 0.18, vol: 0.05 });
+      k.hiss(t, { type: 'bandpass', f: 4200, q: 4, d: 0.04, vol: 0.2 });
+      return 0.2;
+    },
+  },
+  shieldBreak: {
+    max: 1, gap: 0.2, vol: 1.1, pv: 0.02,
+    fn(k, t) {
+      k.crackle(t, 0.3, { n: 26, vol: 0.4, f: 3500, f1: 1200 });
+      k.thump(t, { f0: 240, f1: 70, d: 0.2, vol: 0.5, drive: 2 });
+      k.bell(t, 980, { d: 0.5, vol: 0.06 });
+      return 0.5;
+    },
+  },
+  switchOn: {
+    max: 3, gap: 0.05, vol: 0.9, pv: 0.01,
+    fn(k, t) {
+      k.clack(t, 1600, 0.3);
+      k.tone(t + 0.02, { type: 'sine', f: 660, f1: 990, glide: 0.06, a: 0.004, d: 0.25, vol: 0.12 });
+      return 0.3;
+    },
+  },
+  solved: {
+    max: 1, gap: 0.5, vol: 1.0, pv: 0,
+    fn(k, t) {
+      [72, 76, 79, 84].forEach((m, i) => k.bell(t + i * 0.08, mtof(m), { d: 0.6, vol: 0.09 }));
+      k.brass(t + 0.3, mtof(60), 0.4, { vol: 0.1 });
+      return 1.0;
+    },
+  },
+  unlock: {
+    max: 1, gap: 0.2, vol: 1.0, pv: 0,
+    fn(k, t) {
+      k.clack(t, 1200, 0.5);
+      k.clack(t + 0.09, 1900, 0.4);
+      k.thump(t + 0.12, { f0: 180, f1: 70, d: 0.14, vol: 0.4 });
+      return 0.35;
+    },
+  },
+  coupon: {
+    max: 1, gap: 0.2, vol: 1.0, pv: 0,
+    fn(k, t) {
+      [79, 83, 86, 91].forEach((m, i) => k.bell(t + i * 0.06, mtof(m), { d: 0.4, vol: 0.08, partials: SPARK }));
+      k.tone(t, { type: 'triangle', f: mtof(67), a: 0.01, hold: 0.2, d: 0.2, vol: 0.08 });
+      return 0.6;
+    },
+  },
+  eshield: {
+    max: 3, gap: 0.05, vol: 0.6, pv: 0.05,
+    fn(k, t) {
+      k.tone(t, { type: 'sine', f: 1400, f1: 700, glide: 0.08, a: 0.002, d: 0.12, vol: 0.12, vib: 80, vibRate: 40 });
+      k.hiss(t, { type: 'bandpass', f: 5000, q: 3, d: 0.06, vol: 0.12 });
+      return 0.15;
+    },
+  },
   uiClick: {
     max: 2, gap: 0.03, vol: 0.8, pv: 0.02,
     fn(k, t) {

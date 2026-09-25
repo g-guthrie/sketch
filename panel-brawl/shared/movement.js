@@ -18,6 +18,9 @@ export function initMoveState(p) {
   p.dashT = 0; p.dashCd = 0; p.dashDir = 1;
   p.dropT = 0; p.stun = 0; p.facing = 1; p.iframes = 0; p.superT = 0;
   p.groundOneway = false;
+  if (p.airJumps == null) p.airJumps = 1;
+  if (p.moveMul == null) p.moveMul = 1;
+  if (p.dashCdMul == null) p.dashCdMul = 1;
 }
 
 // Fields that fully describe movement state (used for reconciliation).
@@ -43,6 +46,9 @@ export function stepMovement(p, cmd, phys, dt, fx) {
   const stunned = p.stun > 0;
   if (stunned) p.stun -= dt;
   const mx = stunned ? 0 : cmd.mx;
+  const airJumps = p.airJumps || 1;
+  const run = PHYS.runSpeed * (p.moveMul || 1);
+  const grav = PHYS.gravity * (phys.gravAt ? phys.gravAt(p.x, p.y) : 1);
 
   // SPLASH PAGE wind-up: hover in place
   if (p.superT > 0) {
@@ -69,7 +75,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
       p.h = BODY.h;
       p.vx = 0;
       p.dashT = 0;
-      p.jumps = 1;
+      p.jumps = airJumps;
     }
   }
   if (p.climb) {
@@ -79,7 +85,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
       p.climb = false;
       p.jbuf = 0;
       p.vy = -PHYS.jumpV * 0.8;
-      p.vx = mx * PHYS.runSpeed;
+      p.vx = mx * run;
       p.jumpHeld = true;
       if (fx) fx.jump = true;
     } else {
@@ -94,7 +100,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
         p.vy = 0;
         p.climb = false;
         p.onGround = true;
-        p.jumps = 1;
+        p.jumps = airJumps;
         return;
       }
       const res = moveBody(phys, p, 0, p.vy * dt, { noOneway: true });
@@ -108,7 +114,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
   // ---- Dash ----
   if (cmd.dashP && p.dashCd <= 0 && !stunned) {
     p.dashT = PHYS.dashTime;
-    p.dashCd = PHYS.dashCooldown;
+    p.dashCd = PHYS.dashCooldown * (p.dashCdMul || 1);
     p.dashDir = mx !== 0 ? Math.sign(mx) : p.facing;
     p.iframes = PHYS.dashIframes;
     if (p.crouch) { p.crouch = false; p.h = BODY.h; }
@@ -121,7 +127,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
     dashing = true;
     p.vx = p.dashDir * PHYS.dashSpeed;
     p.vy = 0;
-    if (p.dashT <= 0) p.vx = p.dashDir * PHYS.runSpeed * 1.1;
+    if (p.dashT <= 0) p.vx = p.dashDir * run * 1.1;
   } else {
     // ---- Crouch ----
     const wantCrouch = cmd.down && p.onGround && !stunned;
@@ -137,7 +143,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
     }
 
     // ---- Horizontal ----
-    const target = mx * (p.crouch ? PHYS.crouchSpeed : PHYS.runSpeed);
+    const target = mx * (p.crouch ? PHYS.crouchSpeed : run);
     if (mx !== 0) {
       const accel = p.onGround ? PHYS.groundAccel : PHYS.airAccel;
       // don't kill knockback / recoil speed that is going the same way
@@ -163,7 +169,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
         p.jbuf = 0;
         p.coyote = 0;
         p.onGround = false;
-        p.jumps = 1;
+        p.jumps = airJumps;
         p.jumpHeld = true;
         if (p.crouch) {
           const hw = p.w / 2;
@@ -184,7 +190,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
     }
     if (p.vy >= 0) p.jumpHeld = false;
 
-    p.vy = Math.min(p.vy + PHYS.gravity * dt, PHYS.maxFall);
+    p.vy = Math.min(p.vy + grav * dt, PHYS.maxFall * (grav < PHYS.gravity ? 0.7 : 1));
   }
 
   const wasGround = p.onGround;
@@ -200,7 +206,7 @@ export function stepMovement(p, cmd, phys, dt, fx) {
     p.onGround = true;
     p.groundOneway = res.groundRect && res.groundRect.t === ONEWAY;
     p.vy = 0;
-    p.jumps = 1;
+    p.jumps = airJumps;
     p.coyote = PHYS.coyote;
   } else if (wasGround && p.vy >= 0 && !dashing) {
     // stick to stairs / small drops

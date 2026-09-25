@@ -5,7 +5,8 @@
 import { Physics, SOLID, ONEWAY, raycast } from '../shared/physics.js';
 import { DT, TICK_RATE, F, PLAYER, emptyCmd } from '../shared/constants.js';
 import { WEAPONS, PUNCH, BOMB, PROJ_RADIUS, shoulderOf, weaponOf } from '../shared/weapons.js';
-import { THEMES, HEROES } from '../shared/themes.js';
+import { THEMES, HEROES, CIVILIANS } from '../shared/themes.js';
+import { PERKS } from '../shared/perks.js';
 import { hash01 } from '../shared/rng.js';
 import { findPanel } from '../shared/comicgen.js';
 import { ACT } from '../shared/ai.js';
@@ -74,6 +75,17 @@ export class ClientWorld {
     this.lastKillT = -10;
     this.time = 0;
     this.levelVersion = -1;
+    this.civs = new Map();
+    this.switches = [];
+    this.seals = new Map();
+    this.stand = [];
+    this.ads = null;
+    this.coupons = 0;
+    this.stamps = 0;
+    this.alarms = new Set();
+    this.solved = new Set();
+    this.hints = new Map();
+    this.styleT = 0;
   }
 
   // --------------------------------------------------------------- messages
@@ -121,6 +133,7 @@ export class ClientWorld {
     for (const s of lv.solids) phys.add({ ...s });
     for (const o of lv.oneways) phys.add({ ...o });
     phys.ladders = lv.ladders.map((l) => ({ ...l }));
+    phys.lowGrav = (lv.lowGrav || []).map((z) => ({ ...z }));
     this.gatesOpen = new Set(msg.dyn.gates);
     this.gateSolids = new Map();
     this.gateFade = new Map();
@@ -128,6 +141,19 @@ export class ClientWorld {
       if (!this.gatesOpen.has(g.id)) this.gateSolids.set(g.id, phys.add({ x: g.x, y: g.y, w: g.w, h: g.h, t: SOLID, gate: g.id }));
     }
     this.phys = phys;
+    this.seals = new Map();
+    for (const s of msg.dyn.seals || []) this.addSeal(s.panel, s.r, true);
+    const swState = new Map((msg.dyn.switches || []).map((s) => [s.id, s]));
+    this.switches = (lv.switches || []).map((s) => ({ ...s, on: swState.get(s.id)?.on ? 1 : 0, done: !!swState.get(s.id)?.done, glow: 0 }));
+    this.civs = new Map();
+    for (const c of msg.dyn.civs || []) this.upsertCiv(c);
+    this.alarms = new Set(msg.dyn.alarms || []);
+    this.solved = new Set(msg.dyn.solved || []);
+    this.coupons = msg.dyn.coupons || 0;
+    this.stamps = msg.dyn.stamps || 0;
+    this.hints = new Map();
+    this.stand = [];
+    this.ads = null;
 
     this.props = new Map();
     for (const pr of msg.dyn.props) {
@@ -151,8 +177,37 @@ export class ClientWorld {
     if (pr.solidId) this.phys.remove(pr.solidId);
     if (pr.k === 'table') {
       if (pr.st === 'up') pr.solidId = this.phys.add({ x: pr.x, y: pr.y, w: pr.w, h: 10, t: ONEWAY, prop: pr.id });
-      else pr.solidId = this.phys.add({ x: pr.x + pr.w / 2 - 9, y: pr.y + pr.h - 80, w: 18, h: 80, t: SOLID, prop: pr.id });
+      else pr.solidId = this.phys.add({ x: pr.x + pr.w / 2 - 9, y: pr.y + pr.h - 60, w: 18, h: 60, t: SOLID, prop: pr.id });
     } else pr.solidId = this.phys.add({ x: pr.x, y: pr.y, w: pr.w, h: pr.h, t: SOLID, prop: pr.id });
+  }
+
+  addSeal(panel, rects, instant) {
+    const list = rects.map((r) => ({ ...r, sid: this.phys.add({ x: r.x, y: r.y, w: r.w, h: r.h, t: SOLID, k: 'seal' }), t: instant ? 1 : 0 }));
+    this.seals.set(panel, list);
+  }
+
+  removeSeal(panel) {
+    const list = this.seals.get(panel);
+    if (!list) return;
+    for (const r of list) this.phys.remove(r.sid);
+    this.seals.delete(panel);
+    for (const r of list) this.fx.shreds(r.x + r.w / 2, r.y + r.h / 2, ['#f3ead3', '#141414'], 10, 0.6);
+  }
+
+  upsertCiv(c) {
+    let rc = this.civs.get(c.id);
+    if (!rc) {
+      const def = CIVILIANS[c.look % CIVILIANS.length];
+      rc = { id: c.id, kind: 'c', name: def.name, look: def.look, anim: makeAnim(c.id), x: c.x, y: c.y, vx: 0, vy: 0, facing: c.f || 1, aim: 0, h: 84, w: 36, onGround: true, panel: c.panel };
+      this.civs.set(c.id, rc);
+    }
+    rc.st = c.st;
+    rc.hp = c.hp;
+    rc.u = c.u;
+    if (c.st === 'free') { rc.vx = (c.x - rc.x) * 30 || rc.facing * 300; rc.facing = c.f; }
+    rc.tx = c.x;
+    rc.ty = c.y;
+    return rc;
   }
 
   upsertEnemy(e, asleep) {
@@ -163,6 +218,7 @@ export class ClientWorld {
         id: e.id, k: e.k, name: spec.name, look: spec.look, anim: makeAnim(e.id),
         x: e.x, y: e.y, vx: 0, vy: 0, aim: e.a || 0, facing: e.f || 1, st: e.st, hp: e.hp, maxHp: e.mh,
         act: 0, at: 0, panel: e.p, w: e.w, h: e.h, onGround: true, asleep, wakeP: asleep ? 0 : 1, drawP: 1, seen: this.time, tel: 0,
+        aware: e.aw !== 0, susp: 0, shieldUp: e.sh === undefined ? undefined : !!e.sh, eshield: e.es || 0,
       };
       this.enemies.set(e.id, re);
     }
@@ -195,7 +251,15 @@ export class ClientWorld {
       }
       const rp = this.players.get(p.id);
       rp.hp = p.hp; rp.k = p.k; rp.d = p.d; rp.s = p.s; rp.sp = p.sp; rp.w = p.w; rp.flags = p.f;
+      rp.maxHp = p.mh || PLAYER.hp;
       rp.alive = !(p.f & F.DEAD);
+      rp.downed = !!(p.f & F.DOWN);
+      rp.reviving = !!(p.f & F.REVIVE);
+      rp.hasKey = !!(p.f & F.KEY);
+      rp.charging = !!(p.f & F.CHARGE);
+      rp.reloading = !!(p.f & F.RELOAD);
+      rp.rev = p.rv || 0;
+      rp.bleed = p.bl || 0;
     }
     for (const id of [...this.players.keys()]) if (!pmap.has(id)) this.players.delete(id);
 
@@ -210,6 +274,17 @@ export class ClientWorld {
       re.w = e.w;
       re.h = e.h;
       re.seen = this.time;
+      re.shieldUp = e.sh === undefined ? undefined : !!e.sh;
+      re.eshield = e.es || 0;
+      re.aware = e.aw !== 0;
+      re.susp = e.su || 0;
+      re.elite = !!e.el;
+      if (e.n) re.name = e.n;
+      re.poise = e.po;
+      re.hasKey = !!e.ky;
+      re.stagger = !!e.sg;
+      re.zdown = !!e.dz;
+      re.reloading = e.act === ACT.reload;
       if (e.st === 1 && re.drawP >= 1 && !re.drawStarted) { re.drawP = 0; re.drawStarted = true; }
     }
 
@@ -227,11 +302,22 @@ export class ClientWorld {
       }
     }
 
+    // story extras
+    if (s.cv) {
+      const seen = new Set();
+      for (const c of s.cv) { this.upsertCiv(c); seen.add(c.id); }
+      for (const id of [...this.civs.keys()]) if (!seen.has(id)) this.civs.delete(id);
+    } else if (this.civs.size) this.civs.clear();
+    this.stand = s.sd || [];
+    this.ads = s.ads || null;
+    if (s.cp != null) this.coupons = s.cp;
+    if (s.stp != null) this.stamps = s.stp;
+
     for (const ev of s.ev) this.event(ev, s);
   }
 
   isFrozen() {
-    return this.phase === 'intro' || this.phase === 'turning' || this.phase === 'over' || this.phase === 'victory';
+    return this.phase === 'intro' || this.phase === 'turning' || this.phase === 'over' || this.phase === 'victory' || this.phase === 'ads';
   }
 
   serverTickNow() {
@@ -286,8 +372,10 @@ export class ClientWorld {
     if (out.punched) {
       rp.anim.melee = 0.2;
       rp.anim.meleeBig = out.big;
+      rp.anim.combo = out.combo;
       audio.play(out.big ? 'punchBig' : 'punch', { x: p.x, y: p.y, vol: 0.6 });
     }
+    if (out.charging) this.chargeFx(rp);
     if (out.bombed) {
       const sh = shoulderOf(p);
       const ca = Math.cos(p.aim), sa = Math.sin(p.aim);
@@ -299,7 +387,13 @@ export class ClientWorld {
       });
       audio.play('bombThrow', { x, y });
     }
-    if (out.fired) this.predictShot(out.fired, cmd.seq);
+    if (out.fired) this.predictShot(out.fired, out.firedSeq || cmd.seq);
+  }
+
+  chargeFx(rp) {
+    rp.chargeT = WEAPONS.rail.charge;
+    this.fx.ring(rp.x, rp.y - 50, 60, '#23d5e8', WEAPONS.rail.charge, 4);
+    this.audio.play('superCharge', { x: rp.x, y: rp.y, vol: 0.35, pitch: 2.2 });
   }
 
   predictShot(wk, seq) {
@@ -353,8 +447,9 @@ export class ClientWorld {
       this.fx.smoke(x, y, 4, '#f4f1e8', 0.6, 30);
       this.fx.burst(x - Math.cos(a) * 10, y - 30, pick(W.words), { size: 22, dur: 0.4, shape: 'none', fill: '#ffffff', fill2: '#ff9a1f' });
     }
-    if (wk === 'smg' && Math.random() < 0.12) this.fx.burst(x + Math.cos(a) * 40, y - 26, pick(W.words), { size: 20, dur: 0.35, shape: 'none' });
-    if (wk === 'pistol' && Math.random() < 0.15) this.fx.burst(x + Math.cos(a) * 30, y - 22, pick(W.words), { size: 18, dur: 0.32, shape: 'none' });
+    if (!mine && wk !== 'shotgun' && wk !== 'launcher') { if (mine) this.fx.shake(W.shake * 0.35); return; }
+    if (wk === 'smg' && Math.random() < 0.06) this.fx.burst(x + Math.cos(a) * 40, y - 26, pick(W.words), { size: 20, dur: 0.35, shape: 'none' });
+    if (wk === 'pistol' && Math.random() < 0.07) this.fx.burst(x + Math.cos(a) * 30, y - 22, pick(W.words), { size: 18, dur: 0.32, shape: 'none' });
     if (mine) this.fx.shake(W.shake * 0.35);
   }
 
@@ -471,7 +566,7 @@ export class ClientWorld {
       case 'punch': {
         if (ev.o === me) break;
         const pos = this.entityPos('p', ev.o, snap);
-        if (pos) { pos.ent.anim.melee = 0.2; pos.ent.anim.meleeBig = ev.big; }
+        if (pos) { pos.ent.anim.melee = 0.2; pos.ent.anim.meleeBig = ev.big; pos.ent.anim.combo = ev.n; }
         audio.play(ev.big ? 'punchBig' : 'punch', { x: ev.x, y: ev.y, vol: 0.5 });
         break;
       }
@@ -529,7 +624,7 @@ export class ClientWorld {
         if (re) {
           re.wakeP = 0;
           re.asleep = false;
-          fx.burst(re.x, re.y - re.h - 26, '!', { size: 30, dur: 0.55, shape: 'none', fill: '#ffffff', fill2: '#ffe14a' });
+          if (re.aware !== false && !ev.quiet) fx.burst(re.x, re.y - re.h - 26, '!', { size: 30, dur: 0.55, shape: 'none', fill: '#ffffff', fill2: '#ffe14a' });
           if (ev.line) fx.bubble(() => (this.enemies.has(re.id) ? { x: re.x, y: re.y - re.h - 10 } : null), ev.line, re.k === 'boss' ? 'shout' : 'speech', re.k === 'boss' ? 3.2 : 2.2, re.k === 'boss' ? 22 : 16);
         }
         if (this.time - this.wakeSoundT > 0.6) { this.wakeSoundT = this.time; audio.play('wake', { x: re ? re.x : undefined, y: re ? re.y : undefined }); }
@@ -544,11 +639,13 @@ export class ClientWorld {
       case 'etel': {
         const re = this.enemies.get(ev.id);
         if (!re) break;
-        re.tel = 0.6;
+        re.tel = ev.k === 'draw' ? 2.1 : 0.6;
         re.telKind = ev.k;
-        if (ev.k === 'charge' || ev.k === 'slam' || ev.k === 'leap' || ev.k === 'spray' || ev.k === 'summon' || ev.k === 'dive') {
-          fx.burst(re.x, re.y - re.h - 30, '!!', { size: re.k === 'boss' ? 46 : 32, dur: 0.6, shape: 'none', fill: '#ffffff', fill2: '#ff3a1a' });
+        if (ev.tx != null) { re.telX = ev.tx; re.telY = ev.ty; }
+        if (ev.k === 'charge' || ev.k === 'slam' || ev.k === 'leap' || ev.k === 'spray' || ev.k === 'summon' || ev.k === 'dive' || ev.k === 'bash' || ev.k === 'grenade') {
+          fx.burst(re.x, re.y - re.h - 30, '!!', { size: re.k === 'boss' ? 46 : 28, dur: 0.6, shape: 'none', fill: '#ffffff', fill2: '#ff3a1a' });
         }
+        if (re.k === 'boss' && th.bossMoves && th.bossMoves[ev.k]) hud.announce(th.bossMoves[ev.k], null, 1.1);
         break;
       }
       case 'eatk': {
@@ -625,13 +722,28 @@ export class ClientWorld {
         this.gateFade.set(ev.id, 0);
         const g = this.level.gates[ev.id];
         if (g) {
-          fx.shreds(g.x + g.w / 2, g.y + g.h / 2, ['#f3ead3', '#141414', '#f3ead3'], 16, 0.8);
+          if (ev.how === 'crack') {
+            fx.debris(g.x + g.w / 2, g.y + g.h / 2, '#8a5a3a', 22, 1.3);
+            fx.smoke(g.x + g.w / 2, g.y + g.h / 2, 6, '#e8dcc0', 1, 40);
+            fx.burst(g.x + g.w / 2, g.y - 10, pick(['KA-RUMBLE!', 'KRUNCH!', 'BRICK-KRAK!']), { size: 44, dur: 1, big: true });
+            audio.play('break', { x: g.x, y: g.y });
+          } else {
+            fx.shreds(g.x + g.w / 2, g.y + g.h / 2, ['#f3ead3', '#141414', '#f3ead3'], 16, 0.8);
+            if (ev.how === 'key') fx.burst(g.x + g.w / 2, g.y - 10, pick(['KA-CHUNK!', 'CLICK!']), { size: 34, dur: 0.8, shape: 'none', fill: '#ffffff', fill2: '#ffd23f' });
+          }
           audio.play('gateOpen', { x: g.x, y: g.y });
+          this.hints.delete(g.panel);
         }
         break;
       }
       case 'panel': {
         this.panelState[ev.id] = ev.s;
+        if (ev.s === 'active' && this.mode === 'story') {
+          const P = this.level.panels[ev.id];
+          if (ev.beat === 'silent') hud.announce('SHHH...', 'SNEAK UP BEHIND THEM · GUNFIRE RAISES THE ALARM', 2.4);
+          else if (ev.beat === 'rescue') hud.announce('HOSTAGE!', 'STAND BY THEM AND PRESS [E] TO UNTIE', 2.2);
+          else if (ev.beat === 'establish' && P && P.caption) hud.announce('MEANWHILE...', null, 1.4);
+        }
         if (ev.s === 'cleared' && this.mode === 'story') {
           const last = this.level.path[this.level.path.length - 1] === ev.id;
           if (!last) {
@@ -642,7 +754,243 @@ export class ClientWorld {
         break;
       }
       case 'wave':
-        hud.announce(pick(['MORE OF THEM!', 'REINFORCEMENTS!', 'HERE THEY COME!']), 'THE ARTIST IS DRAWING MORE...');
+        if (!this.stand.some((s) => s.p === ev.panel)) hud.announce(pick(['MORE OF THEM!', 'REINFORCEMENTS!', 'HERE THEY COME!']), 'THE ARTIST IS DRAWING MORE...');
+        break;
+      case 'say': {
+        const re = this.enemies.get(ev.id);
+        if (!re || this.nearMe(re.x, re.y, 1500) <= 0) break;
+        const shout = ev.k === 'grenade' || ev.k === 'spotted' || ev.k === 'reload';
+        fx.bubble(() => (this.enemies.has(re.id) ? { x: re.x, y: re.y - re.h - 10 } : null), ev.text, shout ? 'shout' : 'speech', shout ? 1.5 : 1.8, 15);
+        break;
+      }
+      case 'csay': {
+        const rc = this.civs.get(ev.id);
+        if (rc) fx.bubble(() => (this.civs.has(rc.id) ? { x: rc.x, y: rc.y - 70 } : null), ev.text, 'shout', 2, 15);
+        break;
+      }
+      case 'stagger': {
+        const re = this.enemies.get(ev.id);
+        const mine = ev.by === me;
+        if (re) { re.anim.stars = Math.max(re.anim.stars, ev.d || 1.2); re.anim.flash = 0.1; }
+        if (mine || ev.boss) {
+          fx.burst(ev.x, ev.y - 30, ev.boss ? 'STAGGERED!!' : pick(['STAGGERED!', 'DAZED!', 'WOBBLE!']), { size: ev.boss ? 56 : 34, dur: ev.boss ? 1.3 : 0.8, burst: '#ffffff', edge: '#23a0e8', fill: '#fff36b', fill2: '#23d5e8', big: true });
+          fx.ring(ev.x, ev.y, 70, '#23d5e8', 0.35, 6);
+          if (mine) fx.hitstop = Math.max(fx.hitstop, 0.05);
+          if (ev.boss) { hud.announce('HE\'S OPEN!', 'POUR IT ON!', 1.4); fx.shake(0.35); }
+        } else fx.ring(ev.x, ev.y, 50, '#23d5e8', 0.3, 4);
+        audio.play('stagger', { x: ev.x, y: ev.y });
+        break;
+      }
+      case 'splat': {
+        fx.burst(ev.x, ev.y - 10, pick(['WALL SPLAT!', 'SPLAT!!', 'KER-SPLAT!']), { size: 42, dur: 1, burst: '#ffffff', edge: th.palette.accent, fill: '#ffffff', fill2: '#ffe14a', big: true, spikes: 16 });
+        fx.lines(ev.x, ev.y, 20, 180, 0.25);
+        fx.inkSplat(ev.x, ev.y, this.splatColor(this.enemies.get(ev.id), 'e'), 12, ev.dir * 120, 0, 1.6);
+        if (fx.onDecal) fx.onDecal('splat', ev.x + ev.dir * 6, ev.y, { r: 18, color: this.splatColor(this.enemies.get(ev.id), 'e') });
+        fx.shake(this.nearMe(ev.x, ev.y, 900) * 0.35);
+        audio.play('splat', { x: ev.x, y: ev.y });
+        break;
+      }
+      case 'block': {
+        fx.sparks(ev.x, ev.y, '#ffffff', ev.m ? 8 : 4, 0, -0.3, 1.2);
+        fx.gatedBurst('blk' + ev.id, 0.5, ev.x, ev.y - 18, ev.m ? pick(['THUD!', 'WHUMP!']) : pick(['TINK!', 'KLANG!', 'PING!']), { size: 18, dur: 0.4, shape: 'none', fill: '#ffffff', fill2: '#c8d8e8' });
+        audio.play('block', { x: ev.x, y: ev.y });
+        break;
+      }
+      case 'shieldbreak': {
+        const col = ev.k === 'energy' ? '#23d5e8' : ev.k === 'door' ? '#3a3a3a' : '#9fc4dc';
+        fx.debris(ev.x, ev.y, col, 16, 1.2);
+        fx.burst(ev.x, ev.y - 20, ev.k === 'energy' ? 'FZZZT!' : pick(['KRASH!', 'SHATTER!', 'KER-RUNCH!']), { size: 40, dur: 0.9, burst: '#ffffff', edge: '#141414', fill: '#ffffff', fill2: col, big: true });
+        audio.play('shieldBreak', { x: ev.x, y: ev.y });
+        break;
+      }
+      case 'shieldup': {
+        const re = this.enemies.get(ev.id);
+        if (re) fx.ring(re.x, re.y - re.h / 2, 60, '#23d5e8', 0.4, 4);
+        break;
+      }
+      case 'eshit':
+        fx.ring(ev.x, ev.y, 26, '#23d5e8', 0.2, 3);
+        audio.play('eshield', { x: ev.x, y: ev.y, vol: 0.5 });
+        break;
+      case 'eshpop':
+        fx.ring(ev.x, ev.y, 70, '#23d5e8', 0.35, 6);
+        fx.sparks(ev.x, ev.y, '#b8fbff', 10);
+        fx.burst(ev.x, ev.y - 50, 'FZZT!', { size: 24, dur: 0.5, shape: 'none', fill: '#ffffff', fill2: '#23d5e8' });
+        audio.play('eshield', { x: ev.x, y: ev.y, pitch: 0.6 });
+        break;
+      case 'takedown': {
+        fx.burst(ev.x, ev.y - 20, pick(['*THWACK*', '*CLONK*', '*BONK*']), { size: 22, dur: 0.7, shape: 'none', fill: '#ffffff', fill2: '#aaaaaa' });
+        if (ev.by === me) { hud.toast('SILENT TAKEDOWN!', true); fx.hitstop = 0.06; }
+        audio.play('punchBig', { x: ev.x, y: ev.y, vol: 0.4 });
+        break;
+      }
+      case 'alarm': {
+        this.alarms.add(ev.panel);
+        const re = ev.id != null ? this.enemies.get(ev.id) : null;
+        if (re) fx.burst(re.x, re.y - re.h - 30, '!', { size: 54, dur: 0.9, shape: 'none', fill: '#ffffff', fill2: '#ff3a1a' });
+        hud.announce('SPOTTED!', 'THE ALARM IS UP!', 1.4);
+        audio.play('alarm');
+        break;
+      }
+      case 'trap':
+        hud.big('IT\'S A TRAP!', 'THE DOORS SLAM SHUT!', 1.8);
+        fx.shake(0.45);
+        audio.play('trap');
+        break;
+      case 'seal':
+        this.addSeal(ev.panel, ev.r, false);
+        for (const r of ev.r) fx.dust(r.x + r.w / 2, r.y + r.h, 6);
+        break;
+      case 'unseal':
+        this.removeSeal(ev.panel);
+        break;
+      case 'stand':
+        hud.announce('HOLD THE LINE!', `SURVIVE ${ev.dur | 0} SECONDS WHILE THE INK DRIES`, 2.2);
+        audio.play('trap');
+        break;
+      case 'standover':
+        hud.announce('THE INK IS DRY!', 'THE PAGE WIPES THEM AWAY', 1.8);
+        audio.play('solved');
+        break;
+      case 'erase': {
+        const re = this.enemies.get(ev.id);
+        fx.shreds(ev.x, ev.y, ['#f3ead3', '#cfd6dc', '#f3ead3'], 14, 0.7);
+        fx.smoke(ev.x, ev.y, 3, '#ffffff', 0.8, 20);
+        if (re) this.enemies.delete(ev.id);
+        break;
+      }
+      case 'zdown': {
+        fx.burst(ev.x, ev.y - 30, pick(['THUD.', 'FLOMP.', 'KLUNK.']), { size: 22, dur: 0.6, shape: 'none', fill: '#ffffff', fill2: '#9cc47a' });
+        if (!this.zHintShown && ev.by === me) { this.zHintShown = true; hud.announce('IT\'S NOT DEAD YET!', 'HEADSHOTS, FISTS OR FIRE KEEP THE DEAD DOWN', 2.6); }
+        break;
+      }
+      case 'rise': {
+        fx.burst(ev.x, ev.y - 40, pick(['BRAAAINS!', 'RISE!', 'GRRAAH!']), { size: 30, dur: 0.8, burst: '#c8f08a', edge: '#3a7a1a', big: true });
+        audio.play('wake', { x: ev.x, y: ev.y });
+        break;
+      }
+      case 'down': {
+        const rp = this.players.get(ev.id);
+        fx.burst(ev.x, ev.y - 40, pick(['OOF!', 'DOWN!', 'UGH!']), { size: 36, dur: 0.9, big: true });
+        if (ev.id === me) { hud.big('YOU\'RE DOWN!', 'HOLD ON: A FRIEND CAN PICK YOU UP', 2.2); audio.play('gameover', { vol: 0.5 }); }
+        else if (rp) hud.announce(`${rp.name} IS DOWN!`, 'GET TO THEM AND PRESS [E]', 2);
+        break;
+      }
+      case 'revive': {
+        fx.ring(ev.x, ev.y, 90, '#ffffff', 0.4, 8);
+        fx.burst(ev.x, ev.y - 60, pick(['BACK IN IT!', 'ON YOUR FEET!', 'NOT TODAY!']), { size: 30, dur: 0.9, burst: '#ffffff', edge: '#7fd13b', big: true });
+        audio.play('respawn', { x: ev.x, y: ev.y });
+        break;
+      }
+      case 'freed': {
+        const rc = this.civs.get(ev.id);
+        if (rc) {
+          fx.bubble(() => (this.civs.has(rc.id) ? { x: rc.x, y: rc.y - 70 } : null), ev.text, 'speech', 2, 17);
+          fx.ring(rc.x, rc.y - 40, 80, '#ffffff', 0.4, 6);
+        }
+        hud.announce('RESCUED!', '+1 MAIL-ORDER COUPON', 1.8);
+        audio.play('coupon');
+        break;
+      }
+      case 'chit': {
+        const rc = this.civs.get(ev.id);
+        if (rc) { rc.anim.flash = 0.08; rc.anim.hurt = 0.3; }
+        break;
+      }
+      case 'civdead':
+        fx.shreds(ev.x, ev.y, ['#f3ead3', '#141414'], 18, 1);
+        hud.announce('NOOO!', 'THE HOSTAGE IS GONE...', 2);
+        this.civs.delete(ev.id);
+        break;
+      case 'civgone':
+        this.civs.delete(ev.id);
+        break;
+      case 'sw': {
+        const sw = this.switches.find((x) => x.id === ev.id);
+        if (sw) {
+          sw.on = ev.on;
+          sw.litT = ev.on ? 5 : 0;
+          if (ev.on) { sw.glow = 1; fx.ring(sw.x, sw.y, 40, '#fff36b', 0.35, 5); audio.play('switchOn', { x: sw.x, y: sw.y }); }
+        }
+        break;
+      }
+      case 'solved':
+        for (const sw of this.switches) if (sw.panel === ev.panel) { sw.done = true; sw.on = 1; fx.ring(sw.x, sw.y, 70, '#fff36b', 0.6, 6); }
+        this.solved.add(ev.panel);
+        hud.announce('SOLVED!', 'THE WAY FORWARD IS OPEN', 1.8);
+        audio.play('solved');
+        break;
+      case 'hint': {
+        this.hints.set(ev.panel, ev.k);
+        const kn = th.keyName || 'KEY', sn = th.switchName || 'SWITCH';
+        if (ev.k === 'key') hud.announce('IT\'S LOCKED!', `FIND THE ${kn} AND BRING IT TO THE DOOR`, 2.6);
+        else if (ev.k === 'switch') hud.announce('THE WAY IS SHUT!', `LIGHT ALL 3 ${sn}ES AT ONCE: SHOOT THEM!`, 2.6);
+        else if (ev.k === 'crack') hud.announce('BRICKED UP!', 'SOMETHING EXPLOSIVE SHOULD DO IT...', 2.6);
+        break;
+      }
+      case 'unlock':
+        audio.play('unlock');
+        if (ev.by === me) hud.toast('UNLOCKED!', true);
+        break;
+      case 'stamp':
+        hud.announce('COLLECTOR\'S STAMP!', `+1 COUPON · ${ev.n} FOUND THIS ISSUE`, 2);
+        audio.play('coupon');
+        break;
+      case 'coupon':
+        break;
+      case 'ghost':
+        hud.announce('GHOST!', 'NOBODY SAW A THING · +30 SUPER', 2);
+        audio.play('solved');
+        break;
+      case 'elite': {
+        const re = this.enemies.get(ev.id);
+        if (re) re.name = ev.name;
+        hud.announce('SHOWDOWN!', ev.name, 2.2);
+        audio.play('boss', { vol: 0.6 });
+        break;
+      }
+      case 'redraw': {
+        const re = this.enemies.get(ev.id);
+        if (re) re.anim.melee = 0.2;
+        break;
+      }
+      case 'drawfail': {
+        const re = this.enemies.get(ev.id);
+        if (re) fx.burst(re.x, re.y - re.h - 20, pick(['ACK!', 'MY LINES!', 'SMUDGED!']), { size: 22, dur: 0.6, shape: 'none', fill: '#ffffff', fill2: '#ff9ad0' });
+        break;
+      }
+      case 'edodge': {
+        const re = this.enemies.get(ev.id);
+        if (re) { fx.dust(re.x, re.y, 4, -ev.dir); if (this.nearMe(re.x, re.y, 1000) > 0) fx.burst(re.x, re.y - re.h - 10, pick(['HUP!', 'WHOA!', 'NOPE!']), { size: 18, dur: 0.4, shape: 'none', fill: '#ffffff', fill2: '#dddddd' }); }
+        break;
+      }
+      case 'charge': {
+        if (ev.id === me) break;
+        const rp = this.players.get(ev.id);
+        if (rp) this.chargeFx(rp);
+        break;
+      }
+      case 'stick': {
+        const pr = this.projectiles.get(ev.id);
+        if (pr) { pr.x = ev.x; pr.y = ev.y; pr.vx = 0; pr.vy = 0; pr.g = 0; }
+        fx.inkSplat(ev.x, ev.y, '#141414', 4, 0, 0, 0.5);
+        break;
+      }
+      case 'zap':
+        fx.beam(ev.x0, ev.y0, ev.x1, ev.y1, '#fff36b');
+        fx.sparks(ev.x1, ev.y1, '#fff36b', 6);
+        break;
+      case 'counter':
+        if (ev.id === me) { hud.toast('COUNTER! NEXT PUNCH IS A KNOCKOUT', true); fx.ring(this.pred.p.x, this.pred.p.y - 46, 70, '#ffffff', 0.35, 6); }
+        break;
+      case 'style':
+        if (ev.id === me) hud.stylePop(ev.k, ev.v);
+        break;
+      case 'perk':
+        if (ev.id === me) { hud.toast(PERKS[ev.k] ? PERKS[ev.k].title : ev.k, true); audio.play('coupon'); }
+        break;
+      case 'ads':
+        audio.play('pageTurn');
         break;
       case 'spreadclear':
         hud.big(ev.final ? 'THE END?' : 'TO BE CONTINUED...', ev.final ? 'NOT QUITE...' : 'TURN THE PAGE!', 3);
@@ -747,6 +1095,8 @@ export class ClientWorld {
     if (Math.random() < 0.06) fx.burst(x + nx * 20, y + ny * 20 - 10, pick(WALL_WORDS), { size: 16, dur: 0.35, shape: 'none', fill: '#ffffff', fill2: '#dddddd' });
   }
 
+  // FX budget: loud comic FX are the reward, so they're spent on hits that
+  // involve YOU (and on big moments). Everything else stays small and clean.
   hitFx(ev, snap) {
     const fx = this.fx, audio = this.audio, hud = this.hud;
     const th = this.theme;
@@ -755,58 +1105,66 @@ export class ClientWorld {
     const x = ev.x + (pos ? pos.dx : 0), y = ev.y + (pos ? pos.dy : 0);
     const mine = ev.bk === 'p' && ev.by === this.me;
     const onMe = ev.tt === 'p' && ev.id === this.me;
+    const involved = mine || onMe;
+    const near = this.nearMe(x, y, 1200);
     const d = ev.d;
     if (ent) {
       ent.anim.flash = 0.07;
       ent.anim.hurt = 0.3;
-      if (ev.big) ent.anim.stars = 0.8;
-      if (Math.hypot(ev.kx, ev.ky) > 420 || ev.big) ent.anim.flung = 0.4;
+      if (Math.hypot(ev.kx, ev.ky) > 420) ent.anim.flung = 0.4;
     }
+    if (!involved && near <= 0) return;
     const kn = Math.hypot(ev.kx, ev.ky) || 1;
     const dx = ev.kx / kn, dy = ev.ky / kn;
     const col = this.splatColor(ent, ev.tt);
     const mech = ent && ent.look && (ent.look.body === 'robot' || ent.look.body === 'saucer');
+    const heavy = d >= 25 || ev.w === 'combo' || ev.st || ev.c;
+    // a killing blow gets the K.O. treatment instead of a hit word
+    const killed = snap && snap.ev && snap.ev.some((k) => k.t === 'kill' && k.id === ev.id && k.tt === ev.tt);
     if (mech) {
-      fx.sparks(x, y, '#ffe14a', 6 + Math.min(10, d / 5), dx, dy);
-      fx.inkSplat(x, y, '#2b2b2b', 3, dx * 200, dy * 200, 0.8);
+      fx.sparks(x, y, '#ffe14a', involved ? 4 + Math.min(8, d / 6) : 3, dx, dy);
+      if (heavy) fx.inkSplat(x, y, '#2b2b2b', 3, dx * 200, dy * 200, 0.8);
     } else {
-      fx.inkSplat(x, y, col, 4 + Math.min(12, Math.round(d / 5)), dx * 250, dy * 250, 0.9);
+      fx.inkSplat(x, y, col, involved ? 3 + Math.min(9, Math.round(d / 6)) : 2, dx * 250, dy * 250, 0.9);
     }
-    fx.particle({ k: 'glow', x, y, vx: 0, vy: 0, g: 0, drag: 0, life: 0.07, r: 10 + d * 0.2, color: '#ffffff' });
-    if (d >= 20 && fx.onDecal && Math.random() < 0.5 && !mech) fx.onDecal('splat', x + dx * 30, y + dy * 20, { r: Math.min(26, 8 + d * 0.25), color: col });
+    fx.particle({ k: 'glow', x, y, vx: 0, vy: 0, g: 0, drag: 0, life: 0.07, r: 8 + d * 0.15, color: '#ffffff' });
+    if (heavy && involved && fx.onDecal && Math.random() < 0.35 && !mech) fx.onDecal('splat', x + dx * 30, y + dy * 20, { r: Math.min(20, 8 + d * 0.2), color: col });
 
     // -------- the words --------
-    const size = clamp(20 + d * 0.5, 22, 74);
     let word;
     if (ev.w === 'punch') word = pick(PUNCH.words);
     else if (ev.w === 'combo') word = pick(PUNCH.comboWords);
     else if (ev.w === 'blade') word = pick(WEAPONS.blade.words);
     else if (ev.w === 'rail') word = pick(['SHRAKK!', 'ZZAKK!', 'KZZRT!']);
-    else if (ev.w === 'charge') word = pick(['WHAM!', 'KA-RUNCH!', 'SLAM!']);
+    else if (ev.w === 'charge' || ev.w === 'bash') word = pick(['WHAM!', 'KA-RUNCH!', 'SLAM!']);
     else word = pick(th.hitWords);
     const pal = th.palette;
-    if (ev.c) {
-      fx.burst(x, y - 16, pick(CRIT_WORDS), { size: size + 10, dur: 0.95, burst: '#e8262b', edge: '#141414', fill: '#fff36b', fill2: '#ffb21f', spikes: 14, pop: 1.3 });
-      fx.lines(x, y, 20, 110, 0.2);
-    } else if (!ev.ex) {
-      const gap = d >= 30 || ev.w === 'combo' ? 0.04 : ev.w === 'punch' ? 0.1 : 0.22;
-      fx.gatedBurst(ev.tt + ev.id, gap, x + (Math.random() - 0.5) * 20, y - 14 - Math.random() * 16, word, {
-        size, dur: 0.6 + Math.min(0.4, d / 150),
-        burst: ev.w === 'combo' ? '#ff3fa4' : ev.tt === 'p' && onMe ? '#ffffff' : pal.burst[1],
-        edge: ev.w === 'combo' ? '#141414' : pal.burstEdge,
-        fill: '#ffffff', fill2: ev.tt === 'p' ? pal.burst[0] : pal.burst[0],
-        pop: ev.big ? 1.35 : 1,
-      });
+    if (!ev.ex && !killed) {
+      if (mine && ev.c) {
+        fx.burst(x, y - 16, pick(CRIT_WORDS), { size: 38, dur: 0.8, burst: '#e8262b', edge: '#141414', fill: '#fff36b', fill2: '#ffb21f', spikes: 14, pop: 1.25, big: true });
+      } else if (mine && heavy) {
+        fx.gatedBurst('w' + ev.id, 0.12, x + (Math.random() - 0.5) * 16, y - 18, word, {
+          size: clamp(26 + d * 0.4, 30, 60), dur: 0.7, big: true,
+          burst: ev.w === 'combo' ? '#ff3fa4' : pal.burst[1], edge: ev.w === 'combo' ? '#141414' : pal.burstEdge,
+          fill: '#ffffff', fill2: pal.burst[0], pop: 1.2,
+        });
+        fx.lines(x, y, 18, 100, 0.18);
+      } else if (mine) {
+        fx.gatedBurst('w' + ev.id, 0.4, x + (Math.random() - 0.5) * 20, y - 20, word, { size: 19, dur: 0.4, shape: 'none', fill: '#ffffff', fill2: pal.burst[0] });
+      } else if (onMe) {
+        fx.gatedBurst('me', 0.3, x, y - 20, word, { size: d >= 20 ? 30 : 20, dur: 0.5, shape: d >= 20 ? 'burst' : 'none', burst: '#ffffff', edge: pal.burstEdge, fill: '#ffffff', fill2: pal.burst[0] });
+      } else if (ev.big && near > 0.3) {
+        fx.gatedBurst('o' + ev.id, 0.6, x, y - 20, word, { size: 18, dur: 0.35, shape: 'none', fill: '#ffffff', fill2: '#dddddd' });
+      }
     }
-    if (ev.big) fx.lines(x, y, 20, 120, 0.2);
-    fx.number(ev.tt + ev.id, x, y - 34, d, { crit: !!ev.c, mine, hurtMe: onMe });
-    audio.play(ev.c ? 'hitCrit' : 'hit', { x, y, vol: clamp(0.5 + d / 60, 0.5, 1) });
+    if (involved) fx.number(ev.tt + ev.id, x, y - 34, d, { crit: !!ev.c, mine, hurtMe: onMe });
+    audio.play(ev.c ? 'hitCrit' : 'hit', { x, y, vol: involved ? clamp(0.5 + d / 60, 0.5, 1) : 0.35 });
 
     if (mine) {
       fx.hitmarker = 0.2;
       fx.hitmarkerCrit = !!ev.c;
       audio.play('hitmarker');
-      if (ev.big || ev.c) { fx.hitstop = Math.max(fx.hitstop, 0.045); fx.shake(0.14); }
+      if (heavy) fx.shake(0.1);
     }
     if (onMe) {
       fx.vignette = Math.min(1, fx.vignette + d / 55);
@@ -819,7 +1177,7 @@ export class ClientWorld {
       fx.dmgDirs.push({ a, t: 0 });
       hud.hurt(d);
       audio.play('hurt', { vol: clamp(0.5 + d / 50, 0.5, 1) });
-      if (d >= 30) fx.impactFrame(x, y, 0.05);
+      if (d >= 40) fx.impactFrame(x, y, 0.05);
     }
   }
 
@@ -833,24 +1191,30 @@ export class ClientWorld {
     const mine = ev.bk === 'p' && ev.by === this.me;
     const onMe = ev.tt === 'p' && ev.id === this.me;
     const boss = ev.k === 'boss';
+    const loud = mine || onMe || boss || (ent && ent.elite) || (ev.tt === 'p' && this.nearMe(x, y, 1200) > 0);
     const colors = look
       ? [look.suit, look.suit2 || look.suit, look.skin || look.suit, '#f3ead3', look.cape || look.suit, '#f3ead3']
       : ['#f3ead3', '#141414'];
-    fx.shreds(x, y, colors.filter(Boolean), boss ? 60 : 26, boss ? 1.6 : 1);
-    fx.inkSplat(x, y, this.splatColor(ent, ev.tt), boss ? 40 : 16, ev.vx, ev.vy, 2);
+    fx.shreds(x, y, colors.filter(Boolean), boss ? 60 : loud ? 22 : 10, boss ? 1.6 : 1);
+    fx.inkSplat(x, y, this.splatColor(ent, ev.tt), boss ? 40 : loud ? 12 : 5, ev.vx, ev.vy, 2);
     let word = pick(th.killWords);
     if (ev.w === 'punch' || ev.w === 'combo') word = pick(['K.O.!', 'KNOCKOUT!', 'KAPOW!!']);
-    fx.burst(x, y - 30, boss ? 'THE END!' : word, { size: boss ? 96 : 56, dur: boss ? 2.2 : 1.25, burst: '#fff36b', edge: th.palette.accent, fill: '#ffffff', fill2: '#ffe14a', spikes: 16, pop: 1.5, layer: 1 });
-    fx.ring(x, y, boss ? 400 : 120, '#ffffff', 0.4, 12);
-    fx.lines(x, y, 40, boss ? 700 : 240, boss ? 0.8 : 0.3);
-    if (fx.onDecal && ent) fx.onDecal('rip', ent.x, ent.y, { w: ent.w || 36, h: ent.h || 90, flying: ent.look && (ent.look.body === 'bat' || ent.look.body === 'saucer'), seed: ev.id });
+    if (ev.s) word = null; // silent takedown: no fanfare
+    if (word && loud) {
+      fx.burst(x, y - 30, boss ? 'THE END!' : word, { size: boss ? 96 : 48, dur: boss ? 2.2 : 1.1, burst: '#fff36b', edge: th.palette.accent, fill: '#ffffff', fill2: '#ffe14a', spikes: 16, pop: 1.4, layer: 1, big: true });
+      fx.ring(x, y, boss ? 400 : 110, '#ffffff', 0.4, 10);
+      fx.lines(x, y, 40, boss ? 700 : 200, boss ? 0.8 : 0.25);
+    } else if (word && this.nearMe(x, y, 1200) > 0) {
+      fx.burst(x, y - 30, 'K.O.', { size: 20, dur: 0.5, shape: 'none', fill: '#ffffff', fill2: '#dddddd' });
+    }
+    if (fx.onDecal && ent && (mine || boss)) fx.onDecal('rip', ent.x, ent.y, { w: ent.w || 36, h: ent.h || 90, flying: ent.look && (ent.look.body === 'bat' || ent.look.body === 'saucer'), seed: ev.id });
     if (boss) {
       fx.explosion(x, y, 260, 'KA-BLAMMO!!', { size: 80 });
       fx.impactFrame(x, y, 0.2);
       fx.hitstop = 0.18;
       fx.shake(1);
     }
-    audio.play('ko', { x, y });
+    audio.play('ko', { x, y, vol: loud ? 1 : 0.5 });
 
     if (ev.tt === 'e') {
       this.enemies.delete(ev.id);
@@ -861,9 +1225,11 @@ export class ClientWorld {
     if (mine && !onMe) {
       fx.killmarker = 0.55;
       audio.play('killmarker');
-      fx.impactFrame(x, y, 0.07);
-      fx.hitstop = Math.max(fx.hitstop, 0.08);
-      fx.shake(0.3);
+      if (!ev.s) {
+        fx.impactFrame(x, y, 0.06);
+        fx.hitstop = Math.max(fx.hitstop, 0.07);
+        fx.shake(0.25);
+      }
       if (this.time - this.lastKillT < 3.5) this.killStreak++; else this.killStreak = 1;
       this.lastKillT = this.time;
       if (this.killStreak >= 2) {
@@ -875,7 +1241,7 @@ export class ClientWorld {
       fx.impactFrame(x, y, 0.14);
       fx.shake(0.7);
       const killer = ev.bk === 'p' ? this.players.get(ev.by) : ev.bk === 'e' ? this.enemies.get(ev.by) : null;
-      hud.death(killer ? killer.name : ev.by === this.me ? 'YOURSELF' : 'THE COMIC', ev.w);
+      hud.death(killer ? killer.name : ev.by === this.me ? 'YOURSELF' : ev.w === 'bleed' ? 'BLOOD LOSS' : 'THE COMIC', ev.w);
       this.killStreak = 0;
     }
     if (ev.tt === 'p' || boss || mine) {
@@ -992,6 +1358,10 @@ export class ClientWorld {
         me.alive = this.meState.alive;
         me.invuln = this.meState.invuln > 0;
         me.w = weaponOf(p);
+        me.downed = !!this.meState.downed;
+        me.hasKey = !!this.meState.hasKey;
+        me.reloading = p.rl > 0;
+        me.charging = p.railT > 0;
       }
     }
 
@@ -1009,6 +1379,17 @@ export class ClientWorld {
       if (re.tel > 0) re.tel -= dt;
       updateAnim(re.anim, re, re.asleep ? 0 : vdt);
     }
+    for (const rc of this.civs.values()) {
+      rc.x += (rc.tx - rc.x) * Math.min(1, dt * 12);
+      rc.y = rc.ty;
+      rc.act = rc.st === 'tied' ? ACT.tied : ACT.flee;
+      rc.vx = rc.st === 'free' ? rc.facing * 300 : 0;
+      rc.k = 'civ';
+      updateAnim(rc.anim, rc, vdt);
+    }
+    for (const list of this.seals.values()) for (const r of list) if (r.t < 1) r.t = Math.min(1, r.t + dt / 0.25);
+    for (const sw of this.switches) { if (sw.glow > 0) sw.glow = Math.max(0, sw.glow - dt * 2); if (sw.litT > 0) sw.litT -= dt; }
+    for (const rp of this.players.values()) if (rp.chargeT > 0) rp.chargeT -= dt;
     for (const pr of this.props.values()) {
       if (pr.shake > 0) pr.shake -= dt;
       if (pr.flipT != null && pr.flipT < 1) pr.flipT = Math.min(1, pr.flipT + dt / 0.2);
@@ -1051,6 +1432,11 @@ export class ClientWorld {
     rp.invuln = !!(f & F.INVULN);
     rp.stun = !!(f & F.STUN);
     rp.super = !!(f & F.SUPER);
+    rp.downed = !!(f & F.DOWN);
+    rp.reviving = !!(f & F.REVIVE);
+    rp.hasKey = !!(f & F.KEY);
+    rp.reloading = !!(f & F.RELOAD);
+    rp.charging = !!(f & F.CHARGE);
     const melee = !!(f & F.MELEE);
     if (melee && !rp._melee && rp.w !== 'blade') rp.anim.melee = Math.max(rp.anim.melee, 0.2);
     rp._melee = melee;
@@ -1067,7 +1453,7 @@ export class ClientWorld {
       const wall = raycast(this.phys, pr.x, pr.y, nx, ny);
       if (wall) {
         const hx = pr.x + (nx - pr.x) * wall.t, hy = pr.y + (ny - pr.y) * wall.t;
-        if (pr.k === 'bomb') {
+        if (pr.k === 'bomb' || pr.k === 'egren') {
           pr.x = hx + wall.nx * 1.5;
           pr.y = hy + wall.ny * 1.5;
           if (wall.nx) pr.vx = -pr.vx * pr.bounce;

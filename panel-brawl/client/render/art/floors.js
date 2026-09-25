@@ -43,7 +43,7 @@ const FLOORS = {
       const p = P();
       for (let x = R.r(0, 120); x < w; x += R.r(120, 220)) { p.moveTo(x, h - 38); p.lineTo(x - 12, h); }
       strokeP(ctx, p, 1.4, '#3a3450');
-      fillP(ctx, pebbles(R, 0, w, h - 34, h - 2, w / 5, 0.8, 2.2), '#6a6280');
+      fillP(ctx, pebbles(R, 0, w, h - 34, h - 2, w / 16, 0.8, 2), '#5e5874');
       const tar = P(); for (let i = 0; i < w / 300; i++) ellP(R() * w, h - R.r(6, 26), R.r(20, 50), R.r(3, 6), 0, tar);
       fillP(ctx, tar, '#3f3a52');
     },
@@ -51,7 +51,7 @@ const FLOORS = {
       const p = P();
       for (let x = R.r(0, 90); x < w; x += 90) { p.moveTo(x, h - 44); p.lineTo(x - 16, h); }
       strokeP(ctx, p, 1.4, '#8f887a');
-      const gum = P(); for (let i = 0; i < w / 60; i++) circP(R() * w, h - R() * 36, 1.5 + R() * 1.5, gum);
+      const gum = P(); for (let i = 0; i < w / 160; i++) circP(R() * w, h - R() * 36, 1.5 + R() * 1.5, gum);
       fillP(ctx, gum, '#a39c8c');
       // curb edge
       fillP(ctx, rectP(0, h - 7, w, 7), '#aaa292');
@@ -77,9 +77,9 @@ const FLOORS = {
   },
   zombie: {
     graveyard(ctx, w, h, R) {
-      const t = tufts(R, w, h - 34, w / 22, 16);
+      const t = tufts(R, w, h - 34, w / 45, 14);
       strokeP(ctx, t, 1.8, '#26302a');
-      const clods = pebbles(R, 0, w, h - 30, h - 3, w / 10, 1.2, 3.4);
+      const clods = pebbles(R, 0, w, h - 30, h - 3, w / 26, 1.2, 3);
       fillP(ctx, clods, '#2e2638');
       const bones = P();
       for (let i = 0; i < Math.ceil(w / 600); i++) {
@@ -87,15 +87,15 @@ const FLOORS = {
         bones.rect(x, y - 1.5, 20, 3); circP(x, y - 2, 3, bones); circP(x, y + 2, 3, bones); circP(x + 20, y - 2, 3, bones); circP(x + 20, y + 2, 3, bones);
       }
       inked(ctx, bones, '#cfc8b4', 1.2);
-      const t2 = tufts(R, w, h - 1, w / 30, 12);
+      const t2 = tufts(R, w, h - 1, w / 60, 10);
       strokeP(ctx, t2, 1.8, '#3e4a36');
     },
     street(ctx, w, h, R) {
       strokeP(ctx, cracks(R, w, h, Math.ceil(w / 120)), 1.4, '#2a1a1c');
-      fillP(ctx, pebbles(R, 0, w, h - 30, h - 2, w / 8, 1, 3.6), '#5e4448');
-      for (let i = 0; i < Math.ceil(w / 500); i++) puddle(ctx, R, R() * w, h - R.r(8, 22), R.r(30, 60), '#6e1414', '#b8453a');
-      const glass = P(); for (let i = 0; i < w / 40; i++) { const x = R() * w, y = h - R() * 30; polyP([[x, y], [x + 4, y - 3], [x + 6, y + 1]], true, glass); }
-      fillP(ctx, glass, '#d0c8c0');
+      fillP(ctx, pebbles(R, 0, w, h - 30, h - 2, w / 24, 1, 3), '#553e40');
+      for (let i = 0; i < Math.ceil(w / 900); i++) puddle(ctx, R, R() * w, h - R.r(8, 22), R.r(30, 50), '#5a1a1a', '#8a3a32');
+      const glass = P(); for (let i = 0; i < w / 110; i++) { const x = R() * w, y = h - R() * 30; polyP([[x, y], [x + 4, y - 3], [x + 6, y + 1]], true, glass); }
+      fillP(ctx, glass, '#a89890');
     },
     hospital(ctx, w, h, R) {
       for (let i = 0; i < Math.ceil(w / 450); i++) {
@@ -111,12 +111,11 @@ const FLOORS = {
       strokeP(ctx, g, 1, '#6f7462');
     },
     mall(ctx, w, h, R) {
-      const glass = P(); for (let i = 0; i < w / 30; i++) { const x = R() * w, y = h - R() * 34; polyP([[x, y], [x + 5, y - 3], [x + 8, y + 1], [x + 3, y + 3]], true, glass); }
-      fillP(ctx, glass, '#b8c4f0');
+      const glass = P(); for (let i = 0; i < w / 90; i++) { const x = R() * w, y = h - R() * 34; polyP([[x, y], [x + 5, y - 3], [x + 8, y + 1], [x + 3, y + 3]], true, glass); }
+      fillP(ctx, glass, '#8a92b8');
       const trash = P(); for (let i = 0; i < w / 300; i++) { const x = R() * w; trash.rect(x, h - 12, 14, 10); ellP(x + 30, h - 6, 8, 5, 0.3, trash); }
       inked(ctx, trash, '#8a84a8', 1.2);
-      const refl = P(); for (let i = 0; i < w / 180; i++) refl.rect(R() * w, h - 36, R.r(3, 7), 30);
-      fillP(ctx, refl, 'rgba(110,224,122,0.2)');
+      
     },
   },
   space: {
@@ -137,8 +136,8 @@ const FLOORS = {
       for (let i = 0; i < Math.ceil(w / 260); i++) { const x = R() * w, y = h - R.r(12, 28), r = R.r(14, 30); ellP(x, y, r, r * 0.22, 0, cr); }
       ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fill(cr); ctx.restore();
       strokeP(ctx, cr, 1.4, INK);
-      fillP(ctx, pebbles(R, 0, w, h - 34, h - 2, w / 8, 1, 3.4), 'rgba(40,20,40,0.5)');
-      const cry = P(); for (let i = 0; i < w / 150; i++) { const x = R() * w, y = h - R.r(2, 20); polyP([[x - 3, y], [x, y - 10], [x + 3, y]], true, cry); }
+      fillP(ctx, pebbles(R, 0, w, h - 34, h - 2, w / 24, 1, 3), 'rgba(40,20,40,0.35)');
+      const cry = P(); for (let i = 0; i < w / 400; i++) { const x = R() * w, y = h - R.r(2, 20); polyP([[x - 3, y], [x, y - 10], [x + 3, y]], true, cry); }
       inked(ctx, cry, '#8ff4ff', 1);
     },
     reactor(ctx, w, h, R) {
@@ -159,7 +158,7 @@ const FLOORS = {
         const rip = P(); ellP(cx + R.r(-20, 20), y, 8, 1.6, 0, rip); ellP(cx + R.r(-20, 20), y, 14, 2.6, 0, rip);
         strokeP(ctx, rip, 1, NB);
       }
-      const sp = P(); for (let i = 0; i < w / 14; i++) { const x = R() * w, y = h - R() * 36; sp.moveTo(x - 3, y); sp.lineTo(x, y - 4); sp.lineTo(x + 3, y); }
+      const sp = P(); for (let i = 0; i < w / 40; i++) { const x = R() * w, y = h - R() * 36; sp.moveTo(x - 3, y); sp.lineTo(x, y - 4); sp.lineTo(x + 3, y); }
       strokeP(ctx, sp, 1, NW);
     },
     office(ctx, w, h, R) {
@@ -173,7 +172,7 @@ const FLOORS = {
       strokeP(ctx, rug, 1.4, NW);
     },
     club(ctx, w, h, R) {
-      const conf = P(); for (let i = 0; i < w / 30; i++) { const x = R() * w, y = h - R() * 30; ellP(x, y, 3, 1.4, R() * 3, conf); }
+      const conf = P(); for (let i = 0; i < w / 90; i++) { const x = R() * w, y = h - R() * 30; ellP(x, y, 3, 1.4, R() * 3, conf); }
       fillP(ctx, conf, NR);
     },
     docks(ctx, w, h, R) {

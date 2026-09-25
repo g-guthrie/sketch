@@ -7,7 +7,7 @@ import {
   INK, NW, NB, NR, TAU, shade, mix, rgba, desat, halftone, hatchPattern, halftoneGradient, cloudPath,
   P, rectP, circP, ellP, polyP, rrectP, lineP, fillP, strokeP, inked, dotsIn, hatchIn, clipped, crescent,
   lum, isSpotRed, monoFill, glow, letters, neon, arcLine, deadTree, hatchLines, mkR, rivetRow, hazardStripes,
-  fire, dial, waterTowerPath, bricksFull, handPath,
+  fire, dial, waterTowerPath, bricksFull, handPath, starburstPath,
 } from './kit.js';
 
 // ------------------------------------------------------------ materials
@@ -21,31 +21,32 @@ const PAL = {
   noir: { metal: '#8a8a8a', metalD: '#2a2a2a', wood: '#6a6a6a', woodD: '#2a2a2a', stone: '#b0b0b0', a1: '#d7141a', a2: '#2a2a2a', a3: '#f2efe6', glow: '#f2efe6', glass: '#d8d8d8', cloth: '#e8e8e8' },
 };
 
-function material(theme, fg) {
+function material(theme, fg, atmo) {
   const mono = !!theme.mono;
   const key = theme.key || 'hero';
-  const air = AIR[key] || '#888888';
+  const air = (atmo && atmo.air) || AIR[key] || '#888888';
+  const flip = atmo && atmo.light === 1 ? -1 : 1; // shadows fall away from the scene's key light
   const pal = PAL[key] || PAL.hero;
-  const lw = fg ? 3.4 : 2.2;
-  const ink = mono ? NB : INK;
+  const lw = fg ? 3.2 : 1.9;
+  const ink = mono ? NB : fg ? INK : mix(INK, air, 0.16);
   const col = (hex) => {
     if (mono) return isSpotRed(hex) ? NR : lum(hex) < 0.42 ? NB : NW;
-    return fg ? hex : mix(desat(hex, 0.22), air, 0.14);
+    return fg ? hex : mix(desat(hex, 0.38), air, 0.3);
   };
   const M = {
-    mono, fg, lw, ink, pal, key, thin: fg ? 1.8 : 1.3,
+    mono, fg, lw, ink, pal, key, air, flip, thin: fg ? 1.7 : 1.2,
     col,
     fill(ctx, path, hex) {
       if (mono) monoFill(ctx, path, hex); else fillP(ctx, path, col(hex));
     },
-    // Flat color + form shadow + (fg) rim highlight + ink outline.
+    // Flat color + ONE flat shadow tone away from the light + ink outline.
     solid(ctx, path, hex, o = {}) {
-      const lx = o.lx != null ? o.lx : -5, ly = o.ly != null ? o.ly : -5;
+      const lx = (o.lx != null ? o.lx : -5) * flip, ly = o.ly != null ? o.ly : -5;
       const w = o.lw != null ? o.lw : lw;
       if (mono) {
         const k = monoFill(ctx, path, hex);
         if (o.shadow !== false) {
-          if (k === 'black') { if (o.rim !== false) crescent(ctx, path, -lx * 0.45, -ly * 0.45, NW); }
+          if (k === 'black') { if (fg && o.rim !== false) crescent(ctx, path, -lx * 0.45, -ly * 0.45, NW); }
           else if (k === 'red') crescent(ctx, path, lx, ly, NB);
           else crescent(ctx, path, lx * 1.3, ly * 1.3, hatchPattern(ctx, NB, 3.6, 1.2));
         }
@@ -55,30 +56,32 @@ function material(theme, fg) {
       const c = col(hex);
       ctx.fillStyle = c;
       ctx.fill(path);
-      if (o.shadow !== false) {
-        crescent(ctx, path, lx, ly, shade(c, -0.2));
-        ctx.save();
-        ctx.clip(path);
-        const q = new Path2D();
-        q.rect(-1e5, -1e5, 2e5, 2e5);
-        q.addPath(path, new DOMMatrix().translate(lx * 2, ly * 2));
-        ctx.fillStyle = halftone(ctx, shade(c, -0.45), fg ? 4 : 4.5, fg ? 1.05 : 0.95);
-        ctx.fill(q, 'evenodd');
-        ctx.restore();
-      }
-      if (fg && o.rim !== false) crescent(ctx, path, -lx * 0.4, -ly * 0.4, shade(c, 0.4));
-      if (w) strokeP(ctx, path, w, INK);
+      if (o.shadow !== false) crescent(ctx, path, lx * 1.4, ly * 1.4, shade(c, fg ? -0.22 : -0.14));
+      if (fg && o.rim) crescent(ctx, path, -lx * 0.4, -ly * 0.4, shade(c, 0.35));
+      if (w) strokeP(ctx, path, w, ink);
     },
     stroke(ctx, path, w, hex) { strokeP(ctx, path, w != null ? w : lw, hex ? col(hex) : ink); },
     line(ctx, path, w) { strokeP(ctx, path, w != null ? w : M.thin, ink); },
-    // A light source (lamp bulb, screen) — in noir: white.
-    light(hex) { return mono ? NW : fg ? hex : mix(hex, '#ffffff', 0.1); },
+    // A light source (lamp bulb, screen): in noir, paper white.
+    light(hex) { return mono ? NW : fg ? hex : mix(hex, air, 0.18); },
+    // Glows are foreground-only; baked background decor stays quiet.
     glow(ctx, x, y, r, hex) {
+      if (!fg) return;
       if (mono) {
         ctx.save(); ctx.clip(circP(x, y, r));
         halftoneGradient(ctx, x - r, y - r, r * 2, r * 2, NW, { spacing: 5, dir: 'center', cx: x, cy: y, from: 0.3, maxR: 3 });
         ctx.restore();
       } else glow(ctx, x, y, r, hex, { spacing: Math.max(4, r / 9), from: 0.25 });
+    },
+    // thin, low-contrast suspension line up to the panel top
+    cable(ctx, x, y0, y1, chain) {
+      if (y1 <= y0 + 4) return;
+      const c = mono ? NB : mix(INK, air, 0.35);
+      if (chain) {
+        const p = new Path2D();
+        for (let yy = y0; yy < y1 - 6; yy += 12) ellP(x, yy + 5, 2.4, 5, 0, p);
+        strokeP(ctx, p, 1.6, c);
+      } else strokeP(ctx, lineP(x, y0, x, y1), 2, c);
     },
   };
   return M;
@@ -188,17 +191,11 @@ const DECOR = {
         letters(ctx, R.pick(['LUCKY', 'SMOKE', 'GIN']), x + bw * 0.18, top + bh * 0.45, 40, NB, { maxW: bw * 0.55 });
         fillP(ctx, rectP(x - bw / 2, top + bh * 0.72, bw, bh * 0.28), NR);
       } else {
-        // pop-art ad: face + slogan
-        const fx = x - bw * 0.3, fy = top + bh * 0.55;
-        fillP(ctx, circP(fx, fy, 34), M.col('#ffffff'));
-        dotsIn(ctx, circP(fx, fy, 34), M.col('#f09a8a'), 5, 1.6);
-        const face = P();
-        circP(fx, fy + 4, 20, face);
-        inked(ctx, face, M.col('#f6c7a0'), 2, M.ink);
-        fillP(ctx, ellP(fx, fy + 14, 7, 5), M.col('#d23a3a'));
-        const hair = P(); hair.moveTo(fx - 22, fy); hair.quadraticCurveTo(fx - 20, fy - 26, fx + 4, fy - 18); hair.quadraticCurveTo(fx + 24, fy - 22, fx + 22, fy); hair.quadraticCurveTo(fx, fy - 10, fx - 22, fy); inked(ctx, hair, M.col('#2a2a44'), 1.6, M.ink);
-        letters(ctx, R.pick(['FIZZ-O!', 'ZAP COLA', 'ATOMIC!', 'BUY BONDS']), x + bw * 0.18, top + bh * 0.4, 30, M.col('#ffffff'), { outline: 5, ink: M.ink, maxW: bw * 0.56 });
-        letters(ctx, R.pick(["IT'S SWELL!", 'NEW!', '5¢']), x + bw * 0.18, top + bh * 0.74, 18, M.col('#1b1b1b'), { maxW: bw * 0.5 });
+        // pop-art ad: one burst + one word
+        const bx = x - bw * 0.3, by = top + bh * 0.5;
+        const burst = starburstPath(bx, by, 22, 36, 9, 5);
+        inked(ctx, burst, M.col('#ffffff'), 1.6, M.ink);
+        letters(ctx, R.pick(['FIZZ-O!', 'ZAP COLA', 'ATOMIC!', 'SWELL!']), x + bw * 0.16, by, 30, M.col('#ffffff'), { outline: 5, ink: M.ink, maxW: bw * 0.56 });
       }
     });
     M.stroke(ctx, board, M.lw);
@@ -279,11 +276,10 @@ const DECOR = {
     // papers & mags in the window
     const win = rectP(x - w / 2 + 10, y - hh + 50, w - 20, 44);
     fillP(ctx, win, M.mono ? NB : M.col('#1f2a26'));
-    const mags = ['#e8c040', '#e8604a', '#5aa0e0', '#f2efe6', '#b060c0'];
-    for (let i = 0; i < 5; i++) {
-      const m = rectP(x - w / 2 + 14 + i * 21, y - hh + 56 + (i % 2) * 4, 17, 34);
+    const mags = ['#e8c040', '#e8604a', '#5aa0e0'];
+    for (let i = 0; i < 3; i++) {
+      const m = rectP(x - w / 2 + 20 + i * 32, y - hh + 56 + (i % 2) * 4, 24, 34);
       M.solid(ctx, m, mags[i], { lx: -2, ly: 0, lw: 1.4 });
-      M.line(ctx, lineP(x - w / 2 + 16 + i * 21, y - hh + 64 + (i % 2) * 4, x - w / 2 + 28 + i * 21, y - hh + 64 + (i % 2) * 4), 1.2);
     }
     // stacked papers on the counter
     const stack = P();
@@ -320,7 +316,7 @@ const DECOR = {
     const tor = ellP(x, y - hh + 34, 42, 16);
     // electricity
     const arcs = P();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) {
       const a = -Math.PI / 2 + R.r(-1.4, 1.4);
       arcLine(R, x + Math.cos(a) * 40, y - hh + 34 + Math.sin(a) * 14, x + Math.cos(a) * R.r(80, 130), y - hh + 34 + Math.sin(a) * R.r(50, 110), 6, 0.35, arcs);
     }
@@ -516,7 +512,6 @@ const DECOR = {
     const tire = P(); circP(tx, y - 18, 18, tire);
     M.solid(ctx, tire, '#2a2a2a', { lx: -3, ly: -3 });
     M.solid(ctx, circP(tx, y - 18, 7), M.pal.metal, { lx: -1, ly: -1, lw: 1.4 });
-    if (M.key === 'zombie') fire(ctx, R, x + R.r(-10, 30), y - 50, 40, R.r(40, 70), { lw: 2 });
     const smoke = P();
     if (M.key !== 'space') { cloudPath(x + 10, y - 90, 18, 12, 7, 5, smoke); cloudPath(x + 22, y - 116, 24, 16, 7, 9, smoke); }
     strokeP(ctx, smoke, M.thin * 2, M.ink);
@@ -693,7 +688,6 @@ const DECOR = {
     clipped(ctx, body, () => {
       const dress = rectP(x - 30, b - 60, 60, 70);
       M.fill(ctx, dress, outfit);
-      if (!M.mono) dotsIn(ctx, dress, shade(M.col(outfit), -0.3), 5, 1.2);
     });
     M.stroke(ctx, body, M.lw);
     const neck = rectP(x - 4, b - 102, 8, 12);
@@ -963,8 +957,8 @@ const DECOR = {
   },
 };
 
-export function decor(ctx, kind, x, y, theme, R) {
-  const M = material(theme, false);
+export function decor(ctx, kind, x, y, theme, R, atmo) {
+  const M = material(theme, false, atmo);
   const fn = DECOR[kind] || DECOR.crate;
   fn(ctx, x, y, M, R);
 }
@@ -1000,7 +994,6 @@ const BLOCKS = {
     fillP(ctx, wins, M.mono ? NW : '#8fd0e8');
     clipped(ctx, wins, () => {
       if (M.mono) { dotsIn(ctx, wins, NB, 4, 1.2); return; }
-      halftoneGradient(ctx, x, wy0, w, wy1 - wy0, '#5aa8c8', { spacing: 4, dir: 'down', from: 0.3, maxR: 2.4 });
       const gl = P();
       for (let gx = x; gx < x + w; gx += 52) polyP([[gx, wy1], [gx + 10, wy1], [gx + 26, wy0], [gx + 16, wy0]], true, gl);
       fillP(ctx, gl, '#ffffff');
@@ -1030,7 +1023,7 @@ const BLOCKS = {
       fillP(ctx, sp, M.mono ? NW : roofC);
       strokeP(ctx, sp, 1.8, M.ink);
       if (!M.mono) {
-        halftoneGradient(ctx, x, belt + h * 0.22, w, bottom - belt, shade(body, -0.38), { spacing: 5, dir: 'down', from: 0.25, maxR: 2.7 });
+        fillP(ctx, rectP(x, bottom - h * 0.16, w, h), shade(body, -0.2));
         fillP(ctx, rectP(x, belt - h * 0.03 + 4, w * 0.8, 3.5), rgba('#ffffff', 0.6));
       } else {
         fillP(ctx, rectP(x, belt - h * 0.03 + 3, w * 0.8, 2), NW);
@@ -1120,7 +1113,7 @@ const BLOCKS = {
       strokeP(ctx, d, 6, M.ink); strokeP(ctx, d, 3.2, M.mono ? NW : shade(M.pal.wood, 0.25));
       const nails = P(); for (const [nx, ny] of [[cx + 8, cy + 8], [cx + cw - 8, cy + 8], [cx + 8, cy + chh - 8], [cx + cw - 8, cy + chh - 8]]) circP(nx, ny, 1.6, nails);
       fillP(ctx, nails, M.ink);
-      if (r.chance(0.6) && cw > 40) {
+      if (r.chance(0.25) && cw > 50) {
         const t = r.pick(['FRAGILE', 'THIS SIDE UP', 'ACME', 'TNT', 'XXX', 'PROPERTY OF']);
         letters(ctx, t, cx + cw / 2, cy + chh / 2, Math.min(16, chh * 0.24), M.mono ? NR : (t === 'TNT' ? '#d8261e' : shade(M.pal.wood, -0.6)), { rot: -0.12, maxW: cw - 18 });
       }
@@ -1158,17 +1151,8 @@ const BLOCKS = {
     else dial(ctx, R, dx, y + 20 + h * 0.16, Math.min(12, w * 0.1), { face: '#efe8cf', rim: '#9aa3ad', lw: 1.6 });
     const bt = [P(), P(), P()];
     const cols = [M.pal.a1, M.pal.a2, M.pal.a3];
-    for (let i = 0; i < 8; i++) {
-      const bx = x + 12 + (i % 4) * ((w - 24) / 4), by = y + h * 0.58 + Math.floor(i / 4) * 14;
-      rrectP(bx, by, (w - 24) / 4 - 6, 9, 3, bt[i % 3]);
-    }
+    for (let i = 0; i < 4; i++) rrectP(x + 12 + i * ((w - 24) / 4), y + h * 0.6, (w - 24) / 4 - 7, 9, 3, bt[i % 3]);
     bt.forEach((p, i) => { fillP(ctx, p, M.light(cols[i])); strokeP(ctx, p, 1.4, M.ink); });
-    // levers
-    for (let i = 0; i < 2; i++) {
-      const lx = x + w * 0.7 + i * 12;
-      M.stroke(ctx, lineP(lx, y + h * 0.62, lx - 4 + i * 8, y + h * 0.45), 3);
-      M.solid(ctx, circP(lx - 4 + i * 8, y + h * 0.45, 4.5), i ? M.pal.a1 : M.pal.a3, { lx: -1, ly: -1, lw: 1.4 });
-    }
     const vent = P(); for (let k = 0; k < 3; k++) vent.rect(x + 12, y + h - 18 + k * 5, w - 24, 2.4);
     fillP(ctx, vent, M.ink);
   },
@@ -1247,7 +1231,6 @@ const BLOCKS = {
       const burn = P();
       for (let i = 0; i < 5; i++) cloudPath(x + R() * w, y + h * R.r(0.3, 0.7), R.r(14, 30), R.r(8, 14), 7, (R() * 1e6) | 0, burn);
       fillP(ctx, burn, M.mono ? NB : '#2a1a18');
-      dotsIn(ctx, rectP(x, y, w, h), M.mono ? NB : shade(rust, -0.5), 5, 1.3);
       const wins = P();
       polyP([[x + w * 0.2, y + h * 0.38], [x + w * 0.28, y + 12], [x + w * 0.46, y + 10], [x + w * 0.46, y + h * 0.38]], true, wins);
       polyP([[x + w * 0.5, y + h * 0.38], [x + w * 0.5, y + 10], [x + w * 0.74, y + 10], [x + w * 0.84, y + h * 0.38]], true, wins);
@@ -1385,8 +1368,8 @@ const BLOCKS = {
   },
 };
 
-export function block(ctx, style, x, y, w, h, theme, R) {
-  const M = material(theme, true);
+export function block(ctx, style, x, y, w, h, theme, R, atmo) {
+  const M = material(theme, true, atmo);
   const fn = BLOCKS[style] || BLOCKS.crates;
   // ground contact shadow
   ctx.save();
@@ -1398,189 +1381,139 @@ export function block(ctx, style, x, y, w, h, theme, R) {
 
 // ------------------------------------------------------------------ PLATFORMS
 
-function cable(ctx, M, x, y0, y1, chain) {
-  if (y1 <= y0 + 4) return;
-  if (chain) {
-    const p = P();
-    for (let yy = y0; yy < y1 - 6; yy += 11) ellP(x, yy + 5, 3.2, 6, 0, p);
-    strokeP(ctx, p, 4.2, M.ink);
-    strokeP(ctx, p, 1.8, M.mono ? NW : M.col(M.pal.metal));
-  } else {
-    strokeP(ctx, lineP(x, y0, x, y1), 4.4, M.ink);
-    strokeP(ctx, lineP(x, y0, x, y1), 2, M.mono ? NW : M.col(M.pal.metal));
-  }
+// Clean top edge: the walkable surface gets a crisp light lip so it always
+// reads as "stand here".
+function lip(ctx, M, x, y, w, hex) {
+  fillP(ctx, rectP(x + 2, y + 1.6, w - 4, 2.6), M.mono ? NW : shade(M.col(hex), 0.38));
 }
 
 const PLATFORMS = {
   girder(ctx, x, y, w, h, M, R) {
-    const red = M.mono ? '#2a2a2a' : M.key === 'space' ? '#e0a02a' : '#c8402a';
+    const red = M.mono ? '#2a2a2a' : M.key === 'space' ? '#d8a03a' : '#c4452e';
     const gh = Math.max(h, 14) + 10;
-    // hanging cables to the ceiling
-    for (const cx of [x + w * 0.18, x + w * 0.82]) {
-      cable(ctx, M, cx, 0, y - 4, false);
-      const hk = P(); hk.moveTo(cx - 8, y + 1); hk.lineTo(cx, y - 10); hk.lineTo(cx + 8, y + 1);
-      strokeP(ctx, hk, 5, M.ink); strokeP(ctx, hk, 2.2, M.mono ? NW : M.col(M.pal.metal));
+    for (const cx of [x + w * 0.2, x + w * 0.8]) {
+      M.cable(ctx, cx, 0, y - 6);
+      inked(ctx, rectP(cx - 5, y - 8, 10, 8), M.col(M.pal.metalD), 1.6, M.ink);
     }
-    const top = rectP(x, y, w, 6);
-    const web = rectP(x + 2, y + 6, w - 4, gh - 12);
-    const bot = rectP(x, y + gh - 6, w, 6);
-    M.solid(ctx, web, shade(red, -0.12), { lx: 0, ly: -4 });
+    const web = rectP(x + 3, y + 6, w - 6, gh - 12);
+    M.solid(ctx, web, shade(red, -0.2), { lx: 0, ly: -5, shadow: false });
     clipped(ctx, web, () => {
-      const holes = P();
-      for (let hx = x + 14; hx < x + w - 10; hx += 26) ellP(hx + 6, y + gh / 2, 6, (gh - 16) / 2, 0, holes);
-      fillP(ctx, holes, M.mono ? NW : INK);
-      const tr = P(); for (let hx = x; hx < x + w; hx += 26) { tr.moveTo(hx, y + 6); tr.lineTo(hx + 13, y + gh - 6); tr.lineTo(hx + 26, y + 6); }
-      strokeP(ctx, tr, 3, M.ink);
+      const st = P();
+      for (let sx = x + 28; sx < x + w - 20; sx += 36) st.rect(sx, y + 6, 5, gh - 12);
+      fillP(ctx, st, M.mono ? NW : shade(M.col(red), -0.05));
+      fillP(ctx, rectP(x, y + 6, w, 3), M.mono ? NB : shade(M.col(red), -0.45));
     });
-    M.solid(ctx, top, red, { lx: 0, ly: -2, lw: 2.6 });
-    M.solid(ctx, bot, red, { lx: 0, ly: -2, lw: 2.6 });
-    rivetRow(ctx, x + 6, y + 3, x + w - 6, y + 3, 12, 1.7, M.mono ? NW : shade(red, 0.5), 1, M.ink);
-    rivetRow(ctx, x + 6, y + gh - 3, x + w - 6, y + gh - 3, 12, 1.7, M.mono ? NW : shade(red, 0.5), 1, M.ink);
+    const top = rectP(x, y, w, 7), bot = rectP(x, y + gh - 6, w, 6);
+    M.solid(ctx, top, red, { lx: 0, ly: -2, lw: 2.6, shadow: false });
+    M.solid(ctx, bot, red, { lx: 0, ly: -2, lw: 2.6, shadow: false });
+    lip(ctx, M, x, y, w, red);
+    rivetRow(ctx, x + 10, y + gh - 3, x + w - 10, y + gh - 3, 18, 1.5, M.mono ? NW : shade(M.col(red), 0.4), 0.8, M.ink);
     strokeP(ctx, rectP(x, y, w, gh), M.lw, M.ink);
   },
 
   ledge(ctx, x, y, w, h, M, R) {
-    const stone = M.key === 'zombie' ? '#8f8a9c' : M.key === 'noir' ? '#dddddd' : '#c0b4a0';
+    const stone = M.key === 'zombie' ? '#958fa2' : M.key === 'noir' ? '#dddddd' : '#c6baa6';
     const th = Math.max(h, 14);
-    // corbels
-    const nC = Math.max(2, Math.round(w / 90));
-    for (let i = 0; i < nC; i++) {
-      const cx = x + 14 + (i * (w - 28)) / (nC - 1);
-      const c = P(); c.moveTo(cx - 10, y + th); c.lineTo(cx + 10, y + th); c.lineTo(cx + 10, y + th + 10); c.quadraticCurveTo(cx + 8, y + th + 34, cx - 4, y + th + 38); c.lineTo(cx - 10, y + th + 38); c.closePath();
-      M.solid(ctx, c, shade(stone, -0.1), { lx: -3, ly: -4, lw: 2.4 });
+    for (const cx of [x + 18, x + w - 18]) {
+      const c = P(); c.moveTo(cx - 10, y + th); c.lineTo(cx + 10, y + th); c.lineTo(cx + 10, y + th + 8); c.quadraticCurveTo(cx + 8, y + th + 30, cx - 4, y + th + 34); c.lineTo(cx - 10, y + th + 34); c.closePath();
+      M.solid(ctx, c, shade(stone, -0.12), { lx: -3, ly: 0, lw: 2.4 });
     }
+    const mold = rectP(x + 5, y + th, w - 10, 6);
+    M.solid(ctx, mold, shade(stone, -0.2), { lx: 0, ly: -2, lw: 2.2, shadow: false });
     const slab = rectP(x, y, w, th);
     M.solid(ctx, slab, stone, { lx: 0, ly: -5 });
-    const mold = rectP(x + 4, y + th, w - 8, 6);
-    M.solid(ctx, mold, shade(stone, -0.18), { lx: 0, ly: -2, lw: 2.2 });
-    clipped(ctx, slab, () => {
-      const cr = P();
-      for (let sx = x + R.r(40, 80); sx < x + w - 10; sx += R.r(60, 110)) { cr.moveTo(sx, y); cr.lineTo(sx, y + th); }
-      const k = x + R.r(0.2, 0.8) * w; cr.moveTo(k, y + 2); cr.lineTo(k + 8, y + th * 0.5); cr.lineTo(k + 4, y + th);
-      strokeP(ctx, cr, 1.4, M.ink);
-      speckle(ctx, R, x, y + 2, w, th - 2, w / 8, M.mono ? NB : shade(stone, -0.35), 1.2);
-    });
+    lip(ctx, M, x, y, w, stone);
+    const k = x + R.r(0.25, 0.75) * w;
+    const cr = P(); cr.moveTo(k, y + 3); cr.lineTo(k + 6, y + th * 0.55); cr.lineTo(k + 3, y + th);
+    clipped(ctx, slab, () => strokeP(ctx, cr, 1.3, M.ink));
     strokeP(ctx, slab, M.lw, M.ink);
-    if (M.key === 'zombie') {
-      const moss = P(); for (let i = 0; i < w / 40; i++) cloudPath(x + R() * w, y + 1, R.r(6, 12), 4, 6, (R() * 1e6) | 0, moss);
-      fillP(ctx, moss, M.col('#6a9a4a')); strokeP(ctx, moss, 1.2, M.ink);
-    }
   },
 
   catwalk(ctx, x, y, w, h, M, R) {
     const metal = M.key === 'space' ? '#b8c4d4' : M.pal.metal;
+    const railC = M.key === 'space' ? M.pal.a3 : '#d8b040';
     const th = Math.max(h, 12);
-    // hanger rods to the ceiling
-    for (const cx of [x + 12, x + w - 12]) cable(ctx, M, cx, 0, y - 36, false);
-    // railing (behind the walker)
     const rail = P();
-    rail.rect(x, y - 38, w, 5);
-    rail.rect(x, y - 20, w, 3);
-    for (let px = x + 3; px <= x + w - 3; px += Math.max(30, (w - 6) / Math.round((w - 6) / 40))) rail.rect(px - 2.5, y - 38, 5, 38);
-    M.solid(ctx, rail, M.key === 'space' ? M.pal.a3 : '#e0b030', { lx: 0, ly: -2, lw: 2.2 });
-    // deck grating
+    rail.rect(x, y - 36, w, 5);
+    const np = Math.max(2, Math.round(w / 56));
+    for (let i = 0; i <= np; i++) rail.rect(x + 1 + (i * (w - 7)) / np, y - 36, 5, 36);
+    rail.rect(x, y - 19, w, 3);
+    M.solid(ctx, rail, railC, { lx: 0, ly: -2, lw: 2.2, shadow: false });
     const deck = rectP(x, y, w, th);
-    M.fill(ctx, deck, metal);
+    M.solid(ctx, deck, metal, { lx: 0, ly: -4 });
     clipped(ctx, deck, () => {
       const g = P();
-      for (let gx = x - th; gx < x + w + th; gx += 7) { g.moveTo(gx, y); g.lineTo(gx + th, y + th); g.moveTo(gx + th, y); g.lineTo(gx, y + th); }
-      strokeP(ctx, g, 1.3, M.mono ? NB : shade(metal, -0.45));
-      fillP(ctx, rectP(x, y, w, 3), M.mono ? NW : shade(metal, 0.4));
+      for (let gx = x + 6; gx < x + w; gx += 9) g.rect(gx, y + 4, 3, th - 6);
+      fillP(ctx, g, M.mono ? NB : shade(M.col(metal), -0.3));
     });
+    lip(ctx, M, x, y, w, metal);
     strokeP(ctx, deck, M.lw, M.ink);
-    // underside truss
     const tr = P();
-    for (let tx = x; tx < x + w - 1; tx += 24) { tr.moveTo(tx, y + th); tr.lineTo(tx + 12, y + th + 14); tr.lineTo(Math.min(x + w, tx + 24), y + th); }
-    tr.moveTo(x + 4, y + th + 14); tr.lineTo(x + w - 4, y + th + 14);
-    strokeP(ctx, tr, 4.4, M.ink);
-    strokeP(ctx, tr, 2, M.mono ? NW : M.col(M.pal.metalD));
-    if (M.key === 'space') fillP(ctx, rectP(x + 6, y + th - 3, w - 12, 2.4), M.light(M.pal.a1));
+    for (let tx = x + 4; tx < x + w - 20; tx += 32) { tr.moveTo(tx, y + th); tr.lineTo(tx + 16, y + th + 12); tr.lineTo(tx + 32, y + th); }
+    strokeP(ctx, tr, 4.2, M.ink);
+    strokeP(ctx, tr, 1.8, M.mono ? NW : M.col(M.pal.metalD));
+    if (M.key === 'space') fillP(ctx, rectP(x + 6, y + th - 3, w - 12, 2), M.light(M.pal.a1));
   },
 
   plank(ctx, x, y, w, h, M, R) {
-    const wood = M.key === 'noir' ? '#dddddd' : M.key === 'zombie' ? '#9a7450' : '#b8854f';
+    const wood = M.key === 'noir' ? '#dddddd' : M.key === 'zombie' ? '#9e7a54' : '#bc8a54';
     const th = Math.max(h, 14);
-    // rope hangers
-    for (const cx of [x + 16, x + w - 16]) {
-      const rp = P(); rp.moveTo(cx - 10, y + th); rp.lineTo(cx, 0); rp.moveTo(cx + 10, y + th); rp.lineTo(cx, 0);
-      strokeP(ctx, rp, 4.2, M.ink);
-      strokeP(ctx, rp, 2, M.mono ? NW : M.col('#d8c08a'));
-    }
-    const n = Math.max(1, Math.round(w / 70));
+    for (const cx of [x + 14, x + w - 14]) M.cable(ctx, cx, 0, y);
+    const bat = rectP(x + 10, y + th, w - 20, 6);
+    M.solid(ctx, bat, shade(wood, -0.25), { lx: 0, ly: -2, lw: 2.2, shadow: false });
+    const n = Math.max(1, Math.round(w / 80));
     let px = x;
     for (let i = 0; i < n; i++) {
-      const pw = i === n - 1 ? x + w - px : (w / n) * R.r(0.85, 1.15);
-      const pl = rectP(px, y + (i % 2 ? 1 : 0), pw, th - (i % 2 ? 1 : 0));
-      M.solid(ctx, pl, i % 2 ? shade(wood, -0.08) : wood, { lx: 0, ly: -4 });
+      const pw = i === n - 1 ? x + w - px : (w / n) * R.r(0.88, 1.12);
+      const pl = rectP(px, y, pw, th);
+      M.solid(ctx, pl, i % 2 ? shade(wood, -0.07) : wood, { lx: 0, ly: -4 });
       clipped(ctx, pl, () => {
         const gr = P();
-        for (let gy = y + 4; gy < y + th; gy += 4) { gr.moveTo(px, gy); gr.bezierCurveTo(px + pw * 0.3, gy - 2, px + pw * 0.6, gy + 2, px + pw, gy); }
-        strokeP(ctx, gr, 1, M.mono ? NB : shade(wood, -0.4));
-        const knot = ellP(px + pw * R.r(0.2, 0.8), y + th * 0.55, 4, 2.2); strokeP(ctx, knot, 1.2, M.ink);
+        gr.moveTo(px + 6, y + th * 0.45); gr.bezierCurveTo(px + pw * 0.35, y + th * 0.3, px + pw * 0.6, y + th * 0.6, px + pw - 6, y + th * 0.45);
+        strokeP(ctx, gr, 1, M.mono ? NB : shade(M.col(wood), -0.35));
       });
+      lip(ctx, M, px, y, pw, wood);
       strokeP(ctx, pl, M.lw, M.ink);
-      const nails = P(); circP(px + 5, y + 4, 1.7, nails); circP(px + pw - 5, y + 4, 1.7, nails); circP(px + 5, y + th - 4, 1.7, nails); circP(px + pw - 5, y + th - 4, 1.7, nails);
+      const nails = P(); circP(px + 6, y + th / 2, 1.6, nails); circP(px + pw - 6, y + th / 2, 1.6, nails);
       fillP(ctx, nails, M.ink);
       px += pw;
     }
-    // cross batten underneath
-    const bat = rectP(x + 10, y + th, w - 20, 7);
-    M.solid(ctx, bat, shade(wood, -0.2), { lx: 0, ly: -2, lw: 2.2 });
   },
 
   scaffold(ctx, x, y, w, h, M, R) {
     const wood = M.key === 'noir' ? '#dddddd' : '#b88a50';
-    const pole = M.key === 'noir' ? '#1a1a1a' : '#8a6a44';
+    const pole = M.key === 'noir' ? '#1a1a1a' : '#86673f';
     const th = Math.max(h, 14);
-    // poles rising to the ceiling with cross braces
-    const poles = [x + 8, x + w - 8];
+    // short trestle legs with one cross brace
+    const legH = 54;
     const br = P();
-    for (let by = y - 10, k = 0; by > 40; by -= 170, k++) {
-      const a = k % 2 ? poles[0] : poles[poles.length - 1], b2 = k % 2 ? poles[poles.length - 1] : poles[0];
-      br.moveTo(a, by); br.lineTo(b2, Math.max(0, by - 150));
-    }
-    strokeP(ctx, br, 5, M.ink); strokeP(ctx, br, 2.4, M.col(pole));
-    for (const px of poles) {
-      const pr = rectP(px - 4, 0, 8, y + th + 30);
-      M.solid(ctx, pr, pole, { lx: -2, ly: 0, lw: 2.4 });
-      // rope lashings
-      const ls = P(); for (let k = 0; k < 3; k++) ls.rect(px - 6, y + th + 2 + k * 5, 12, 2.5);
-      fillP(ctx, ls, M.mono ? NW : M.col('#e0cc90')); strokeP(ctx, ls, 1, M.ink);
-    }
-    // ledger under the deck
-    M.solid(ctx, rectP(x - 4, y + th, w + 8, 8), pole, { lx: 0, ly: -2, lw: 2.2 });
-    // deck boards
+    br.moveTo(x + 10, y + th + 8); br.lineTo(x + w - 10, y + th + legH);
+    br.moveTo(x + w - 10, y + th + 8); br.lineTo(x + 10, y + th + legH);
+    strokeP(ctx, br, 4.6, M.ink); strokeP(ctx, br, 2, M.col(pole));
+    for (const lx of [x + 6, x + w - 14]) M.solid(ctx, rectP(lx, y + th, 8, legH + 6), pole, { lx: -2, ly: 0, lw: 2.4 });
+    M.solid(ctx, rectP(x - 4, y + th, w + 8, 8), pole, { lx: 0, ly: -2, lw: 2.2, shadow: false });
     const deck = rectP(x - 6, y, w + 12, th);
     M.solid(ctx, deck, wood, { lx: 0, ly: -4 });
     clipped(ctx, deck, () => {
-      const s = P(); for (let sx = x + R.r(20, 50); sx < x + w; sx += R.r(40, 70)) { s.moveTo(sx, y); s.lineTo(sx, y + th); }
-      strokeP(ctx, s, 1.6, M.ink);
-      const gr = P(); for (let gy = y + 5; gy < y + th; gy += 4) { gr.moveTo(x - 6, gy); gr.lineTo(x + w + 6, gy + 1); }
-      strokeP(ctx, gr, 0.9, M.mono ? NB : shade(wood, -0.4));
+      const sp = P(); for (let sx = x + 40; sx < x + w - 10; sx += 64) { sp.moveTo(sx, y); sp.lineTo(sx, y + th); }
+      strokeP(ctx, sp, 1.4, M.ink);
     });
+    lip(ctx, M, x - 6, y, w + 12, wood);
     strokeP(ctx, deck, M.lw, M.ink);
-    // toe board / warning tape
-    if (M.key === 'zombie') {
-      const tape = P(); tape.moveTo(x, y - 30); tape.quadraticCurveTo(x + w / 2, y - 20, x + w, y - 32);
-      strokeP(ctx, tape, 9, M.ink); strokeP(ctx, tape, 6, M.col('#e8c040'));
-      ctx.save(); ctx.setLineDash([8, 8]); strokeP(ctx, tape, 6, M.ink); ctx.restore();
-    }
   },
 
   hover(ctx, x, y, w, h, M, R) {
     const th = Math.max(h, 14);
     const glowC = M.pal.a1;
-    // anti-grav glow beneath
     if (M.mono) {
-      const b = polyP([[x + 10, y + th], [x + w - 10, y + th], [x + w - 40, y + th + 60], [x + 40, y + th + 60]]);
-      clipped(ctx, b, () => halftoneGradient(ctx, x, y + th, w, 60, NB, { spacing: 5, dir: 'down', maxR: 3 }));
+      const b = polyP([[x + 16, y + th], [x + w - 16, y + th], [x + w - 40, y + th + 40], [x + 40, y + th + 40]]);
+      clipped(ctx, b, () => halftoneGradient(ctx, x, y + th, w, 40, NB, { spacing: 5, dir: 'down', maxR: 3 }));
     } else {
-      const b = polyP([[x + 14, y + th], [x + w - 14, y + th], [x + w - 34, y + th + 70], [x + 34, y + th + 70]]);
-      ctx.save(); ctx.globalAlpha = 0.25; fillP(ctx, b, glowC); ctx.restore();
-      clipped(ctx, b, () => halftoneGradient(ctx, x, y + th, w, 70, glowC, { spacing: 6, dir: 'up', maxR: 3.4, from: 0.2 }));
+      const b = polyP([[x + 18, y + th], [x + w - 18, y + th], [x + w - 36, y + th + 44], [x + 36, y + th + 44]]);
+      ctx.save(); ctx.globalAlpha = 0.18; fillP(ctx, b, glowC); ctx.restore();
       const rings = P();
-      for (let k = 1; k <= 3; k++) ellP(x + w / 2, y + th + k * 16, (w / 2 - 20) * (1 - k * 0.12), 3.5, 0, rings);
-      strokeP(ctx, rings, 2, glowC);
+      for (let k = 1; k <= 2; k++) ellP(x + w / 2, y + th + k * 16, (w / 2 - 24) * (1 - k * 0.15), 3, 0, rings);
+      strokeP(ctx, rings, 1.8, glowC);
     }
     const body = P();
     body.moveTo(x, y + 3);
@@ -1591,74 +1524,54 @@ const PLATFORMS = {
     body.lineTo(x + 16, y + th + 6);
     body.closePath();
     M.solid(ctx, body, M.key === 'space' ? '#dfe6ee' : M.pal.metal, { lx: 0, ly: -5 });
-    fillP(ctx, rectP(x + 6, y + th - 2, w - 12, 3), M.light(glowC));
-    strokeP(ctx, lineP(x + 8, y + th - 0.5, x + w - 8, y + th - 0.5), 1.2, M.ink);
-    // thruster pods
-    for (const tx of [x + 22, x + w - 22]) {
-      const pod = rrectP(tx - 12, y + th + 2, 24, 12, 5);
-      M.solid(ctx, pod, M.pal.metalD, { lx: 0, ly: -2, lw: 2.2 });
-      fillP(ctx, ellP(tx, y + th + 14, 8, 3), M.light(M.mono ? NW : '#ffffff'));
-    }
-    const ls = P(); for (let lx = x + 40; lx < x + w - 40; lx += 18) ls.rect(lx, y + 5, 8, 3);
-    fillP(ctx, ls, M.light(M.pal.a2));
+    lip(ctx, M, x + 2, y, w - 4, M.key === 'space' ? '#dfe6ee' : M.pal.metal);
+    fillP(ctx, rectP(x + 12, y + th - 1, w - 24, 3), M.light(glowC));
+    for (const tx of [x + 24, x + w - 24]) M.solid(ctx, rrectP(tx - 11, y + th + 2, 22, 10, 5), M.pal.metalD, { lx: 0, ly: -2, lw: 2.2, shadow: false });
+    strokeP(ctx, body, M.lw, M.ink);
   },
 
   fireescape(ctx, x, y, w, h, M, R) {
-    const iron = M.mono ? '#111111' : '#2a2c34';
-    const hi = M.mono ? NW : '#6a6e80';
+    const iron = M.mono ? '#111111' : '#30323c';
+    const hi = M.mono ? NW : '#6e7284';
     const th = Math.max(h, 12);
-    // railing
     const rail = P();
-    rail.rect(x, y - 40, w, 4);
-    rail.rect(x, y - 22, w, 2.5);
-    for (let px = x + 2; px <= x + w - 2; px += 9) rail.rect(px - 1.2, y - 40, 2.4, 40);
+    rail.rect(x, y - 38, w, 4);
+    rail.rect(x, y - 21, w, 2.5);
+    for (let px = x + 2; px <= x + w - 2; px += 14) rail.rect(px - 1.2, y - 38, 2.4, 38);
     fillP(ctx, rail, M.col(iron));
-    strokeP(ctx, rectP(x, y - 40, w, 4), 1.2, hi);
-    // slatted floor
+    strokeP(ctx, rectP(x, y - 38, w, 4), 1.1, hi);
+    for (const bx of [x + 12, x + w - 12]) {
+      const br = P(); br.moveTo(bx, y + th); br.lineTo(bx, y + th + 32); br.moveTo(bx, y + th + 30); br.lineTo(bx + (bx < x + w / 2 ? 28 : -28), y + th);
+      strokeP(ctx, br, 6, M.mono ? NW : INK);
+      strokeP(ctx, br, 3, M.col(iron));
+    }
     const deck = rectP(x, y, w, th);
     fillP(ctx, deck, M.col(iron));
     clipped(ctx, deck, () => {
-      const sl = P(); for (let sx = x + 4; sx < x + w; sx += 8) sl.rect(sx, y + 3, 4, th - 6);
-      fillP(ctx, sl, M.mono ? NW : '#4a4e5c');
+      const sl = P(); for (let sx = x + 5; sx < x + w; sx += 10) sl.rect(sx, y + 4, 4, th - 7);
+      fillP(ctx, sl, M.mono ? NW : '#464a58');
     });
     strokeP(ctx, deck, M.lw, M.mono ? NB : INK);
-    fillP(ctx, rectP(x, y, w, 2.4), hi);
-    // brackets
-    for (const bx of [x + 10, x + w - 10]) {
-      const br = P(); br.moveTo(bx, y + th); br.lineTo(bx, y + th + 36); br.moveTo(bx, y + th + 34); br.lineTo(bx + (bx < x + w / 2 ? 30 : -30), y + th);
-      strokeP(ctx, br, 6, M.mono ? NW : INK);
-      strokeP(ctx, br, 3.2, M.col(iron));
-    }
-    // drop ladder hanging on one side
-    const lx = R.chance(0.5) ? x + w * 0.2 : x + w * 0.8 - 26;
-    const lad = P(); lad.rect(lx, y + th, 3, 70); lad.rect(lx + 22, y + th, 3, 70);
-    for (let ry = y + th + 10; ry < y + th + 70; ry += 12) lad.rect(lx, ry, 25, 2.4);
-    fillP(ctx, lad, M.col(iron));
-    strokeP(ctx, lad, 1, hi);
+    fillP(ctx, rectP(x + 2, y + 1.4, w - 4, 2.4), hi);
   },
 
   balcony(ctx, x, y, w, h, M, R) {
     const stone = M.key === 'noir' ? '#1a1a1a' : M.key === 'space' ? '#b8c4d4' : M.key === 'zombie' ? '#9a94a8' : '#c8bca8';
     const th = Math.max(h, 14);
-    // posts down to the floor (balconies sit at the top of 7x22 stairs)
     const drop = 154 - th;
-    for (const px of [x + 12, x + w - 12]) {
-      const col = rectP(px - 7, y + th, 14, drop);
-      M.solid(ctx, col, shade(stone, -0.1), { lx: -3, ly: 0, lw: 2.4 });
-    }
-    // balustrade on top
+    for (const px of [x + 12, x + w - 12]) M.solid(ctx, rectP(px - 7, y + th, 14, drop), shade(stone, -0.12), { lx: -3, ly: 0, lw: 2.4 });
     const bal = P();
-    bal.rect(x, y - 34, w, 7);
-    const n = Math.max(3, Math.round(w / 18));
+    bal.rect(x, y - 32, w, 7);
+    const n = Math.max(3, Math.round(w / 26));
     for (let i = 0; i < n; i++) {
-      const bx = x + 8 + (i * (w - 16)) / (n - 1);
-      bal.moveTo(bx - 3, y); bal.lineTo(bx - 4, y - 6); bal.quadraticCurveTo(bx - 7, y - 16, bx - 3, y - 27); bal.lineTo(bx + 3, y - 27); bal.quadraticCurveTo(bx + 7, y - 16, bx + 4, y - 6); bal.lineTo(bx + 3, y); bal.closePath();
+      const bx = x + 9 + (i * (w - 18)) / (n - 1);
+      bal.moveTo(bx - 3, y); bal.lineTo(bx - 4, y - 6); bal.quadraticCurveTo(bx - 7, y - 15, bx - 3, y - 25); bal.lineTo(bx + 3, y - 25); bal.quadraticCurveTo(bx + 7, y - 15, bx + 4, y - 6); bal.lineTo(bx + 3, y); bal.closePath();
     }
-    M.solid(ctx, bal, stone, { lx: -2, ly: -2, lw: 2.2 });
+    M.solid(ctx, bal, stone, { lx: -2, ly: 0, lw: 2.2, shadow: false });
+    M.solid(ctx, rectP(x, y + th, w, 6), shade(stone, -0.22), { lx: 0, ly: -2, lw: 2.2, shadow: false });
     const slab = rectP(x - 4, y, w + 8, th);
     M.solid(ctx, slab, stone, { lx: 0, ly: -5 });
-    const mold = rectP(x, y + th, w, 6);
-    M.solid(ctx, mold, shade(stone, -0.2), { lx: 0, ly: -2, lw: 2.2 });
+    lip(ctx, M, x - 4, y, w + 8, stone);
   },
 };
 
@@ -1668,81 +1581,74 @@ function speckle(ctx, R, x, y, w, h, n, color, rmax = 2) {
   fillP(ctx, p, color);
 }
 
-export function platform(ctx, style, x, y, w, h, theme, R) {
-  const M = material(theme, true);
+export function platform(ctx, style, x, y, w, h, theme, R, atmo) {
+  const M = material(theme, true, atmo);
   const fn = PLATFORMS[style] || PLATFORMS.ledge;
   fn(ctx, x, y, w, h, M, R);
 }
 
 // ------------------------------------------------------------------ STAIRS / LADDER
 
-export function stairs(ctx, x, y, w, h, dir, n, theme) {
-  const M = material(theme, true);
+export function stairs(ctx, x, y, w, h, dir, n, theme, atmo) {
+  const M = material(theme, true, atmo);
   const key = theme.key || 'hero';
   const sw = w / n, sh = h / n;
   const stepTop = (i) => y + h - (dir > 0 ? (i + 1) : (n - i)) * sh; // top y of step i (from left)
-  const mat = key === 'zombie' ? '#9a7450' : key === 'space' ? '#b8c4d4' : key === 'noir' ? '#1a1a1a' : '#b8b0a4';
-  // mass
+  const mat = key === 'zombie' ? '#9a7450' : key === 'space' ? '#b8c4d4' : key === 'noir' ? '#1a1a1a' : '#b9b1a4';
   const mass = P();
   mass.moveTo(x, y + h);
   for (let i = 0; i < n; i++) { mass.lineTo(x + i * sw, stepTop(i)); mass.lineTo(x + (i + 1) * sw, stepTop(i)); }
   mass.lineTo(x + w, y + h);
   mass.closePath();
-  M.solid(ctx, mass, shade(mat, -0.15), { lx: dir > 0 ? 6 : -6, ly: 0 });
-  // treads & risers
-  for (let i = 0; i < n; i++) {
-    const tx = x + i * sw, ty = stepTop(i);
-    const tread = rectP(tx - (dir > 0 ? 0 : 3), ty, sw + 3, 7);
-    M.solid(ctx, tread, key === 'space' ? '#dfe6ee' : shade(mat, 0.12), { lx: 0, ly: -2, lw: 2.2 });
-    if (key === 'space') fillP(ctx, rectP(tx + 2, ty + 5, sw - 1, 2), M.light(M.pal.a1));
-    if (key === 'noir') fillP(ctx, rectP(tx, ty, sw, 2), NW);
-    if (key === 'zombie') { const nl = P(); circP(tx + 4, ty + 3.5, 1.4, nl); circP(tx + sw - 3, ty + 3.5, 1.4, nl); fillP(ctx, nl, INK); }
-  }
-  // side panel texture
+  // side face: one flat tone + a soft shadow under the stringer
+  M.solid(ctx, mass, shade(mat, -0.12), { lx: dir > 0 ? 6 : -6, ly: 0, lw: 0 });
   clipped(ctx, mass, () => {
-    if (key === 'zombie') {
-      const g = P(); for (let gy = y + 8; gy < y + h; gy += 9) { g.moveTo(x, gy); g.lineTo(x + w, gy + 2); }
-      strokeP(ctx, g, 1, M.col(shade(mat, -0.5)));
-    } else if (key === 'hero') {
-      bricksFull(ctx, x, y, w, h, { bw: 24, bh: 11, color: rgba(INK, 0.35), lw: 1 });
-    } else if (key === 'space') {
-      rivetRow(ctx, x + 6, y + h - 8, x + w - 6, y + h - 8, 14, 1.8, '#e8eef4', 1);
-      hazardStripes(ctx, rectP(x, y + h - 16, w, 16), x, y + h - 16, w, 16, M.pal.a3, INK, 7);
-    } else {
-      hatchIn(ctx, rectP(x, y, w, h), NW, 5, 0.9);
+    if (key === 'space') {
+      const hz = rectP(x, y + h - 12, w, 12);
+      hazardStripes(ctx, hz, x, y + h - 12, w, 12, M.pal.a3, INK, 8);
     }
+    // a soft shadow band under every tread gives the steps their rhythm
+    const rs = P();
+    for (let i = 0; i < n; i++) rs.rect(x + i * sw - 2, stepTop(i) + 6, sw + 4, 5);
+    fillP(ctx, rs, M.mono ? NB : shade(M.col(mat), -0.28));
   });
   strokeP(ctx, mass, M.lw, M.ink);
+  // treads: clean light tops
+  for (let i = 0; i < n; i++) {
+    const tx = x + i * sw, ty = stepTop(i);
+    const tread = rectP(tx - (dir > 0 ? 0 : 3), ty, sw + 3, 6);
+    M.solid(ctx, tread, key === 'space' ? '#dfe6ee' : shade(mat, 0.14), { lw: 2, shadow: false });
+    if (key === 'space') fillP(ctx, rectP(tx + 2, ty + 4, sw - 1, 1.6), M.light(M.pal.a1));
+    if (key === 'noir') fillP(ctx, rectP(tx, ty + 1, sw, 1.6), NW);
+  }
   // handrail following the slope
   const rail = P();
-  const top0 = dir > 0 ? [x + sw * 0.5, stepTop(0) - 40] : [x + w - sw * 0.5, stepTop(n - 1) - 40];
-  const top1 = dir > 0 ? [x + w - sw * 0.5, stepTop(n - 1) - 40] : [x + sw * 0.5, stepTop(0) - 40];
+  const top0 = dir > 0 ? [x + sw * 0.5, stepTop(0) - 38] : [x + w - sw * 0.5, stepTop(n - 1) - 38];
+  const top1 = dir > 0 ? [x + w - sw * 0.5, stepTop(n - 1) - 38] : [x + sw * 0.5, stepTop(0) - 38];
   rail.moveTo(top0[0], top0[1]); rail.lineTo(top1[0], top1[1]);
   const posts = P();
-  for (let i = 0; i < n; i += 2) {
+  for (const i of [0, Math.floor((n - 1) / 2), n - 1]) {
     const px = x + i * sw + sw * 0.5;
-    posts.moveTo(px, stepTop(i)); posts.lineTo(px, stepTop(i) - 40 + (dir > 0 ? 0 : 0));
+    posts.moveTo(px, stepTop(i)); posts.lineTo(px, stepTop(i) - 38);
   }
-  const pc = key === 'noir' ? NB : key === 'space' ? M.pal.a3 : key === 'zombie' ? '#6a4a30' : '#5a6878';
+  const pc = key === 'noir' ? NB : key === 'space' ? M.pal.a3 : key === 'zombie' ? '#6a4a30' : '#56647a';
   strokeP(ctx, posts, 6, M.mono ? NW : INK);
   strokeP(ctx, posts, 3, M.mono ? NB : pc);
   strokeP(ctx, rail, 8, M.mono ? NW : INK);
   strokeP(ctx, rail, 4.4, M.mono ? NB : pc);
 }
 
-export function ladder(ctx, x, y, w, h, theme) {
-  const M = material(theme, true);
+export function ladder(ctx, x, y, w, h, theme, atmo) {
+  const M = material(theme, true, atmo);
   const key = theme.key || 'hero';
-  const c = key === 'zombie' ? '#a07a50' : key === 'space' ? '#e0b030' : key === 'noir' ? '#1a1a1a' : '#c8402a';
+  const c = key === 'zombie' ? '#a07a50' : key === 'space' ? '#d8ac34' : key === 'noir' ? '#1a1a1a' : '#c24a32';
   const rw = 7;
   const rungs = P();
   for (let ry = y + 14; ry < y + h - 4; ry += 22) rungs.rect(x + rw - 1, ry, w - rw * 2 + 2, 5);
-  M.solid(ctx, rungs, key === 'noir' ? '#1a1a1a' : shade(c, -0.1), { lx: 0, ly: -2, lw: 2.2 });
+  M.solid(ctx, rungs, key === 'noir' ? '#1a1a1a' : shade(c, -0.12), { lw: 2, shadow: false });
   const rails = P();
   rails.rect(x, y, rw, h);
   rails.rect(x + w - rw, y, rw, h);
   M.solid(ctx, rails, c, { lx: -3, ly: 0, lw: 2.6 });
   if (key === 'noir') { fillP(ctx, rectP(x + 1.5, y, 1.8, h), NW); fillP(ctx, rectP(x + w - rw + 1.5, y, 1.8, h), NW); }
-  if (key !== 'zombie') rivetRow(ctx, x + rw / 2, y + 16.5, x + rw / 2, y + h - 8, 22, 1.4, M.mono ? NW : shade(c, 0.5), 0.8, M.ink);
-  else { const nl = P(); for (let ry = y + 16.5; ry < y + h - 4; ry += 22) { circP(x + rw / 2, ry, 1.3, nl); circP(x + w - rw / 2, ry, 1.3, nl); } fillP(ctx, nl, INK); }
 }

@@ -15,7 +15,7 @@
 //   paintLadder(ctx, { x, y, w, h, theme })
 //   SCENE_LIST: [{ theme, scene }]
 
-import { mkR, hashStr } from './art/kit.js';
+import { mkR, hashStr, setAtmo, getAtmo } from './art/kit.js';
 import * as HERO from './art/hero.js';
 import * as ZOMBIE from './art/zombie.js';
 import * as SPACE from './art/space.js';
@@ -48,11 +48,13 @@ export function paintBackdrop(ctx, { scene, theme, w, h, seed = 1 }) {
   const set = BACKDROPS[key] || BACKDROPS.hero;
   const fn = set[scene] || Object.values(set)[0];
   prep(ctx);
+  let atmo = null;
   try {
-    fn(ctx, w, h, mkR((seed ^ hashStr(key + ':' + scene)) >>> 0), theme);
+    atmo = fn(ctx, w, h, mkR((seed ^ hashStr(key + ':' + scene)) >>> 0), theme);
   } finally {
     ctx.restore();
   }
+  setAtmo(ctx, { key, scene, air: (atmo && atmo.air) || null, light: (atmo && atmo.light) || -1 });
 }
 
 export function paintFloor(ctx, { scene, theme, w, h, seed = 1 }) {
@@ -67,7 +69,7 @@ export function paintFloor(ctx, { scene, theme, w, h, seed = 1 }) {
 export function paintDecor(ctx, { kind, x, y, theme, seed = 1 }) {
   prep(ctx);
   try {
-    decor(ctx, kind, x, y, theme || { key: 'hero' }, mkR(seed >>> 0));
+    decor(ctx, kind, x, y, theme || { key: 'hero' }, mkR(seed >>> 0), getAtmo(ctx));
   } finally {
     ctx.restore();
   }
@@ -76,7 +78,7 @@ export function paintDecor(ctx, { kind, x, y, theme, seed = 1 }) {
 export function paintBlock(ctx, { style, x, y, w, h, theme, seed = 1 }) {
   prep(ctx);
   try {
-    block(ctx, style, x, y, w, h, theme || { key: 'hero' }, mkR(seed >>> 0));
+    block(ctx, style, x, y, w, h, theme || { key: 'hero' }, mkR(seed >>> 0), getAtmo(ctx));
   } finally {
     ctx.restore();
   }
@@ -85,7 +87,7 @@ export function paintBlock(ctx, { style, x, y, w, h, theme, seed = 1 }) {
 export function paintPlatform(ctx, { style, x, y, w, h = 14, theme, seed = 1 }) {
   prep(ctx);
   try {
-    platform(ctx, style, x, y, w, h, theme || { key: 'hero' }, mkR(seed >>> 0));
+    platform(ctx, style, x, y, w, h, theme || { key: 'hero' }, mkR(seed >>> 0), getAtmo(ctx));
   } finally {
     ctx.restore();
   }
@@ -94,7 +96,7 @@ export function paintPlatform(ctx, { style, x, y, w, h = 14, theme, seed = 1 }) 
 export function paintStairs(ctx, { x, y, w, h, dir = 1, n = 7, theme }) {
   prep(ctx);
   try {
-    stairs(ctx, x, y, w, h, dir, n, theme || { key: 'hero' });
+    stairs(ctx, x, y, w, h, dir, n, theme || { key: 'hero' }, getAtmo(ctx));
   } finally {
     ctx.restore();
   }
@@ -103,7 +105,7 @@ export function paintStairs(ctx, { x, y, w, h, dir = 1, n = 7, theme }) {
 export function paintLadder(ctx, { x, y, w, h, theme }) {
   prep(ctx);
   try {
-    ladder(ctx, x, y, w, h, theme || { key: 'hero' });
+    ladder(ctx, x, y, w, h, theme || { key: 'hero' }, getAtmo(ctx));
   } finally {
     ctx.restore();
   }

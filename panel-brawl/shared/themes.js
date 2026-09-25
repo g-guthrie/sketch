@@ -5,6 +5,9 @@
 export const THEMES = {
   hero: {
     key: 'hero',
+    elites: ['KNUCKLES McGEE', 'THE IRON FIST', 'CAPTAIN CROWBAR', 'MAJOR MAYHEM'],
+    keyName: 'KEYCARD', switchName: 'FUSE BOX',
+    bossMoves: { spray: 'CATACLYSM RAY!', charge: 'DOCTOR\'S ORDERS!', leap: 'GRAVITY SLAM!', summon: 'MINIONS, ASSEMBLE!', dive: 'SKY STRIKE!' },
     label: 'SUPERHERO',
     titleA: ['THE ASTONISHING', 'THE MIGHTY', 'THE SPECTACULAR', 'THE ALL-NEW', 'THE SAVAGE', 'THE UNBEATABLE', 'THE TREMENDOUS'],
     titleB: ['KAPOW SQUAD', 'OMEGA LEAGUE', 'THUNDER CORPS', 'ATOMIC SQUADRON', 'STAR BRIGADE', 'POWER PATROL', 'NIGHT SENTINELS'],
@@ -23,13 +26,21 @@ export const THEMES = {
       splat: '#d11f26', enemySplat: '#d11f26',
     },
     geo: { platform: ['girder', 'ledge', 'catwalk'], block: ['car', 'vent', 'crates', 'console'], table: 'labtable' },
-    mix: { grunt: 5, gunner: 3, flyer: 2 },
     enemies: {
       grunt: { name: 'HENCHMAN', look: { body: 'humanoid', skin: '#f0c29a', suit: '#f4f1e8', suit2: '#1b1b1b', pants: '#2d2f3a', boots: '#1b1b1b', gloves: '#1b1b1b', head: 'beanie', hat: '#2d2f3a', torso: 'stripes', weapon: 'crowbar', mask: '#1b1b1b' } },
       gunner: { name: 'RAY GOON', look: { body: 'humanoid', skin: '#f0c29a', suit: '#7b3fb8', suit2: '#ffd23f', pants: '#3b2156', boots: '#1b1b1b', gloves: '#ffd23f', head: 'visor', hat: '#7b3fb8', torso: 'plain', weapon: 'raygun' } },
       flyer: { name: 'JET TROOPER', look: { body: 'humanoid', skin: '#f0c29a', suit: '#5a6b7b', suit2: '#ff7a1a', pants: '#3a4550', boots: '#1b1b1b', gloves: '#1b1b1b', head: 'visor', hat: '#ff7a1a', torso: 'armor', weapon: 'raygun', extra: 'jetpack' } },
       brute: { name: 'ROBO-BRUTE', look: { body: 'robot', suit: '#9aa6b2', suit2: '#e8262b', eye: '#ff2d2d', scale: 1.45, bulk: 1.6 } },
+      shield: { name: 'RIOT GOON', look: { body: 'humanoid', skin: '#f0c29a', suit: '#4a5a6a', suit2: '#ffd23f', pants: '#2d2f3a', boots: '#1b1b1b', gloves: '#1b1b1b', head: 'visor', hat: '#4a5a6a', torso: 'armor', weapon: 'baton', shield: { kind: 'riot', color: '#9fc4dc' }, bulk: 1.15 } },
+      grenadier: { name: 'BOMB BOY', look: { body: 'humanoid', skin: '#f0c29a', suit: '#e8a01a', suit2: '#1b1b1b', pants: '#3a2a1a', boots: '#1b1b1b', gloves: '#1b1b1b', head: 'beanie', hat: '#b8171b', torso: 'stripes', weapon: 'grenade', extra: 'bandolier', mask: '#1b1b1b' } },
+      artist: { name: 'THE HENCH-ARTIST', look: { body: 'humanoid', skin: '#f0c29a', suit: '#f4f1e8', suit2: '#e8262b', pants: '#1b1b1b', boots: '#1b1b1b', gloves: null, head: 'beret', hat: '#1b1b1b', torso: 'smock', weapon: 'pencil', mask: '#1b1b1b' } },
       boss: { name: 'DOCTOR CATACLYSM', look: { body: 'humanoid', skin: '#b8e0b0', suit: '#f4f1e8', suit2: '#1fb4c8', pants: '#1b1b1b', boots: '#1b1b1b', gloves: '#1fb4c8', head: 'brain', torso: 'labcoat', weapon: 'raygun', scale: 2.0, bulk: 1.2, cape: '#1fb4c8' } },
+    },
+    callouts: {
+      flank: ['FLANK \'EM!', 'GO AROUND!', 'I\'VE GOT THE LEFT!'], grenade: ['FIRE IN THE HOLE!', 'CATCH!', 'SPECIAL DELIVERY!'],
+      reload: ['RELOADING!', 'COVER ME!'], cover: ['TAKE COVER!', 'GET DOWN!'], retreat: ['FALL BACK!', 'I\'M OUTTA HERE!'],
+      spotted: ['THERE HE IS!', 'INTRUDER!', 'HEY!'], redraw: ['SKETCHING BACKUP!', 'A LITTLE TOUCH-UP...'], shield: ['HOLD THE LINE!', 'HUP! HUP!'],
+      rescue: ['HELP! OVER HERE!', 'SAVE ME!'], taunt: ['COME ON!', 'IS THAT ALL?', 'GET HIM!'],
     },
     wakeLines: ["GET 'EM, BOYS!", 'YOU AGAIN?!', 'FOR THE DOCTOR!', 'HAH! FOOLS!', 'INTRUDERS!', 'NOBODY GETS PAST ME!', "OH NO, IT'S THEM!", 'BOSS SAID NO VISITORS!'],
     bossLines: ['WELCOME TO YOUR FINAL PAGE, HEROES!', 'MY GENIUS CANNOT BE CONTAINED BY PANELS!', 'BEHOLD! THE CATACLYSM RAY!'],
@@ -40,6 +51,9 @@ export const THEMES = {
 
   zombie: {
     key: 'zombie',
+    elites: ['BIG ROTTIE', 'THE BUTCHER', 'MOTHER MAGGOT', 'GRAVEDIGGER GUS'],
+    keyName: 'CRYPT KEY', switchName: 'CHURCH BELL',
+    bossMoves: { spray: 'PLAGUE BREATH!', charge: 'ROYAL STAMPEDE!', leap: 'GRAVE QUAKE!', summon: 'RISE, MY SUBJECTS!', dive: 'CARRION DIVE!' },
     label: 'HORROR',
     titleA: ['NIGHT OF THE', 'DAWN OF THE', 'RETURN OF THE', 'TALES FROM THE', 'CURSE OF THE', 'REVENGE OF THE', 'ATTACK OF THE'],
     titleB: ['ROTTING HORDE', 'GRAVE WALKERS', 'FLESH EATERS', 'SHAMBLING DEAD', 'BRAIN FEAST', 'GHOUL PATROL', 'UNBURIED'],
@@ -58,13 +72,20 @@ export const THEMES = {
       splat: '#c21818', enemySplat: '#6dbb2a',
     },
     geo: { platform: ['plank', 'ledge', 'scaffold'], block: ['tomb', 'coffin', 'wreck', 'crates'], table: 'gurney' },
-    mix: { grunt: 6, gunner: 3, flyer: 2 },
     enemies: {
       grunt: { name: 'SHAMBLER', look: { body: 'humanoid', skin: '#9cc47a', suit: '#b0a48a', suit2: '#6e5a3f', pants: '#4d5566', boots: '#3a2e22', gloves: null, head: 'zombie', hair: '#3a2e22', torso: 'torn', weapon: 'claws', hunch: 0.35, armsForward: true } },
       gunner: { name: 'SPITTER', look: { body: 'humanoid', skin: '#b5c95a', suit: '#8a2a2a', suit2: '#5a1818', pants: '#3f3a33', boots: '#2b2b2b', gloves: null, head: 'zombie', hair: '#2b2b2b', torso: 'torn', weapon: 'none', hunch: 0.2, bloat: true } },
       flyer: { name: 'GHOUL BAT', look: { body: 'bat', suit: '#4a3a5c', suit2: '#b33a3a', eye: '#ffe14a', scale: 1 } },
       brute: { name: 'BLOATER', look: { body: 'humanoid', skin: '#8fb36b', suit: '#c9b999', suit2: '#6e5a3f', pants: '#4d4633', boots: '#3a2e22', head: 'zombie', torso: 'torn', weapon: 'claws', scale: 1.45, bulk: 1.9, hunch: 0.25, armsForward: true, bloat: true } },
+      shield: { name: 'RIOT CORPSE', look: { body: 'humanoid', skin: '#9cc47a', suit: '#2b3a5c', suit2: '#ffd23f', pants: '#1f2a44', boots: '#1b1b1b', gloves: null, head: 'zombie', hair: '#2b2b2b', torso: 'torn', weapon: 'claws', shield: { kind: 'riot', color: '#b8c8d0' }, hunch: 0.25, bulk: 1.15 } },
+      grenadier: { name: 'BILE BELLY', look: { body: 'humanoid', skin: '#b5c95a', suit: '#6e7a3f', suit2: '#4a5a1f', pants: '#3f3a33', boots: '#2b2b2b', gloves: null, head: 'zombie', hair: '#2b2b2b', torso: 'torn', weapon: 'none', hunch: 0.2, bloat: true, bulk: 1.3 } },
+      artist: { name: 'THE NECRO-ARTIST', look: { body: 'humanoid', skin: '#c8d0b0', suit: '#2b1a3a', suit2: '#7fd13b', pants: '#1b1b1b', boots: '#1b1b1b', gloves: null, head: 'hood', mask: '#2b1a3a', torso: 'robe', weapon: 'pencil', hunch: 0.15 } },
       boss: { name: 'THE ROTTING KING', look: { body: 'humanoid', skin: '#86a86a', suit: '#5c2a7a', suit2: '#ffd23f', pants: '#2b1a3a', boots: '#1b1b1b', head: 'crown', hair: '#e8e2c8', torso: 'robe', weapon: 'claws', scale: 2.1, bulk: 1.4, hunch: 0.2, cape: '#7a1b1b', armsForward: false } },
+    },
+    callouts: {
+      flank: ['HRRNNN...', 'GRRAAH!'], grenade: ['BLEEEGH!', 'HURRK!'], reload: ['*GURGLE*'], cover: ['HNNGH!'], retreat: ['URRRGH...'],
+      spotted: ['BRAAAINS!', 'FRESH MEAT!'], redraw: ['RISE AGAIN...', 'THE DEAD OBEY...'], shield: ['MRRRGH!'],
+      rescue: ['HELP! THEY\'RE EVERYWHERE!', 'DON\'T LEAVE ME!'], taunt: ['BRAAAINS...', 'HUNGRY...'],
     },
     wakeLines: ['BRAAAINS...', 'GRRRAAHH!', 'HNNNGGH...', 'FRESH... MEAT...', 'URRRGH!', '*GURGLE*', 'HUNGRY...'],
     bossLines: ['KNEEL BEFORE YOUR ROTTING KING!', 'MY KINGDOM HUNGERS!', 'JOIN MY COURT... FOREVER!'],
@@ -75,6 +96,9 @@ export const THEMES = {
 
   space: {
     key: 'space',
+    elites: ['COMMANDER ZORR', 'UNIT X-99', 'THE ANNIHILATOR', 'WARLORD KRAX'],
+    keyName: 'ACCESS CRYSTAL', switchName: 'POWER NODE',
+    bossMoves: { spray: 'PSIONIC STORM!', charge: 'MIND RAM!', leap: 'GRAVITY WELL!', summon: 'CLONE VATS: ONLINE!', dive: 'NEURAL LANCE!' },
     label: 'SCI-FI',
     titleA: ['COSMIC', 'GALACTIC', 'STELLAR', 'ATOMIC', 'INTERPLANETARY', 'ASTOUNDING', 'ROCKET-AGE'],
     titleB: ['RAIDERS', 'ODYSSEY', 'STAR PATROL', 'INVADERS FROM ZORG', 'NEBULA RANGERS', 'ROCKET SQUADRON', 'VOID TROOPERS'],
@@ -92,13 +116,21 @@ export const THEMES = {
       splat: '#d11f26', enemySplat: '#b44dff',
     },
     geo: { platform: ['catwalk', 'hover', 'girder'], block: ['console', 'reactor', 'crates', 'pod'], table: 'messtable' },
-    mix: { grunt: 4, gunner: 4, flyer: 3 },
     enemies: {
       grunt: { name: 'XENO DRONE', look: { body: 'humanoid', skin: '#b44dff', suit: '#3b2a5c', suit2: '#23d5e8', pants: '#2a1d42', boots: '#1b1b1b', gloves: null, head: 'alien', torso: 'armor', weapon: 'claws', hunch: 0.15 } },
       gunner: { name: 'ZORG TROOPER', look: { body: 'humanoid', skin: '#7ad17a', suit: '#e8e8f0', suit2: '#ff3fa4', pants: '#c8c8d8', boots: '#3a3a4a', gloves: '#3a3a4a', head: 'dome', torso: 'armor', weapon: 'blaster' } },
       flyer: { name: 'SAUCER BOT', look: { body: 'saucer', suit: '#b8c2cc', suit2: '#ff3fa4', eye: '#23d5e8', scale: 1 } },
       brute: { name: 'MECHA-GOLEM', look: { body: 'robot', suit: '#e0a02a', suit2: '#3a3a4a', eye: '#23d5e8', scale: 1.5, bulk: 1.6 } },
+      shield: { name: 'PHALANX TROOPER', look: { body: 'humanoid', skin: '#7ad17a', suit: '#c8ccd8', suit2: '#23d5e8', pants: '#9aa0b0', boots: '#3a3a4a', gloves: '#3a3a4a', head: 'dome', torso: 'armor', weapon: 'baton', shield: { kind: 'energy', color: '#23d5e8' }, bulk: 1.15 } },
+      grenadier: { name: 'PLASMA LOBBER', look: { body: 'humanoid', skin: '#b44dff', suit: '#3b2a5c', suit2: '#ff3fa4', pants: '#2a1d42', boots: '#1b1b1b', gloves: null, head: 'alien', torso: 'armor', weapon: 'grenade', extra: 'bandolier' } },
+      artist: { name: 'THE DRAFT-DROID', look: { body: 'robot', suit: '#dfe6ea', suit2: '#ff3fa4', eye: '#23d5e8', weapon: 'pencil', scale: 1.0, bulk: 1.0 } },
       boss: { name: 'THE OVERMIND', look: { body: 'brainjar', suit: '#c8d4dc', suit2: '#ff3fa4', eye: '#ffe14a', scale: 2.2 }, flying: true },
+    },
+    callouts: {
+      flank: ['FLANKING PROTOCOL!', 'ENCIRCLE THE HUMAN!'], grenade: ['PLASMA OUT!', 'DETONATION IMMINENT!'],
+      reload: ['RECHARGING!', 'CELL DEPLETED!'], cover: ['SHIELDS UP!', 'DEFENSIVE MODE!'], retreat: ['TACTICAL RETREAT!', 'ERROR! ERROR!'],
+      spotted: ['HOSTILE DETECTED!', 'TARGET ACQUIRED!'], redraw: ['RE-RENDERING UNIT!', 'COMPILING BACKUP...'], shield: ['PHALANX FORMATION!'],
+      rescue: ['S.O.S.! S.O.S.!', 'GET ME OUT OF HERE!'], taunt: ['PUNY CARBON UNIT!', 'COMPUTING YOUR DOOM!'],
     },
     wakeLines: ['PUNY EARTHLINGS!', 'ZORG COMMANDS IT!', 'HUMANS DETECTED!', 'BLEEP-BLOOP! HOSTILES!', 'FOR THE HIVE!', 'TARGET ACQUIRED!', 'ZZZT! INTRUDER!'],
     bossLines: ['I AM THE OVERMIND. I HAVE READ AHEAD.', 'YOUR PAGES END HERE, CARBON-UNITS!', 'RESISTANCE IS... ADORABLE.'],
@@ -109,6 +141,9 @@ export const THEMES = {
 
   noir: {
     key: 'noir',
+    elites: ['BIG SAL', 'LEFTY LOUIE', 'THE CLEANER', 'NICKY TWO-TIMES'],
+    keyName: 'SAFE KEY', switchName: 'STREET LAMP',
+    bossMoves: { spray: 'CHICAGO TYPEWRITER!', charge: 'HOSTILE TAKEOVER!', leap: 'CEMENT SHOES!', summon: 'BOYS! GET IN HERE!', dive: 'HIT FROM ABOVE!' },
     label: 'NOIR',
     titleA: ['MIDNIGHT', 'CRIMSON', 'COLD', 'CROOKED', 'NAKED', 'DEAD MAN’S', 'NO-GOOD'],
     titleB: ['CITY', 'ALIBI', 'RAIN', 'KISS', 'STREET', 'CONTRACT', 'DETECTIVE TALES'],
@@ -127,13 +162,21 @@ export const THEMES = {
       splat: '#d7141a', enemySplat: '#d7141a',
     },
     geo: { platform: ['fireescape', 'ledge', 'plank'], block: ['car', 'crates', 'desk', 'drums'], table: 'desk' },
-    mix: { grunt: 5, gunner: 4, flyer: 1 },
     enemies: {
       grunt: { name: 'THUG', look: { body: 'humanoid', skin: '#e8d8c8', suit: '#3a3a3a', suit2: '#d7141a', pants: '#2a2a2a', boots: '#0b0b0b', gloves: null, head: 'flatcap', hat: '#2a2a2a', torso: 'suit', weapon: 'bat' } },
       gunner: { name: 'TOMMY GUNNER', look: { body: 'humanoid', skin: '#e8d8c8', suit: '#1f1f1f', suit2: '#f2efe6', pants: '#1f1f1f', boots: '#0b0b0b', gloves: null, head: 'fedora', hat: '#111111', torso: 'suit', weapon: 'tommy' } },
       flyer: { name: 'CROW', look: { body: 'bat', suit: '#141414', suit2: '#d7141a', eye: '#d7141a', scale: 0.9, crow: true } },
       brute: { name: 'THE BOUNCER', look: { body: 'humanoid', skin: '#e0cbb5', suit: '#2a2a2a', suit2: '#f2efe6', pants: '#1a1a1a', boots: '#0b0b0b', head: 'bald', torso: 'suit', weapon: 'none', scale: 1.45, bulk: 1.9 } },
+      shield: { name: 'CAR-DOOR CARL', look: { body: 'humanoid', skin: '#e0cbb5', suit: '#2a2a2a', suit2: '#f2efe6', pants: '#1a1a1a', boots: '#0b0b0b', gloves: null, head: 'flatcap', hat: '#1a1a1a', torso: 'suit', weapon: 'none', shield: { kind: 'door', color: '#3a3a3a' }, bulk: 1.2 } },
+      grenadier: { name: 'MOLOTOV MICKEY', look: { body: 'humanoid', skin: '#e8d8c8', suit: '#2a2a2a', suit2: '#d7141a', pants: '#1f1f1f', boots: '#0b0b0b', gloves: null, head: 'flatcap', hat: '#2a2a2a', torso: 'suit', weapon: 'molotov' } },
+      artist: { name: 'THE FORGER', look: { body: 'humanoid', skin: '#e8d8c8', suit: '#3a3a3a', suit2: '#d7141a', pants: '#2a2a2a', boots: '#0b0b0b', gloves: '#f2efe6', head: 'fedora', hat: '#3a3a3a', torso: 'suit', weapon: 'pencil' } },
       boss: { name: 'MR. BIG', look: { body: 'humanoid', skin: '#e8d8c8', suit: '#f2efe6', suit2: '#d7141a', pants: '#f2efe6', boots: '#0b0b0b', head: 'fedora', hat: '#f2efe6', torso: 'suit', weapon: 'tommy', scale: 2.0, bulk: 1.8, extra: 'cigar' } },
+    },
+    callouts: {
+      flank: ['CIRCLE AROUND, SEE?', 'GET BEHIND HIM!'], grenade: ['CATCH THIS, COPPER!', 'LIGHT \'EM UP!'],
+      reload: ['I\'M DRY!', 'RELOADIN\'!'], cover: ['GET DOWN!', 'BEHIND THE CAR!'], retreat: ['SCRAM!', 'I\'M OUT!'],
+      spotted: ['IT\'S THE SHAMUS!', 'THERE HE IS!'], redraw: ['A LITTLE FORGERY...', 'NEW PAPERS, NEW MUG...'], shield: ['KEEP COMIN\'!'],
+      rescue: ['HELP ME, MISTER!', 'THEY\'RE GONNA RUB ME OUT!'], taunt: ['YOU\'RE FINISHED!', 'NOTHIN\' PERSONAL!'],
     },
     wakeLines: ['WELL, WELL, WELL...', "YOU'RE A DEAD MAN, SHAMUS!", 'THE BOSS SAYS HELLO!', 'WRONG ALLEY, PAL!', "LET'S DANCE, COPPER!", 'SAY YOUR PRAYERS!', 'NOTHIN’ PERSONAL, SEE?'],
     bossLines: ["NOBODY WALKS OUTTA MY CLUB, SEE?", 'YOU SHOULDA TAKEN THE MONEY, SHAMUS.', 'SAY HELLO TO MY GOLDEN FRIEND!'],
@@ -144,6 +187,13 @@ export const THEMES = {
 };
 
 export const THEME_KEYS = Object.keys(THEMES);
+
+// Civilians for rescue beats (any genre).
+export const CIVILIANS = [
+  { name: 'LOIS LANEWAY', look: { body: 'humanoid', skin: '#f0c29a', suit: '#e8262b', suit2: '#f4f1e8', pants: '#1f2a44', boots: '#1b1b1b', head: 'civilian', hair: '#3a2416', torso: 'plain' } },
+  { name: 'PROF. PEEPERS', look: { body: 'humanoid', skin: '#f2c49b', suit: '#f4f1e8', suit2: '#1f5fd1', pants: '#4a4a55', boots: '#3a2a1b', head: 'civilian', hair: '#dddddd', torso: 'labcoat' } },
+  { name: 'JIMMY SCOOP', look: { body: 'humanoid', skin: '#e9b48a', suit: '#7a9a3a', suit2: '#ffd23f', pants: '#5a4632', boots: '#3a2a1b', head: 'civilian', hair: '#e87a1a', torso: 'plain' } },
+];
 
 // Playable heroes. Purely cosmetic; everyone shares the same stats.
 export const HEROES = {

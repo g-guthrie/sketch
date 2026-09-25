@@ -14,6 +14,9 @@ import { drawPortrait, drawWeapon, makeAnim } from './characters.js';
 import { WEAPONS } from '../../shared/weapons.js';
 import { PLAYER, BRAWL } from '../../shared/constants.js';
 import { HEROES } from '../../shared/themes.js';
+import { drawAdPage } from './ads.js';
+
+const STYLE_NAMES = { headshot: 'HEADSHOT', stagger: 'STAGGER', splat: 'WALL SPLAT', takedown: 'TAKEDOWN', deflect: 'DEFLECT', kill: 'K.O.', meleeKill: 'KNOCKOUT', launch: 'JUGGLE' };
 
 const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -45,6 +48,17 @@ export class HUD {
     this.time = 0;
     this.lowHpBeat = 0;
     this.superReadyPlayed = false;
+    this.pops = [];
+    this.adT = 0;
+    this.adRects = [];
+  }
+
+  stylePop(k, v) {
+    if (!v) return;
+    const last = this.pops[this.pops.length - 1];
+    if (last && last.k === k && last.t < 0.5) { last.v += v; last.t = 0; return; }
+    this.pops.push({ k, v, t: 0 });
+    if (this.pops.length > 4) this.pops.shift();
   }
 
   // ------------------------------------------------------------ triggers
@@ -85,6 +99,8 @@ export class HUD {
     this.resultsT = Math.max(0, this.resultsT - dt);
     this.hintT = Math.max(0, this.hintT - dt);
     if (this.deathInfo) this.deathInfo.t += dt;
+    for (const pp of this.pops) pp.t += dt;
+    this.pops = this.pops.filter((pp) => pp.t < 1.3);
   }
 
   // --------------------------------------------------------------- draw
@@ -98,12 +114,26 @@ export class HUD {
     ctx.lineJoin = 'round';
 
     this.drawVignettes(ctx, W, H, u, fx, me);
+    if (world.phase === 'ads' && world.ads) {
+      this.adT += 1 / 60;
+      const mouse = input && input.mouse ? { x: input.mouse.x * cam.dpr, y: input.mouse.y * cam.dpr } : null;
+      this.adRects = drawAdPage(ctx, W, H, u, world, this.adT, mouse);
+      this.drawToasts(ctx, W, H, u);
+      ctx.restore();
+      return;
+    }
+    this.adT = 0;
+    this.adRects = [];
     if (me && rp) {
-      if (me.alive) {
+      if (me.alive && me.downed) {
+        this.drawDownedCard(ctx, W, H, u, me);
+        this.drawPlayerCard(ctx, W, H, u, world, me, pred, rp, audio);
+      } else if (me.alive) {
         this.drawDamageDirs(ctx, W, H, u, fx);
         this.drawPlayerCard(ctx, W, H, u, world, me, pred, rp, audio);
         this.drawWeaponBox(ctx, W, H, u, world, pred);
         this.drawPrompts(ctx, W, H, u, world, pred);
+        this.drawStylePops(ctx, W, H, u);
         this.deathInfo = null;
       } else if (!this.bigMsg && world.phase !== 'gameover') {
         this.drawDeathCard(ctx, W, H, u, me);
@@ -134,7 +164,7 @@ export class HUD {
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H);
     }
-    if (me && me.alive && me.hp < PLAYER.hp * 0.3) {
+    if (me && me.alive && !me.downed && me.hp < (me.maxHp || PLAYER.hp) * 0.3) {
       const beat = 0.5 + 0.5 * Math.sin(this.time * 7);
       ctx.save();
       const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.65);
@@ -204,9 +234,9 @@ export class HUD {
     comicText(ctx, rp.name, x + 164 * u, y + 20 * u, 26 * u, { align: 'left', fill: '#ffffff', fill2: '#ffe14a', extrude: 3 * u, outline: 3 * u, jitter: 0.03, seed: 2 });
 
     // health bar
-    const hp = clamp(me.hp / PLAYER.hp, 0, 1);
+    const hp = clamp(me.hp / (me.maxHp || PLAYER.hp), 0, 1);
     this.hpLag += (me.hp - this.hpLag) * Math.min(1, (me.hp < this.hpLag ? 2.5 : 10) / 60);
-    const lag = clamp(this.hpLag / PLAYER.hp, 0, 1);
+    const lag = clamp(this.hpLag / (me.maxHp || PLAYER.hp), 0, 1);
     const bx = x + 160 * u, by = y + 44 * u, bw = 320 * u, bh = 36 * u;
     const bar = (fill, frac, col) => {
       ctx.beginPath();
@@ -267,7 +297,8 @@ export class HUD {
     }
 
     // ink bombs
-    for (let i = 0; i < PLAYER.bombMax; i++) {
+    const bombSlots = PLAYER.bombMax + (pred.perks && pred.perks.ink ? 1 : 0);
+    for (let i = 0; i < bombSlots; i++) {
       const cx = bx + sw + 26 * u + i * 30 * u, cy = sy + sh / 2;
       const has = i < pred.bombs;
       ctx.save();
@@ -296,10 +327,10 @@ export class HUD {
     ctx.font = `${13 * u}px ${FONT}`;
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
-    ctx.fillText('[G]', bx + sw + 16 * u + PLAYER.bombMax * 30 * u, sy + sh / 2);
+    ctx.fillText("[G]", bx + sw + 16 * u + bombSlots * 30 * u, sy + sh / 2);
 
     // low hp heartbeat sound
-    if (me.hp < PLAYER.hp * 0.3 && me.hp > 0) {
+    if (me.hp < (me.maxHp || PLAYER.hp) * 0.3 && me.hp > 0) {
       this.lowHpBeat -= 1 / 60;
       if (this.lowHpBeat <= 0) { this.lowHpBeat = 0.9; audio && audio.play('lowHp', { vol: 0.6 }); }
     }
@@ -377,6 +408,18 @@ export class HUD {
         if (pr.k === 'table' && pr.st === 'up' && Math.abs(pr.x + pr.w / 2 - pred.x) < 110 && Math.abs(pr.y + pr.h - pred.y) < 40) text = '[E] FLIP TABLE FOR COVER';
       }
     }
+    if (!text) {
+      for (const o of world.players.values()) {
+        if (o.id === world.me || !o.downed) continue;
+        if (Math.hypot(o.x - pred.x, o.y - pred.y) < 80) text = world.meState && world.meState.revTarget === o.id ? `REVIVING ${o.name}... STAY CLOSE!` : `[E] REVIVE ${o.name}`;
+      }
+    }
+    if (!text) {
+      for (const c of world.civs.values()) {
+        if (c.st !== 'tied' || Math.abs(c.x - pred.x) > 70 || Math.abs(c.y - pred.y) > 80) continue;
+        text = c.u > 0 ? `UNTYING ${c.name}... ${Math.round(c.u * 100)}%` : `[E] UNTIE ${c.name}`;
+      }
+    }
     if (!text && world.phys && world.phys.findLadder(pred) && !pred.climb) text = '[W]/[S] CLIMB';
     if (!text) return;
     captionBox(ctx, W / 2, H - 230 * u, text, { size: 22 * u, align: 'center', fill: '#ffffff', lw: 3 * u, seed: 4 });
@@ -420,6 +463,57 @@ export class HUD {
     }
   }
 
+  drawDownedCard(ctx, W, H, u, me) {
+    const k = clamp((me.bleed || 0) / PLAYER.bleedout, 0, 1);
+    ctx.save();
+    ctx.fillStyle = `rgba(120,0,0,${0.25 + (1 - k) * 0.25})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.translate(W / 2, H * 0.7);
+    captionBox(ctx, 0, -70 * u, me.rev > 0 ? 'A FRIEND IS PICKING YOU UP!' : 'YOU\'RE DOWN! HOLD ON FOR A FRIEND...', { size: 28 * u, align: 'center', fill: '#ffffff', lw: 4 * u, maxW: 900 * u, seed: 3 });
+    const bw = 420 * u, bh = 22 * u;
+    ctx.fillStyle = INK;
+    ctx.fillRect(-bw / 2 - 4 * u, -4 * u, bw + 8 * u, bh + 8 * u);
+    ctx.fillStyle = '#5a0a0a';
+    ctx.fillRect(-bw / 2, 0, bw, bh);
+    ctx.fillStyle = me.rev > 0 ? '#7fd13b' : '#e8262b';
+    ctx.fillRect(-bw / 2, 0, bw * (me.rev > 0 ? clamp(me.rev, 0, 1) : k), bh);
+    comicText(ctx, me.rev > 0 ? 'REVIVING...' : `${Math.ceil(me.bleed || 0)}s`, 0, 60 * u, 40 * u, { fill: '#ffffff', fill2: '#ffe14a', extrude: 4 * u, outline: 5 * u, seed: 4 });
+    ctx.restore();
+  }
+
+  drawStylePops(ctx, W, H, u) {
+    const x = 40 * u, y0 = H - 250 * u;
+    this.pops.forEach((pp, i) => {
+      const a = pp.t < 0.12 ? pp.t / 0.12 : pp.t > 1 ? 1 - (pp.t - 1) / 0.3 : 1;
+      const y = y0 - (this.pops.length - 1 - i) * 30 * u - pp.t * 16 * u;
+      ctx.save();
+      ctx.globalAlpha = clamp(a, 0, 1);
+      comicText(ctx, `+${pp.v} ${STYLE_NAMES[pp.k] || pp.k.toUpperCase()}`, x + 90 * u, y, 22 * u, { fill: '#ffffff', fill2: '#23d5e8', extrude: 3 * u, outline: 3.5 * u, seed: 9 });
+      ctx.restore();
+    });
+  }
+
+  objectiveText(world) {
+    const lv = world.level;
+    const mp = world.myPanel();
+    const th = world.theme;
+    const me = world.meState;
+    if (!mp) return null;
+    const sd = world.stand.find((x) => x.p === mp.id);
+    if (sd) return `HOLD OUT: ${Math.ceil(sd.t)}s`;
+    if (me && me.hasKey) return `BRING THE ${th.keyName || 'KEY'} TO THE LOCKED DOOR`;
+    for (const c of world.civs.values()) if (c.st === 'tied' && c.panel === mp.id) return `FREE ${c.name}: STAND CLOSE, PRESS [E]`;
+    const hint = world.hints.get(mp.id);
+    if (hint === 'key') return `FIND THE ${th.keyName || 'KEY'}${mp.keyHow === 'crate' ? ': IT\'S IN A CRATE' : mp.keyHow === 'guard' ? ': A GUARD HAS IT' : ': LOOK UP HIGH'}`;
+    if (hint === 'switch') {
+      const sws = world.switches.filter((s) => s.panel === mp.id);
+      return `SHOOT ALL ${sws.length} ${th.switchName || 'SWITCH'}ES WITHIN 5s (${sws.filter((s) => s.on).length}/${sws.length} LIT)`;
+    }
+    if (hint === 'crack') return 'BLOW OPEN THE BRICKED-UP EXIT (INK BOMBS STICK!)';
+    if (mp.beat === 'silent' && !world.alarms.has(mp.id) && world.panelState[mp.id] === 'active') return 'STEALTH: PUNCH THEM FROM BEHIND · STAY OUT OF SIGHT';
+    return null;
+  }
+
   drawDeathCard(ctx, W, H, u, me) {
     const d = this.deathInfo || { killer: 'THE COMIC', weapon: '', t: 1 };
     const k = clamp(d.t / 0.3, 0, 1);
@@ -459,11 +553,29 @@ export class HUD {
     ctx.strokeText(obj, 24 * u, 62 * u);
     ctx.fillStyle = '#ffffff';
     ctx.fillText(obj, 24 * u, 62 * u);
+    let oy = 86 * u;
+    if (world.mode === 'story') {
+      const extra = `★ STAMPS ${world.stamps} · COUPONS ${world.coupons}`;
+      ctx.strokeText(extra, 24 * u, oy);
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillText(extra, 24 * u, oy);
+      oy += 24 * u;
+      const objective = this.objectiveText(world);
+      if (objective) {
+        captionBox(ctx, 18 * u, oy + 4 * u, objective, { size: 17 * u, fill: '#ffffff', lw: 3 * u, maxW: 560 * u, seed: 11 });
+        oy += 44 * u;
+      }
+    }
     if (world.code && world.code !== 'SOLO') {
       const t = `ROOM ${world.code} · ${[...world.players.values()].filter((p) => !p.bot).length} HERO(ES)`;
-      ctx.strokeText(t, 24 * u, 86 * u);
+      ctx.font = `${17 * u}px ${FONT}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.lineWidth = 4 * u;
+      ctx.strokeStyle = INK;
+      ctx.strokeText(t, 24 * u, oy);
       ctx.fillStyle = '#ffe14a';
-      ctx.fillText(t, 24 * u, 86 * u);
+      ctx.fillText(t, 24 * u, oy);
     }
   }
 
@@ -542,6 +654,24 @@ export class HUD {
     ctx.moveTo(x + bw / 2, y + 10 * u);
     ctx.lineTo(x + bw / 2, y + 10 * u + bh);
     ctx.stroke();
+    // guard (poise): break it to open the boss up
+    const gy = y + bh + 20 * u, gh = 10 * u;
+    ctx.fillStyle = INK;
+    ctx.fillRect(x - 4 * u, gy - 3 * u, bw + 8 * u, gh + 6 * u);
+    ctx.fillStyle = '#16303a';
+    ctx.fillRect(x, gy, bw, gh);
+    const gk = boss.st ? 1 : clamp(boss.po != null ? boss.po : 1, 0, 1);
+    ctx.fillStyle = boss.st ? (Math.floor(this.time * 8) % 2 ? '#fff36b' : '#23d5e8') : '#23d5e8';
+    ctx.fillRect(x, gy, bw * gk, gh);
+    ctx.font = `${14 * u}px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.lineWidth = 3 * u;
+    ctx.strokeStyle = INK;
+    const label = boss.st ? 'STAGGERED! FULL DAMAGE!' : 'GUARD: BREAK IT TO HURT THE BOSS';
+    ctx.strokeText(label, x, gy + gh + 5 * u);
+    ctx.fillStyle = boss.st ? '#fff36b' : '#b8fbff';
+    ctx.fillText(label, x, gy + gh + 5 * u);
   }
 
   drawBossIntro(ctx, W, H, u) {
@@ -659,8 +789,8 @@ export class HUD {
     ctx.save();
     ctx.globalAlpha = a;
     const lines = [
-      'A/D MOVE · SPACE/W JUMP (TWICE!) · S CROUCH/DROP · SHIFT DASH',
-      'MOUSE AIM · LMB FIRE · RMB PUNCH (x3 COMBO) · G INK BOMB · Q SWAP · E USE · F SUPER · T TAUNT',
+      'A/D MOVE · SPACE JUMP (TWICE!) · SHIFT DASH · LMB FIRE · RMB PUNCH · G BOMB · E USE · F SUPER',
+      'FISTS BREAK SHIELDS & GUARDS · PUNCH FOES INTO WALLS · STYLE CHARGES YOUR SUPER',
     ];
     let y = 10 * u;
     lines.forEach((l, i) => {

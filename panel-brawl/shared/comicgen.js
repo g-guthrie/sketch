@@ -293,11 +293,33 @@ export function generateSpread(comic, index, mode, opts = {}) {
 
   // ---------- Furnish every panel ----------
   const chapterStart = path[0];
+  const ctxs = new Map();
   for (const P of level.panels) {
-    furnish(rng, P, th, reserved.get(P.id), level, nextId, {
+    ctxs.set(P.id, furnish(rng, P, th, reserved.get(P.id), level, nextId, {
       story, withEnemies, final, first: index === 0 && P === chapterStart, isLast: P === last,
-    });
+    }));
   }
+
+  // ---------- Beats, puzzles, squads ----------
+  level.switches = [];
+  level.civs = [];
+  level.lowGrav = [];
+  if (th.key === 'space') {
+    for (const P of level.panels) if (P.scene === 'planet') level.lowGrav.push({ x1: P.x1, y1: P.y1, x2: P.x2, y2: P.y2, g: 0.6 });
+  }
+  for (const g of level.gates) {
+    const l = level.links[g.link];
+    g.panel = l.from;
+    g.kind = l.kind;
+    g.lock = null;
+  }
+  if (story) planStory(rng, level, th, ctxs, nextId, { index, final, comic });
+  else if (withEnemies) {
+    for (const P of level.panels) {
+      P.beat = 'brawl';
+      placeSquad(rng, level, th, ctxs.get(P.id), nextId, { tier: 1, count: squadSize(P, th), waves: 1 });
+    }
+  } else for (const P of level.panels) P.beat = 'brawl';
 
   return level;
 }
@@ -359,7 +381,7 @@ function furnish(rng, P, th, reserved, level, nextId, o) {
   }
 
   // --- Cover blocks ---
-  const nBlocks = rng.int(W > 700 ? 1 : 0, W > 700 ? 2 : 1);
+  const nBlocks = rng.int(W > 700 ? 1 : 0, W > 700 ? 2 : 1) + (th.key === 'noir' && W > 520 ? 1 : 0);
   for (let i = 0; i < nBlocks; i++) {
     for (let t = 0; t < 14; t++) {
       const s = rng.pick(th.geo.block);
@@ -388,6 +410,8 @@ function furnish(rng, P, th, reserved, level, nextId, o) {
     const r = { x: px, y: py, w, h: 14 };
     if (plats.some((p) => Math.abs(p.y - py) < 110 && overlap(r, { x: p.x, y: py, w: p.w, h: 14 }, 60))) continue;
     if (solids.some((s) => overlap({ x: px, y: py - 104, w, h: 118 }, s, 8))) continue;
+    // leave standing room between a block and a platform floating over it
+    if (solids.some((s) => s.y > py && s.y - py < 112 && s.x < px + w + 30 && s.x + s.w > px - 30)) continue;
     if (reserved.some((z) => z.why === 'ladder' && overlap(r, z, 10))) continue;
     if (tier === 3) {
       const supported = plats.some((p) => p.y > py + 90 && p.y < py + 300 && (Math.abs(p.x + p.w / 2 - (px + w / 2)) < (p.w + w) / 2 + 170));
@@ -415,6 +439,9 @@ function furnish(rng, P, th, reserved, level, nextId, o) {
       const r = { x, y, w, h };
       if (!isFree(r, 16)) continue;
       if (!onPlat && plats.some((p) => overlap(r, p, 0))) continue;
+      // keep head room: nothing you'd have to jump over sits just under a ledge
+      if (!onPlat && plats.some((p) => p.y < r.y && r.y - (p.y + p.h) < 104 && p.x < r.x + r.w + 40 && p.x + p.w > r.x - 40)) continue;
+      if (onPlat && plats.some((p) => p.y < r.y && r.y - (p.y + p.h) < 104 && p.x < r.x + r.w + 40 && p.x + p.w > r.x - 40)) continue;
       const prop = { id: nextId(), k, x, y, w, h, panel: P.id };
       props.push(r);
       level.props.push(prop);
@@ -427,7 +454,8 @@ function furnish(rng, P, th, reserved, level, nextId, o) {
     const c = placeProp('crate', 56, 56, rng.chance(0.25));
     if (c && rng.chance(0.3)) {
       const r = { x: c.x + rng.int(-6, 6), y: c.y - 56, w: 56, h: 56 };
-      if (isFree(r, 0) && !plats.some((p) => overlap(r, p, 0))) {
+      const headroom = !plats.some((p) => p.y < r.y && r.y - (p.y + p.h) < 104 && p.x < r.x + r.w + 40 && p.x + p.w > r.x - 40);
+      if (isFree(r, 0) && headroom && !plats.some((p) => overlap(r, p, 0))) {
         props.push(r);
         level.props.push({ id: nextId(), k: 'crate', ...r, panel: P.id });
       }
@@ -494,44 +522,304 @@ function furnish(rng, P, th, reserved, level, nextId, o) {
         level.pickups.push({ id: nextId(), k: 'bomb', w: null, x: s2.x, y: s2.y - 34, panel: P.id, respawn: 20 });
       }
     }
-  } else {
-    const roll = rng.f();
-    const s = pickupSpot();
-    if (s && (o.first || roll < 0.5)) {
-      level.pickups.push({ id: nextId(), k: 'weapon', w: rng.pick(HEAVY_KEYS), x: s.x, y: s.y - 34, panel: P.id, respawn: 0 });
-    } else if (s && roll < 0.8) {
-      level.pickups.push({ id: nextId(), k: rng.chance(0.7) ? 'health' : 'bomb', w: null, x: s.x, y: s.y - 34, panel: P.id, respawn: 0 });
-    }
   }
 
-  // --- Enemies ---
-  if (o.withEnemies) {
-    const area = W * H;
-    let count = Math.max(2, Math.min(6, Math.round(area / 115000)));
-    if (o.first) count = 2;
-    const waves = [count];
-    if (o.story && !o.first && area > 470000 && rng.chance(0.55)) waves.push(Math.max(2, count - 1));
-    if (o.story && P.boss) waves.length = 1;
-    const allSpots = floorSpots.concat(platSpots).concat(floorSpots.length + platSpots.length < 4 ? doorSpots : []);
-    const mix = { ...th.mix };
-    waves.forEach((n, wave) => {
-      const spots = pickSpread(allSpots, n, 90);
-      for (const s of spots) {
-        const k = rng.weighted(mix);
-        const flying = k === 'flyer';
-        level.enemies.push({
-          id: nextId(), k, x: s.x, y: flying ? s.y - rng.int(140, 220) : s.y, panel: P.id, wave,
-          facing: rng.sign(),
-        });
-      }
-    });
-    if (o.story && o.isLast) {
-      const s = floorSpots.length ? floorSpots[Math.floor(floorSpots.length / 2)] : { x: (P.x1 + P.x2) / 2, y: floor };
-      const bossFlies = !!th.enemies.boss.flying;
-      level.enemies.push({
-        id: nextId(), k: o.final ? 'boss' : 'brute', x: s.x, y: o.final && bossFlies ? floor - 260 : s.y,
-        panel: P.id, wave: waves.length - 1, facing: -1,
-      });
+  return { P, floorSpots, platSpots, doorSpots, plats, props: level.props.filter((pr) => pr.panel === P.id), pickSpread, pickupSpot };
+}
+
+// ---------------------------------------------------------------------------
+// Story pacing. Each panel on the reading path gets a BEAT (what kind of
+// scene it is) and some get a light PUZZLE on their exit.
+
+const BEAT_WEIGHTS = {
+  hero: { ambush: 1, silent: 0.8, stand: 0.8, rescue: 1.2 },
+  zombie: { ambush: 1.2, silent: 0.5, stand: 1.4, rescue: 1 },
+  space: { ambush: 1, silent: 0.8, stand: 1, rescue: 0.8 },
+  noir: { ambush: 1, silent: 1.7, stand: 0.6, rescue: 1 },
+};
+
+const ROLE_W = [
+  { grunt: 5, gunner: 3, flyer: 1.1, shield: 0.8 },
+  { grunt: 4, gunner: 3, flyer: 1.1, shield: 1.5, grenadier: 1.3, artist: 0.6 },
+  { grunt: 4, gunner: 3, flyer: 1.1, shield: 1.5, grenadier: 1.3, artist: 0.9, brute: 0.5 },
+];
+const GENRE_MUL = {
+  hero: { shield: 1.2, flyer: 1.2 },
+  zombie: { grunt: 1.8, gunner: 0.7, shield: 0.6 },
+  space: { gunner: 1.3, flyer: 1.3 },
+  noir: { gunner: 1.4, flyer: 0.3, grenadier: 1.2 },
+};
+const ROLE_CAP = { artist: 1, grenadier: 1, brute: 1, shield: 2, gunner: 2, flyer: 2 };
+
+export function squadSize(P, th) {
+  const area = (P.x2 - P.x1) * (P.y2 - P.y1);
+  let n = Math.max(2, Math.min(4, Math.round(area / 160000)));
+  if (th.key === 'zombie') n += 1;
+  if (th.key === 'noir') n = Math.max(2, n - 1);
+  return n;
+}
+
+function composeSquad(rng, th, tier, n, opts = {}) {
+  const w = { ...ROLE_W[Math.max(0, Math.min(2, tier))] };
+  const gm = GENRE_MUL[th.key] || {};
+  for (const k in gm) if (w[k] != null) w[k] *= gm[k];
+  if (opts.silent) { delete w.flyer; delete w.brute; delete w.artist; delete w.grenadier; }
+  if (opts.noFlyers) delete w.flyer;
+  if (n < 4) delete w.artist;
+  const out = [];
+  const cnt = {};
+  for (let i = 0; i < n; i++) {
+    let k;
+    if (i === 0) k = rng.chance(0.65) ? 'grunt' : 'gunner';
+    else {
+      const avail = {};
+      for (const r in w) if (w[r] > 0 && !(ROLE_CAP[r] && (cnt[r] || 0) >= ROLE_CAP[r])) avail[r] = w[r];
+      k = Object.keys(avail).length ? rng.weighted(avail) : 'grunt';
     }
+    cnt[k] = (cnt[k] || 0) + 1;
+    out.push(k);
+  }
+  return out;
+}
+
+function spotsFor(ctx) {
+  const all = ctx.floorSpots.concat(ctx.platSpots);
+  return all.length >= 3 ? all : all.concat(ctx.doorSpots.length ? ctx.doorSpots : [{ x: (ctx.P.x1 + ctx.P.x2) / 2, y: ctx.P.y2 }]);
+}
+
+export function placeSquad(rng, level, th, ctx, nextId, o) {
+  const P = ctx.P;
+  const out = [];
+  const waves = o.waves || 1;
+  for (let wave = o.firstWave || 0; wave < (o.firstWave || 0) + waves; wave++) {
+    const n = wave === (o.firstWave || 0) ? o.count : Math.max(2, o.count - 1);
+    const kinds = o.kinds && wave === (o.firstWave || 0) ? o.kinds : composeSquad(rng, th, o.tier, n, o);
+    let pool = spotsFor(ctx);
+    if (o.silent) pool = ctx.floorSpots.length >= 2 ? ctx.floorSpots : pool;
+    const spots = ctx.pickSpread(pool, kinds.length, o.silent ? 200 : 90);
+    kinds.forEach((k, i) => {
+      const s = spots[i % Math.max(1, spots.length)] || { x: (P.x1 + P.x2) / 2, y: P.y2 };
+      const flying = k === 'flyer';
+      const def = {
+        id: nextId(), k, x: s.x + (i >= spots.length ? rng.int(-40, 40) : 0),
+        y: flying ? s.y - rng.int(140, 220) : s.y, panel: P.id, wave, facing: rng.sign(),
+      };
+      if (o.drop && !flying) { def.drop = true; def.y = P.y1 + 40; }
+      if (o.silent) def.patrol = true;
+      level.enemies.push(def);
+      out.push(def);
+    });
+  }
+  return out;
+}
+
+function planStory(rng, level, th, ctxs, nextId, o) {
+  const path = level.path.map((id) => level.panels[id]);
+  const n = path.length;
+  const tier = o.index;
+  const beats = new Array(n).fill('brawl');
+  beats[0] = o.index === 0 ? 'establish' : 'brawl';
+  beats[n - 1] = o.final ? 'boss' : 'showdown';
+  const special = (b) => b !== 'brawl' && b !== 'establish';
+  const middle = [];
+  for (let i = 1; i < n - 1; i++) middle.push(i);
+  rng.shuffle(middle);
+  const w = { ...(BEAT_WEIGHTS[th.key] || BEAT_WEIGHTS.hero) };
+  const want = Math.min(middle.length - 1, n >= 9 ? 3 : 2);
+  let placed = 0;
+  for (const i of middle) {
+    if (placed >= want) break;
+    if (special(beats[i - 1]) && i - 1 > 0) continue;
+    if (o.index === 0 && i === 1) continue; // the first real fight is a plain brawl
+    if (i + 1 < n - 1 && special(beats[i + 1])) continue;
+    const avail = {};
+    for (const k in w) if (w[k] > 0) avail[k] = w[k];
+    if (!Object.keys(avail).length) break;
+    const P = path[i];
+    const b = rng.weighted(avail);
+    if (b === 'silent' && P.x2 - P.x1 < 560) continue;
+    beats[i] = b;
+    w[b] = 0;
+    placed++;
+  }
+  path.forEach((P, i) => { P.beat = beats[i]; });
+
+  const exitLink = (P) => level.links.find((l) => l.path && l.from === P.id);
+  const gateOf = (l) => l && level.gates.find((g) => g.link === l.id);
+
+  // --- squads per beat ---
+  let heavyPlaced = false;
+  path.forEach((P, i) => {
+    const ctx = ctxs.get(P.id);
+    const count = squadSize(P, th);
+    const area = (P.x2 - P.x1) * (P.y2 - P.y1);
+    switch (P.beat) {
+      case 'establish': {
+        P.caption = P.caption || th.captions[0];
+        const s = ctx.pickupSpot();
+        if (s) {
+          level.pickups.push({ id: nextId(), k: 'weapon', w: rng.pick(HEAVY_KEYS), x: s.x, y: s.y - 34, panel: P.id, respawn: 0 });
+          heavyPlaced = true;
+        }
+        break;
+      }
+      case 'brawl': {
+        const waves = area > 520000 && i > 1 && rng.chance(0.45) ? 2 : 1;
+        placeSquad(rng, level, th, ctx, nextId, { tier, count: i <= 1 && tier === 0 ? Math.min(count, 3) : count, waves });
+        break;
+      }
+      case 'ambush':
+        P.caption = rng.pick(['ALL QUIET...', 'NOTHING TO SEE HERE...', 'THE COAST IS CLEAR... ?']);
+        placeSquad(rng, level, th, ctx, nextId, { tier, count, waves: 2, firstWave: 1, drop: true, noFlyers: true });
+        break;
+      case 'silent':
+        P.caption = 'SHHH...!';
+        placeSquad(rng, level, th, ctx, nextId, { tier, count: Math.max(2, Math.min(4, count)), silent: true });
+        break;
+      case 'stand':
+        P.caption = 'HOLD ON UNTIL THE INK DRIES!';
+        P.standT = 34;
+        placeSquad(rng, level, th, ctx, nextId, { tier, count: 2, waves: 5 });
+        break;
+      case 'rescue': {
+        const defs = placeSquad(rng, level, th, ctx, nextId, { tier, count });
+        const spots = ctx.floorSpots.filter((s) => !defs.some((d) => Math.abs(d.x - s.x) < 120));
+        const s = spots.length ? spots[Math.floor(spots.length / 2)] : { x: (P.x1 + P.x2) / 2, y: P.y2 };
+        level.civs.push({ id: nextId(), panel: P.id, x: s.x, y: s.y, look: rng.int(0, 2) });
+        let jobs = 0;
+        for (const d of defs) if (d.k === 'grunt' && jobs < 2) { d.job = 'civ'; jobs++; }
+        break;
+      }
+      case 'showdown': {
+        const ek = rng.weighted(tier === 0 ? { brute: 3, gunner: 1.5, shield: 1 } : { brute: 2, gunner: 1, shield: 1.2 });
+        const defs = placeSquad(rng, level, th, ctx, nextId, { tier, count: 3, kinds: [ek, ...composeSquad(rng, th, tier, 2, { noFlyers: true })], waves: 2 });
+        defs[0].elite = rng.pick(th.elites || ['THE ENFORCER']);
+        defs[0].x = (P.x1 + P.x2) / 2;
+        defs[0].y = P.y2;
+        break;
+      }
+      case 'boss': {
+        const bossFlies = !!th.enemies.boss.flying;
+        const s = ctx.floorSpots.length ? ctx.floorSpots[Math.floor(ctx.floorSpots.length / 2)] : { x: (P.x1 + P.x2) / 2, y: P.y2 };
+        level.enemies.push({ id: nextId(), k: 'boss', x: s.x, y: bossFlies ? P.y2 - 260 : s.y, panel: P.id, wave: 0, facing: -1 });
+        placeSquad(rng, level, th, ctx, nextId, { tier, count: 2, kinds: ['grunt', rng.chance(0.5) ? 'gunner' : 'grunt'] });
+        break;
+      }
+    }
+    // occasional supplies
+    if (P.beat !== 'establish' && rng.chance(P.beat === 'stand' ? 0.9 : 0.35)) {
+      const s = ctx.pickupSpot();
+      if (s) level.pickups.push({ id: nextId(), k: rng.chance(0.65) ? 'health' : 'bomb', w: null, x: s.x, y: s.y - 34, panel: P.id, respawn: 0 });
+    }
+  });
+  if (!heavyPlaced) {
+    const cands = path.filter((P) => P.beat === 'brawl' || P.beat === 'rescue');
+    const P = cands.length ? rng.pick(cands) : path[0];
+    const s = ctxs.get(P.id).pickupSpot();
+    if (s) level.pickups.push({ id: nextId(), k: 'weapon', w: rng.pick(HEAVY_KEYS), x: s.x, y: s.y - 34, panel: P.id, respawn: 0 });
+  }
+
+  // --- puzzles on exits ---
+  const nPuzzles = n >= 7 ? 2 : 1;
+  const kinds = rng.shuffle(['key', 'switch', 'crack']).slice(0, nPuzzles);
+  const allowed = { key: ['establish', 'brawl', 'silent'], switch: ['establish', 'brawl'], crack: ['establish', 'brawl', 'rescue'] };
+  const used = new Set();
+  for (const kind of kinds) {
+    const cands = path.slice(0, n - 1).filter((P) => {
+      if (o.index === 0 && P === path[0]) return false; // let people learn to move first
+      if (used.has(P.id) || !allowed[kind].includes(P.beat) || !gateOf(exitLink(P))) return false;
+      // a cracked floor you blow through works; a cracked ceiling you can't reach doesn't
+      const l = exitLink(P);
+      return !(kind === 'crack' && l.kind === 'hole' && l.a !== P.id);
+    });
+    if (!cands.length) continue;
+    const P = rng.pick(cands);
+    used.add(P.id);
+    const ctx = ctxs.get(P.id);
+    const link = exitLink(P);
+    const gate = gateOf(link);
+    gate.lock = kind;
+    P.puzzle = kind;
+    if (kind === 'key') placeKey(rng, level, P, ctx, nextId);
+    else if (kind === 'switch') placeSwitches(rng, level, P, ctx, nextId);
+    else placeCrack(rng, level, P, ctx, link, nextId);
+  }
+
+  // --- the collector's stamp: one per spread, somewhere awkward ---
+  const stampCands = rng.shuffle(path.slice(1));
+  for (const P of stampCands) {
+    const ctx = ctxs.get(P.id);
+    if (!ctx.platSpots.length) continue;
+    let best = ctx.platSpots[0];
+    for (const s of ctx.platSpots) if (s.y < best.y) best = s;
+    if (best.y > P.y2 - 200) continue;
+    if (level.pickups.some((pk) => Math.abs(pk.x - best.x) < 60 && Math.abs(pk.y - (best.y - 34)) < 60)) continue;
+    level.pickups.push({ id: nextId(), k: 'stamp', w: null, x: best.x, y: best.y - 40, panel: P.id, respawn: 0 });
+    break;
+  }
+}
+
+function placeKey(rng, level, P, ctx, nextId) {
+  const guards = level.enemies.filter((d) => d.panel === P.id && d.wave === 0 && d.k !== 'flyer' && d.k !== 'boss');
+  let how = P.beat === 'silent' && guards.length ? 'guard' : rng.weighted({ ledge: 2, crate: 1.5, guard: guards.length ? 1.5 : 0 });
+  if (how === 'ledge' && !ctx.platSpots.length) how = 'crate';
+  if (how === 'guard') {
+    const g = guards.find((d) => d.k === 'gunner') || rng.pick(guards);
+    g.carry = 'key';
+    P.keyHow = 'guard';
+    return;
+  }
+  if (how === 'ledge') {
+    let best = ctx.platSpots[0];
+    for (const s of ctx.platSpots) if (s.y < best.y) best = s;
+    level.pickups.push({ id: nextId(), k: 'key', w: null, x: best.x, y: best.y - 36, panel: P.id, respawn: 0 });
+    P.keyHow = 'ledge';
+    return;
+  }
+  let crate = ctx.props.find((pr) => pr.k === 'crate');
+  if (!crate) {
+    const s = ctx.floorSpots.length ? rng.pick(ctx.floorSpots) : { x: (P.x1 + P.x2) / 2, y: P.y2 };
+    crate = { id: nextId(), k: 'crate', x: Math.round(s.x - 28), y: s.y - 56, w: 56, h: 56, panel: P.id };
+    level.props.push(crate);
+  }
+  crate.contains = 'key';
+  P.keyHow = 'crate';
+}
+
+function placeSwitches(rng, level, P, ctx, nextId) {
+  const pool = ctx.platSpots.concat(ctx.floorSpots);
+  let chosen = [];
+  if (ctx.platSpots.length) {
+    let hi = ctx.platSpots[0];
+    for (const s of ctx.platSpots) if (s.y < hi.y) hi = s;
+    chosen.push(hi);
+  }
+  for (const s of rng.shuffle(pool.slice())) {
+    if (chosen.length >= 3) break;
+    if (chosen.some((c) => Math.abs(c.x - s.x) < 220 && Math.abs(c.y - s.y) < 120)) continue;
+    chosen.push(s);
+  }
+  while (chosen.length < 3) chosen.push({ x: P.x1 + (P.x2 - P.x1) * (0.25 + chosen.length * 0.25), y: P.y2 });
+  chosen.forEach((s) => level.switches.push({ id: level.switches.length, panel: P.id, x: s.x, y: s.y - rng.int(56, 84) }));
+}
+
+function placeCrack(rng, level, P, ctx, link, nextId) {
+  // a barrel near the bricked-up exit makes the solution discoverable
+  const cands = [];
+  if (link.kind === 'door') {
+    const right = link.x1 >= P.x2 - 1;
+    for (const off of [176, 150, 200, 124]) cands.push(right ? P.x2 - off - 44 : P.x1 + off);
+  } else {
+    for (const off of [110, 90, 140]) { cands.push(link.x1 - off); cands.push(link.x2 + off - 44); }
+  }
+  for (const bx of cands) {
+    const r = { x: Math.round(bx), y: P.y2 - 62, w: 44, h: 62 };
+    if (r.x < P.x1 + 20 || r.x + r.w > P.x2 - 20) continue;
+    const clash = level.solids.some((s) => s.panel === P.id && (s.k === 'block' || s.k === 'step') && overlap(r, s, 4)) ||
+      level.props.some((pr) => pr.panel === P.id && overlap(r, pr, 4)) ||
+      level.oneways.some((o) => o.panel === P.id && o.y < r.y && r.y - (o.y + o.h) < 104 && o.x < r.x + r.w + 40 && o.x + o.w > r.x - 40);
+    if (clash) continue;
+    level.props.push({ id: nextId(), k: 'barrel', ...r, panel: P.id });
+    return;
   }
 }
