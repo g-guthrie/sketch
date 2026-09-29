@@ -1,6 +1,6 @@
 import { W, H, engine, setScene, shake, flash } from '../engine.js';
 import { drawText, textWidth, STYLE } from '../gfx/font.js';
-import { FIGHTER_BY_ID, REFEREE } from '../gfx/fighters.js';
+import { fighterFor, REFEREE } from '../gfx/fighters.js';
 import { FighterView, prewarm } from '../gfx/view.js';
 import { FX, drawStar } from '../gfx/fx.js';
 import { Button, panel, blink } from '../ui.js';
@@ -50,6 +50,11 @@ const LABEL = {
   GUARD: 'GUARD', LOW: 'LOW GUARD', SLIP_L: 'SLIP LEFT', SLIP_R: 'SLIP RIGHT', DUCK: 'DUCK', STUNNED: 'STUNNED',
 };
 
+const SHORT = {
+  JAB: 'JAB', HOOK_L: 'L HOOK', HOOK_R: 'R HOOK', BODY: 'BODY', WINDUP: 'WIND', UPPER: 'UPPER', STAR: 'STAR',
+  GUARD: 'GUARD', LOW: 'LOW', SLIP_L: 'SLIP[', SLIP_R: 'SLIP]', DUCK: 'DUCK', STUNNED: 'STUN',
+};
+
 // Command chips, laid out like the keyboard.
 const CHIP_W = 41, CHIP_H = 12;
 function chipLayout() {
@@ -77,16 +82,16 @@ const KEYMAP = {
 export class FightScene {
   constructor() {
     const r = net.room;
-    this.me = FIGHTER_BY_ID[r.fighters[net.you]];
-    this.opp = FIGHTER_BY_ID[r.fighters[1 - net.you]];
+    this.me = fighterFor(r.fighters, net.you);
+    this.opp = fighterFor(r.fighters, 1 - net.you);
     this.vMe = new FighterView(this.me, 'back', ME_S, ME_X, ME_Y);
     this.vOpp = new FighterView(this.opp, 'front', OPP_S, OPP_X, OPP_Y);
     this.vRef = new FighterView(REFEREE, 'front', REF_S, REF_X, REF_Y);
     this.vRef.visible = false;
     this.vRef.setBase('ref');
     prewarm(this.opp, 'front', OPP_S);
-    setTimeout(() => prewarm(REFEREE, 'front', REF_S), 200);
     prewarm(this.me, 'back', ME_S);
+    prewarm(REFEREE, 'front', REF_S, ['refIdle', 'refLook', 'refCount', 'refCount2', 'refWave', 'refWave2']);
     this.fx = new FX();
     this.chips = chipLayout();
     this.events = [];
@@ -108,7 +113,7 @@ export class FightScene {
   enter() {
     this.syncFromRoom(net.room, true);
   }
-  exit() { this.off(); }
+  exit() { this.off(); clearInterval(this.hype); flashes.hype = 0; }
 
   // --- helpers --------------------------------------------------------------
   st(side) { const s = net.room?.state; return s ? s[side === 'me' ? net.you : 1 - net.you] : null; }
@@ -156,8 +161,8 @@ export class FightScene {
         this.vRef.visible = false;
         music(null);
         this.showBanner(r.round === CONFIG.rounds ? 'FINAL ROUND' : `ROUND ${r.round}`, STYLE.white, 1.3, 3);
-        this.at(1350, () => { this.showBanner('FIGHT!', STYLE.gold, 1.0, 5); sfx('bell'); sfx('cheer', 0, true); flashes.rate = 6; });
-        this.at(2300, () => { music('fight'); flashes.rate = 1.5; });
+        this.at(1350, () => { this.showBanner('FIGHT!', STYLE.gold, 1.0, 5); sfx('bell'); sfx('cheer', 0, true); flashes.cheer(1.2); });
+        this.at(2300, () => music('fight'));
         break;
       case 'pick':
         this.syncDisp(false);
@@ -181,6 +186,15 @@ export class FightScene {
       case 'over':
         this.onOver(r, prev);
         break;
+      case 'down':
+        if (!this.down) {
+          // Joined (or rejoined) during a count.
+          const sides = ['me', 'opp'].filter((sd) => this.st(sd)?.hp <= 0);
+          this.down = { sides, tko: false, t: 2, need: 0 };
+          for (const sd of sides) this.view(sd).play(FALL_KEYS(sd === 'me').slice(-1));
+          this.refIn('refLook');
+        }
+        break;
       case 'paused':
         break;
     }
@@ -200,7 +214,8 @@ export class FightScene {
     }
     this.down = null;
     sfx('bell', 0.2); sfx('cheer', 0.1, true);
-    flashes.rate = 8;
+    flashes.cheer(1.5);
+    this.hype = setInterval(() => flashes.cheer(0.4), 700);
     if (!draw) {
       const w = iWin ? this.vMe : this.vOpp, l = iWin ? this.vOpp : this.vMe;
       w.track = null; w.setBase('win');
@@ -260,8 +275,8 @@ export class FightScene {
     const acts = { me: m.acts[you], opp: m.acts[1 - you] };
     const res = { me: m.result[you], opp: m.result[1 - you] };
     this.reveal = { me: acts.me, opp: acts.opp, t: 0 };
+    this.history = [acts.opp, ...(this.history || [])].slice(0, 3);
     this.myPick = null;
-    this.pendingState = m.state;
     const other = (s) => (s === 'me' ? 'opp' : 'me');
     for (const side of ['me', 'opp']) this.animAction(side, acts[side], res[side], res[other(side)]);
     for (const side of ['me', 'opp']) this.animReaction(side, acts, res);
@@ -271,7 +286,7 @@ export class FightScene {
       const me = s[you], opp = s[1 - you];
       for (const [side, st] of [['me', me], ['opp', opp]]) {
         const v = this.view(side);
-        if (st.hp <= 0) return;
+        if (st.hp <= 0) continue;
         const base = st.stunned ? 'stun' : st.loaded ? 'loaded' : st.stamina <= 2 ? 'tired' : 'idle';
         if (!v.busy()) v.setBase(base);
         else v.track.onDone = () => v.setBase(base);
@@ -346,7 +361,7 @@ export class FightScene {
     const tags = r.tags || [];
     const say = (text, style, delay = 0) => this.at(t + delay, () => { const p = textPos(); this.fx.text(text, p.x, p.y, style, { life: 0.9 }); });
 
-    if (ro.counterHit) this.at(t, () => { this.fx.text('COUNTER!', W / 2, 42, isMe ? STYLE.red : STYLE.gold, { life: 1, scale: 2 }); sfx('counter'); });
+    if (ro.counterHit) this.at(t, () => { this.fx.text('COUNTER!', W / 2, 42, isMe ? STYLE.red : STYLE.gold, { life: 1, scale: 2 }); sfx('counter'); flashes.cheer(0.6); });
 
     switch (r.reaction) {
       case 'head':
@@ -366,7 +381,7 @@ export class FightScene {
             keys.push({ p: 'stun', d: 0.4 });
           } else keys.push({ p: 'idle', d: 0.25, tween: true });
           v.play(keys, () => { if (r.reaction === 'stun') v.setBase('stun'); });
-          v.hit(isMe ? '#ff6040' : heavy ? '#ffffff' : '#fff0d0', heavy ? 0.12 : 0.07);
+          v.hit(isMe ? '#ff3020' : '#ffffff', heavy ? 0.16 : 0.1, isMe ? 0.4 : 0.6);
           v.jolt.x = (Math.random() - 0.5) * 6;
           v.jolt.y = isMe ? 6 : -4;
           const p = isMe ? { x: ME_X + hurtDx, y: body ? 150 : 104 } : this.vOpp.point(body ? 'waist' : 'head');
@@ -376,7 +391,9 @@ export class FightScene {
           const tp = textPos();
           this.fx.text(`-${r.took}`, tp.x, tp.y + 12, STYLE.red, { life: 0.8, rise: 10 });
           sfx(heavy ? 'heavy' : body ? 'body' : 'hit');
-          if (heavy) { flash(isMe ? '#ff2020' : '#ffffff', 0.12); sfx('cheer', 0.05, true); flashes.rate = 10; setTimeout(() => (flashes.rate = 1.5), 900); }
+          this.hitstop = heavy ? 0.13 : 0.055;
+          flashes.cheer(heavy ? 1.2 : 0.35);
+          if (heavy) { flash(isMe ? '#ff2020' : '#ffffff', 0.12); sfx('cheer', 0.05, true); }
           shake(heavy ? 6 : isMe ? 4 : 2.5, heavy ? 0.4 : 0.22);
           if (isMe) this.redEdge = 0.35;
           this.applyDamage(side, r.took);
@@ -433,7 +450,7 @@ export class FightScene {
     this.syncDisp(true);
     sfx('down');
     sfx('cheer', 0.1, true);
-    flashes.rate = 9;
+    flashes.cheer(1.5);
     shake(5, 0.4);
     for (const s of downSides) {
       const v = this.view(s);
@@ -478,7 +495,7 @@ export class FightScene {
     if (st) st.hp = m.hp;
     this.fx.text(side === 'me' ? 'BACK UP!' : 'UP AT ' + m.count + '!', W / 2, 96, STYLE.gold, { life: 1.3, scale: 2 });
     sfx('cheer', 0, true);
-    flashes.rate = 1.5;
+    flashes.cheer(0.8);
     if (!this.down) return;
     this.down.sides = this.down.sides.filter((s) => s !== side);
     if (!this.down.sides.length) { this.down = null; this.refOut(); setTimeout(() => music('fight'), 1500); }
@@ -542,6 +559,8 @@ export class FightScene {
 
   // --- update ---------------------------------------------------------------
   update(dt) {
+    flashes.update(dt);
+    if (this.hitstop > 0) { this.hitstop -= dt; return; }
     this.clock += dt;
     const due = this.events.filter((e) => e.at <= this.clock);
     this.events = this.events.filter((e) => e.at > this.clock);
@@ -550,7 +569,6 @@ export class FightScene {
     this.vOpp.update(dt);
     this.vRef.update(dt);
     this.fx.update(dt);
-    flashes.update(dt);
     if (this.banner) { this.banner.t += dt; if (this.banner.t > this.banner.dur) this.banner = null; }
     if (this.reveal) this.reveal.t += dt;
     if (this.redEdge > 0) this.redEdge -= dt;
@@ -728,10 +746,15 @@ export class FightScene {
       drawText(ctx, String(secs), W / 2, 40, { ...STYLE.red, align: 'center', scale: 3 });
     }
     // Lock status
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 36, W, this.history?.length ? 17 : 9);
     const oppBot = net.room?.players?.[1 - net.you]?.bot;
     const oppName = oppBot ? 'CPU' : 'RIVAL';
     const oppTxt = this.oppLocked ? `${oppName} LOCKED IN` : `${oppName} THINKING${'.'.repeat(1 + (Math.floor(engine.time * 3) % 3))}`;
     drawText(ctx, oppTxt, W - 4, 38, { small: true, color: this.oppLocked ? '#7ac8ff' : '#8a86b0', align: 'right' });
+    if (this.history?.length) {
+      drawText(ctx, 'LAST: ' + this.history.map((a) => SHORT[a] || a).join(' / '), W - 4, 46, { small: true, color: '#8a86b8', align: 'right' });
+    }
 
     if (me.stunned) {
       if (blink(2)) drawText(ctx, 'STUNNED - BRACE YOURSELF!', W / 2, 190, { ...STYLE.red, align: 'center' });

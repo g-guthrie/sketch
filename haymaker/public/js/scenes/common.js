@@ -9,7 +9,7 @@ export const flashes = new Flashes();
 
 export function backdrop(ctx, dim = 0.55, ox = 0, oy = 0) {
   const fr = arenaFrames();
-  ctx.drawImage(fr[Math.floor(engine.time * 2.5) % 2], ox, oy);
+  ctx.drawImage(fr[Math.floor(flashes.phase) % 2], ox, oy);
   flashes.draw(ctx);
   if (dim > 0) {
     ctx.fillStyle = `rgba(4,2,14,${dim})`;
@@ -18,7 +18,7 @@ export function backdrop(ctx, dim = 0.55, ox = 0, oy = 0) {
 }
 
 const logoCache = new Map();
-export function logo(ctx, text, cx, y, scale = 4, colors) {
+export function logo(ctx, text, cx, y, scale = 4, colors, shine = null) {
   const key = text + scale;
   let c = logoCache.get(key);
   if (!c) {
@@ -51,9 +51,33 @@ export function logo(ctx, text, cx, y, scale = 4, colors) {
     }
     logoCache.set(key, c);
   }
-  ctx.drawImage(c, Math.round(cx - c.width / 2), y);
+  const x0 = Math.round(cx - c.width / 2);
+  ctx.drawImage(c, x0, y);
+  if (shine != null) {
+    // Diagonal glint sweeping across the letters.
+    if (!shineCanvas || shineCanvas.width !== c.width || shineCanvas.height !== c.height) {
+      shineCanvas = document.createElement('canvas');
+      shineCanvas.width = c.width; shineCanvas.height = c.height;
+    }
+    const sx = shineCanvas.getContext('2d');
+    sx.globalCompositeOperation = 'source-over';
+    sx.clearRect(0, 0, c.width, c.height);
+    sx.drawImage(c, 0, 0);
+    sx.globalCompositeOperation = 'source-atop';
+    const pos = (shine % 1) * (c.width + 120) - 60;
+    sx.fillStyle = 'rgba(255,255,255,0.75)';
+    sx.beginPath();
+    sx.moveTo(pos, 0); sx.lineTo(pos + 10, 0); sx.lineTo(pos - 14, c.height); sx.lineTo(pos - 24, c.height);
+    sx.fill();
+    sx.fillStyle = 'rgba(255,255,255,0.4)';
+    sx.beginPath();
+    sx.moveTo(pos + 14, 0); sx.lineTo(pos + 18, 0); sx.lineTo(pos - 6, c.height); sx.lineTo(pos - 10, c.height);
+    sx.fill();
+    ctx.drawImage(shineCanvas, x0, y);
+  }
   return c;
 }
+let shineCanvas = null;
 
 // Head-and-shoulders portrait from the front sprite.
 export function portrait(fighter, pose = 'idle', scale = 1.6) {

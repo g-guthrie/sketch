@@ -79,6 +79,12 @@ export function start(canvas) {
     const k = normKey(e);
     if (!k) return;
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Tab', 'Backspace'].includes(e.key)) e.preventDefault();
+    if (k === 'F' && e.shiftKey || k === 'F11') {
+      e.preventDefault();
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      else document.documentElement.requestFullscreen?.().catch(() => {});
+      return;
+    }
     if (k === 'F2' || (k === 'C' && e.shiftKey)) {
       engine.crt = !engine.crt;
       try { localStorage.setItem('hm_crt', engine.crt ? '1' : '0'); } catch {}

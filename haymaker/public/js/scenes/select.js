@@ -1,6 +1,6 @@
 import { W, H, engine, setScene, flash, shake } from '../engine.js';
 import { drawText, STYLE } from '../gfx/font.js';
-import { FIGHTERS, FIGHTER_BY_ID } from '../gfx/fighters.js';
+import { FIGHTERS, fighterFor } from '../gfx/fighters.js';
 import { Button, blink } from '../ui.js';
 import { sfx, music } from '../audio.js';
 import { net } from '../net.js';
@@ -122,10 +122,11 @@ export class VsScene {
     music(null);
     sfx('bell');
     const r = net.room;
-    this.me = FIGHTER_BY_ID[r.fighters[net.you]];
-    this.opp = FIGHTER_BY_ID[r.fighters[1 - net.you]];
+    this.me = fighterFor(r.fighters, net.you);
+    this.opp = fighterFor(r.fighters, 1 - net.you);
     // Build sprites for the fight while the VS card is up.
-    setTimeout(() => { prewarm(this.opp, 'front', 1.25); prewarm(this.me, 'back', 1); }, 50);
+    prewarm(this.opp, 'front', 1.25);
+    prewarm(this.me, 'back', 1);
   }
   update(dt) {
     const before = this.t;

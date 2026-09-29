@@ -106,7 +106,7 @@ export class FighterView {
 
   busy() { return !!this.track; }
 
-  hit(color = '#ffffff', t = 0.07) { this.flashT = t; this.flashColor = color; }
+  hit(color = '#ffffff', t = 0.07, alpha = 0.6) { this.flashT = t; this.flashColor = color; this.flashAlpha = alpha; }
 
   update(dt) {
     this.t += dt;
@@ -174,15 +174,28 @@ export class FighterView {
     const y = Math.round(this.y + c.dy + this.jolt.y - s.ay + oy);
     if (this.alpha < 1) ctx.globalAlpha = this.alpha;
     ctx.drawImage(s.canvas, x, y);
-    if (this.flashT > 0) {
-      ctx.globalAlpha = Math.min(1, this.flashT / 0.05) * 0.85;
+    if (this.flashT > 0 && Math.floor(performance.now() / 33) % 2 === 0) {
+      ctx.globalAlpha = this.flashAlpha ?? 0.6;
       ctx.drawImage(silhouette(s, this.flashColor), x, y);
     }
     ctx.globalAlpha = 1;
   }
 }
 
-// Warm the cache for a fighter so the first exchange never hitches.
-export function prewarm(fighter, view, scale) {
-  for (const n of Object.keys(POSES)) sprite(fighter, view, scale, n);
+// Warm the cache so the first exchange never hitches. Work is time-sliced
+// across frames so animations keep running while sprites build.
+const queue = [];
+let pumping = false;
+function pump() {
+  const t0 = performance.now();
+  while (queue.length && performance.now() - t0 < 6) {
+    const [f, v, s, n] = queue.shift();
+    sprite(f, v, s, n);
+  }
+  if (queue.length) setTimeout(pump, 0);
+  else pumping = false;
+}
+export function prewarm(fighter, view, scale, names = Object.keys(POSES)) {
+  for (const n of names) queue.push([fighter, view, scale, n]);
+  if (!pumping) { pumping = true; setTimeout(pump, 0); }
 }

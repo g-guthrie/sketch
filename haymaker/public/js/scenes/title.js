@@ -77,7 +77,8 @@ export class TitleScene {
     ctx.fillStyle = '#ffd21a'; ctx.fillRect(0, 22, W, 1); ctx.fillRect(0, 83, W, 1);
     ctx.fillStyle = '#b02800'; ctx.fillRect(0, 23, W, 1); ctx.fillRect(0, 82, W, 1);
     const drop = Math.max(0, 1 - this.t * 3);
-    logo(ctx, 'HAYMAKER', W / 2, 30 - Math.round(drop * 40), 4);
+    const sweep = (this.t % 3.2) / 1.2;
+    logo(ctx, 'HAYMAKER', W / 2, 30 - Math.round(drop * 40), 4, undefined, sweep < 1 ? sweep : null);
     drawText(ctx, 'ONLINE KNOCKOUT DUEL', W / 2, 72, { small: true, color: '#fff6c0', align: 'center' });
 
     if (this.attract) {

@@ -21,7 +21,7 @@ export const POSES = {
   bodyWind: { crouch: 10, yaw: -0.2, gR: [-24, -6, 4], eR: [-1, -0.6, -0.4] },
   body: { crouch: 14, pitch: 0.22, yaw: 0.3, root: [0, 0, 6], gR: [-2, -24, 50], eR: [-1, -0.8, 0], gL: [12, 16, 24] },
 
-  windup: { crouch: 18, pitch: 0.1, yaw: -0.34, roll: -0.1, gR: [-30, -34, -10], eR: [-0.6, -1, -0.2], gL: [10, 22, 26], glow: 1, face: 'focus' },
+  windup: { crouch: 18, pitch: 0.1, yaw: -0.3, roll: -0.1, gR: [-40, -24, 6], eR: [-0.8, -1, -0.3], gL: [16, 12, 26], glow: 1, face: 'focus' },
   upper: { root: [0, 8, 6], pitch: -0.14, yaw: 0.36, roll: 0.08, gR: [0, 52, 34], eR: [-0.3, -1, 0.4], gL: [16, 10, 20], glow: 1, face: 'focus' },
 
   starWind: { crouch: 8, yaw: -0.4, gR: [-40, 20, -16], eR: [-1, 0, -0.2], gL: [12, 20, 24], face: 'focus' },

@@ -342,6 +342,7 @@ class Room {
 
   destroy() {
     this.clearTimers();
+    for (const p of this.players) if (p?.ws && p.ws.room === this) p.ws.room = null;
     rooms.delete(this.code);
   }
 }
@@ -412,7 +413,12 @@ wss.on('connection', (ws) => {
       case 'mash': room?.onMash(i); break;
       case 'rematch': room?.onRematch(i); break;
       case 'leave':
-        if (room) { room.leave(i); ws.room = null; }
+        // Deliberate exit (menu/quit): tell the other player and close the room.
+        if (room) {
+          ws.room = null;
+          room.send(1 - i, { t: 'opp_left' });
+          room.destroy();
+        }
         break;
       case 'ping': ws.send(JSON.stringify({ t: 'pong', at: m.at })); break;
     }

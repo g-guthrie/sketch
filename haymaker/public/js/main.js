@@ -26,6 +26,13 @@ net.on((m) => {
       history.replaceState(null, '', location.pathname);
     }
   }
+  if (m.t === 'opp_left') {
+    app.toast('YOUR RIVAL LEFT THE MATCH', 3);
+    app.status('YOUR RIVAL LEFT THE MATCH', 4);
+    net.reset();
+    setScene(new TitleScene({ attract: false }));
+    return;
+  }
   if (m.t !== 'room') return;
   const s = engine.scene;
   const ph = m.phase;

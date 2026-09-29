@@ -231,9 +231,14 @@ export function arenaFrames() {
 
 // Camera flashes popping in the crowd.
 export class Flashes {
-  constructor() { this.list = []; this.rate = 1.5; }
+  constructor() { this.list = []; this.rate = 1.5; this.hype = 0; this.phase = 0; }
+  // Crowd excitement: bumps on big moments, decays back to a murmur.
+  cheer(amount = 1) { this.hype = Math.min(1.5, this.hype + amount); }
   update(dt) {
-    if (Math.random() < this.rate * dt) {
+    this.hype = Math.max(0, this.hype - dt * 0.5);
+    this.phase += dt * (2.2 + this.hype * 9);
+    const rate = this.rate + this.hype * 14;
+    if (Math.random() < rate * dt) {
       this.list.push({ x: (Math.random() * W) | 0, y: 34 + ((Math.random() * 66) | 0), t: 0 });
     }
     for (const f of this.list) f.t += dt;

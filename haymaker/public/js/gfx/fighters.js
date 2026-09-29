@@ -29,7 +29,7 @@ export const FIGHTERS = [
       skin: SKIN.tan,
       hair: ['#0c0a14', '#1c1830', '#302a4c', '#4a4270', '#7a72a8'],
       glove: ['#2a0406', '#7a0c12', '#c8161e', '#f2442e', '#ffd2b0'],
-      gloveGlow: ['#402000', '#c86a00', '#ffb000', '#ffe860', '#ffffff'],
+      gloveGlow: ['#3a0000', '#b80c00', '#ff4a00', '#ffb030', '#ffffff'],
       gloveTrim: ['#3a3040', '#9a92a4', '#dcd6e0', '#ffffff', '#ffffff'],
       trunks: ['#08122a', '#12306a', '#1c56b8', '#3a86f0', '#a8d0ff'],
       trunksTrim: ['#3a2a04', '#b08010', '#f0c020', '#fff070', '#ffffff'],
@@ -48,7 +48,7 @@ export const FIGHTERS = [
       skin: SKIN.peach,
       hair: ['#1a0a04', '#5a2a10', '#8c4418', '#b8662a', '#e0a060'],
       glove: ['#0e1a06', '#2a5410', '#3e8a18', '#66c02a', '#d0ffb0'],
-      gloveGlow: ['#402000', '#c86a00', '#ffb000', '#ffe860', '#ffffff'],
+      gloveGlow: ['#3a0000', '#b80c00', '#ff4a00', '#ffb030', '#ffffff'],
       gloveTrim: ['#3a3040', '#9a92a4', '#dcd6e0', '#ffffff', '#ffffff'],
       trunks: ['#240408', '#6a0c1c', '#a8182e', '#e03a48', '#ffb0b0'],
       trunksTrim: ['#3a3a44', '#a0a0b0', '#e8e8f0', '#ffffff', '#ffffff'],
@@ -68,7 +68,7 @@ export const FIGHTERS = [
       hair: ['#2a0a30', '#8a1a8a', '#d030c0', '#ff70f0', '#ffd0ff'],
       hairDark: ['#0c0a10', '#1a1620', '#2a2430', '#3a3444', '#4a4458'],
       glove: ['#1a1604', '#6a5a08', '#c8a810', '#f8e040', '#ffffc0'],
-      gloveGlow: ['#402000', '#c86a00', '#ffb000', '#ffe860', '#ffffff'],
+      gloveGlow: ['#3a0000', '#b80c00', '#ff4a00', '#ffb030', '#ffffff'],
       gloveTrim: ['#10081a', '#2a2040', '#40345c', '#5a4c80', '#8070b0'],
       trunks: ['#140a24', '#3a1a6a', '#6a30b8', '#9a5aec', '#d8b8ff'],
       trunksTrim: ['#1a1604', '#6a5a08', '#c8a810', '#f8e040', '#ffffc0'],
@@ -87,7 +87,7 @@ export const FIGHTERS = [
       skin: SKIN.brown,
       hair: ['#060404', '#141010', '#241c1a', '#382c28', '#5a4a44'],
       glove: ['#06121e', '#0c3456', '#1a5e96', '#3a92d6', '#b8e4ff'],
-      gloveGlow: ['#402000', '#c86a00', '#ffb000', '#ffe860', '#ffffff'],
+      gloveGlow: ['#3a0000', '#b80c00', '#ff4a00', '#ffb030', '#ffffff'],
       gloveTrim: ['#3a2a04', '#b08010', '#f0c020', '#fff070', '#ffffff'],
       trunks: ['#101010', '#262630', '#3e3e4c', '#5c5c70', '#9a9ab0'],
       trunksTrim: ['#3a2a04', '#b08010', '#f0c020', '#fff070', '#ffffff'],
@@ -98,6 +98,36 @@ export const FIGHTERS = [
 ];
 
 export const FIGHTER_BY_ID = Object.fromEntries(FIGHTERS.map((f) => [f.id, f]));
+
+// Second-colour outfits for mirror matches.
+const ALT = {
+  rico: {
+    trunks: ['#1a0a04', '#6a2a08', '#c05a10', '#f08a2a', '#ffd0a0'],
+    trunksTrim: ['#3a3a44', '#a0a0b0', '#e8e8f0', '#ffffff', '#ffffff'],
+    glove: ['#0a0a10', '#1a1a2a', '#2e2e44', '#4a4a6a', '#a0a0d0'],
+  },
+  bruno: {
+    trunks: ['#081a10', '#0c4a28', '#128040', '#2ab860', '#b0ffc8'],
+    glove: ['#2a0406', '#7a0c12', '#c8161e', '#f2442e', '#ffd2b0'],
+  },
+  volt: {
+    trunks: ['#041a1a', '#08504a', '#10907e', '#2ad0b0', '#b8fff0'],
+    glove: ['#2a0418', '#7a0c48', '#c8187a', '#f04aa8', '#ffc0e0'],
+    hair: ['#08240a', '#1a7a1a', '#3ad03a', '#8aff6a', '#e0ffd0'],
+  },
+  duke: {
+    trunks: ['#2a1a04', '#8a5a08', '#d09010', '#f8c83a', '#fff0b0'],
+    trunksTrim: ['#101010', '#262630', '#3e3e4c', '#5c5c70', '#9a9ab0'],
+    glove: ['#2a0406', '#7a0c12', '#c8161e', '#f2442e', '#ffd2b0'],
+  },
+};
+
+// The fighter a room slot is using; in a mirror match slot 1 wears the alt colours.
+export function fighterFor(fighters, slot) {
+  const f = FIGHTER_BY_ID[fighters[slot]];
+  if (!f || slot !== 1 || fighters[0] !== fighters[1]) return f;
+  return { ...f, id: f.id + '_alt', palette: { ...f.palette, ...ALT[f.id] } };
+}
 
 // The referee is built with the same renderer.
 export const REFEREE = {

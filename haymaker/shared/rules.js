@@ -2,7 +2,7 @@
 // Shared by the server (authoritative) and the client (UI hints).
 
 export const CONFIG = {
-  pickMs: 4500,          // time to lock a pick each beat
+  pickMs: 6000,          // time to lock a pick each beat
   resolveMs: 1900,       // exchange animation before the next beat
   beatsPerRound: 18,     // each beat is 10 seconds on the fight clock
   rounds: 3,
