@@ -1,0 +1,47 @@
+// Drives a practice match headlessly and saves screenshots.
+import { chromium } from 'playwright';
+const base = process.env.URL || 'http://localhost:8123/';
+const out = process.env.OUT || '/tmp';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1152, height: 648 } });
+p.on('pageerror', (e) => console.log('pageerror:', e.stack || e.message));
+p.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.log('console:', m.text()); });
+const shot = async (n) => { await p.screenshot({ path: `${out}/${n}.png` }); console.log('shot', n); };
+const phase = () => p.evaluate(() => window.__hm?.net.room?.phase);
+const waitPhase = async (ph, ms = 15000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if ((await phase()) === ph) return true; await p.waitForTimeout(100); } console.log('timeout waiting', ph, await phase()); return false; };
+await p.goto(base);
+await p.waitForTimeout(700);
+await shot('01-attract');
+await p.keyboard.press('Enter');
+await p.waitForTimeout(500);
+await shot('02-menu');
+await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowDown');
+await p.keyboard.press('Enter');
+await waitPhase('select');
+await p.waitForTimeout(1200);
+await shot('03-select');
+await p.keyboard.press('ArrowRight');
+await p.keyboard.press('Enter');
+await waitPhase('intro');
+await p.waitForTimeout(1500);
+await shot('04-vs');
+await waitPhase('round');
+await p.waitForTimeout(1600);
+await shot('05-round');
+const moves = (process.env.MOVES || 'J,U,I,I,K,W,A,O,J,L').split(',');
+let i = 0;
+for (const mv of moves) {
+  await waitPhase('pick', 20000);
+  await p.waitForTimeout(600);
+  if (i === 0) await shot('06-pick');
+  await p.keyboard.press(mv);
+  await p.waitForTimeout(300);
+  if (i === 0) await shot('07-locked');
+  await waitPhase('resolve', 8000);
+  await p.waitForTimeout(250);
+  await shot(`08-res-${i}-${mv}-a`);
+  await p.waitForTimeout(300);
+  await shot(`08-res-${i}-${mv}-b`);
+  i++;
+}
+await b.close();

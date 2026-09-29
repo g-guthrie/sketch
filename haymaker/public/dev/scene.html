@@ -1,0 +1,28 @@
+<!doctype html><meta charset="utf-8"><title>scene</title>
+<style>body{margin:0;background:#000}canvas{image-rendering:pixelated;display:block}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { renderFighter } from '../js/gfx/sprite.js';
+import { sprite } from '../js/gfx/view.js';
+import { FIGHTERS } from '../js/gfx/fighters.js';
+import { POSES } from '../js/gfx/poses.js';
+import { arenaFrames, W, H } from '../js/gfx/arena.js';
+import { drawText, STYLE } from '../js/gfx/font.js';
+const q = new URLSearchParams(location.search);
+const Z = +(q.get('z') || 4);
+const opp = FIGHTERS.find(f => f.id === (q.get('o') || 'bruno'));
+const me = FIGHTERS.find(f => f.id === (q.get('m') || 'rico'));
+const n = document.createElement('canvas'); n.width = W; n.height = H;
+const x = n.getContext('2d');
+x.drawImage(arenaFrames()[0], 0, 0);
+const oS = +(q.get('os') || 1.25), mS = +(q.get('ms') || 1.15);
+const os = sprite(opp, 'front', oS, q.get('op') || 'idle');
+x.drawImage(os.canvas, Math.round(192 - os.ax), Math.round(+(q.get('oy') || 250) - os.ay));
+const ms = sprite(me, 'back', mS, q.get('mp') || 'idle');
+x.drawImage(ms.canvas, Math.round(+(q.get('mx') || 192) + +(q.get('mdx')||0) - ms.ax), Math.round(+(q.get('my') || 360) + +(q.get('mdy')||0) - ms.ay));
+x.fillStyle = '#000'; x.fillRect(0,0,W,24);
+drawText(x, 'RICO', 6, 3, STYLE.white); drawText(x, '3:00', 192, 3, {...STYLE.gold, align:'center'});
+drawText(x, 'ROUND 1', 192, 13, {small:true, color:'#fff', align:'center'});
+const c = document.getElementById('c'); c.width = W*Z; c.height = H*Z;
+const cx = c.getContext('2d'); cx.imageSmoothingEnabled = false; cx.drawImage(n, 0, 0, W*Z, H*Z);
+</script>

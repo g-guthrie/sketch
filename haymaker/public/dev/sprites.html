@@ -1,0 +1,27 @@
+<!doctype html><meta charset="utf-8"><title>sprites</title>
+<style>body{margin:0;background:#2a2640}canvas{image-rendering:pixelated}</style>
+<canvas id="c"></canvas>
+<script type="module">
+import { sprite } from "../js/gfx/view.js";
+import { renderFighter } from '../js/gfx/sprite.js';
+import { FIGHTERS } from '../js/gfx/fighters.js';
+import { POSES } from '../js/gfx/poses.js';
+const q = new URLSearchParams(location.search);
+const f = FIGHTERS.find(x => x.id === (q.get('f') || 'rico'));
+const view = q.get('view') || 'front';
+const scale = +(q.get('s') || 1.2);
+const names = (q.get('poses') || Object.keys(POSES).join(',')).split(',');
+const Z = +(q.get('z') || 3), cols = +(q.get('cols') || 6);
+const cellW = 140, cellH = 230;
+const c = document.getElementById('c');
+c.width = cols * cellW * Z; c.height = Math.ceil(names.length / cols) * cellH * Z;
+const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+x.fillStyle = '#3a3558'; x.fillRect(0,0,c.width,c.height);
+names.forEach((n, i) => {
+  const s = q.get('raw') ? renderFighter(f, POSES[n], view, scale) : sprite(f, view, scale, n);
+  const cx = (i % cols) * cellW + cellW / 2, cy = Math.floor(i / cols) * cellH + cellH - 12;
+  x.drawImage(s.canvas, Math.round(cx - s.ax) * Z, Math.round(cy - s.ay) * Z, s.w * Z, s.h * Z);
+  x.fillStyle = '#fff'; x.font = `${6*Z}px monospace`; x.fillText(n, (cx - cellW/2 + 3) * Z, (cy - cellH + 20) * Z);
+});
+document.title = 'done';
+</script>
