@@ -247,7 +247,7 @@ export function buildPrims(body, j, P) {
 // ---------------------------------------------------------------------------
 // Rasterizer
 
-function project(p, view, S, ox, oy) {
+export function project(p, view, S, ox, oy) {
   const cx = view === 'back' ? -p[0] : p[0];
   const cz = view === 'back' ? -p[2] : p[2];
   const s = F / (F - cz);

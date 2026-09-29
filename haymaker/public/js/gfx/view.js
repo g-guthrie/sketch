@@ -1,6 +1,6 @@
 // Animated fighter on screen: pose tracks, sprite caching and hit flashes.
 
-import { renderFighter } from './sprite.js';
+import { renderFighter } from './sprite2d.js';
 import { POSES, blend } from './poses.js';
 
 const cache = new Map();
