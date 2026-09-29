@@ -1,6 +1,6 @@
 import { W, H, engine, setScene, shake, flash } from '../engine.js';
 import { drawText, textWidth, STYLE } from '../gfx/font.js';
-import { FIGHTER_BY_ID } from '../gfx/fighters.js';
+import { FIGHTER_BY_ID, REFEREE } from '../gfx/fighters.js';
 import { FighterView, prewarm } from '../gfx/view.js';
 import { FX, drawStar } from '../gfx/fx.js';
 import { Button, panel, blink } from '../ui.js';
@@ -12,6 +12,7 @@ import { ACTIONS, CONFIG, allowed, clockText } from '/shared/rules.js';
 
 const OPP_X = 192, OPP_Y = 262, OPP_S = 1.25;
 const ME_X = 192, ME_Y = 300, ME_S = 1;
+const REF_X = 316, REF_Y = 246, REF_S = 1.05;
 
 const ATTACK_ANIM = {
   JAB: ['jabWind', 'jab'],
@@ -30,18 +31,18 @@ const STRIKE_OFF_ME = { JAB: [-8, -40], HOOK_L: [12, -38], HOOK_R: [-12, -38], B
 const STRIKE_OFF_OPP = { JAB: [4, 8], HOOK_L: [-6, 8], HOOK_R: [6, 8], BODY: [0, 10], UPPER: [0, 2], STAR: [0, 12] };
 
 const TIPS = {
-  JAB: 'FAST. BEATS HOOKS, BODY SHOTS, WIND-UPS. BLOCKED BY GUARD.',
-  HOOK_L: 'HITS HARD. SLIP LEFT DODGES IT, SLIP RIGHT EATS 1.5X.',
-  HOOK_R: 'HITS HARD. SLIP RIGHT DODGES IT, SLIP LEFT EATS 1.5X.',
+  JAB: 'FAST + CHEAP. STOPS BODY SHOTS AND WIND-UPS. SLIPS MAKE IT WHIFF.',
+  HOOK_L: 'HEAVY. PLOWS THROUGH JABS. SLIP LEFT DODGES IT, SLIP RIGHT EATS 1.5X.',
+  HOOK_R: 'HEAVY. PLOWS THROUGH JABS. SLIP RIGHT DODGES IT, SLIP LEFT EATS 1.5X.',
   BODY: 'BEATS GUARD, SLIPS AND DUCKS. DRAINS STAMINA. LOW GUARD STOPS IT.',
-  WINDUP: 'LOAD AN UPPERCUT FOR NEXT BEAT. YOUR RIVAL WILL SEE IT.',
+  WINDUP: 'LOAD AN UPPERCUT FOR NEXT BEAT. YOUR RIVAL WILL SEE IT COMING.',
   UPPER: 'HUGE HIT + STUN. SHRUGS OFF JABS. SLIPS DODGE IT, DUCKS EAT 1.5X.',
   STAR: 'SPENDS ALL STARS. FAST AND HEAVY. ONLY SLIPS AND DUCKS AVOID IT.',
-  GUARD: 'BLOCKS HEAD SHOTS. BODY SHOTS GO RIGHT THROUGH. REGAINS STAMINA.',
-  LOW: 'STOPS BODY SHOTS COLD AND EARNS A COUNTER. HEAD IS OPEN.',
-  SLIP_L: 'DODGE LEFT: AVOIDS JABS, UPPERCUTS, LEFT HOOKS. EARNS A COUNTER.',
-  SLIP_R: 'DODGE RIGHT: AVOIDS JABS, UPPERCUTS, RIGHT HOOKS. EARNS A COUNTER.',
-  DUCK: 'AVOIDS JABS AND HOOKS. EARNS A COUNTER. UPPERCUTS CRUSH IT.',
+  GUARD: 'BLOCKS HEAD SHOTS AND TIRES THE PUNCHER. BODY SHOTS GO THROUGH.',
+  LOW: 'STOPS BODY SHOTS COLD AND EARNS A COUNTER. HEAD IS WIDE OPEN.',
+  SLIP_L: 'DODGE LEFT: BEATS JABS, UPPERCUTS, LEFT HOOKS. EARNS A COUNTER.',
+  SLIP_R: 'DODGE RIGHT: BEATS JABS, UPPERCUTS, RIGHT HOOKS. EARNS A COUNTER.',
+  DUCK: 'UNDER JABS AND HOOKS - COUNTERS HOOKS. BODY SHOTS PUNISH IT 1.5X.',
 };
 
 const LABEL = {
@@ -80,7 +81,11 @@ export class FightScene {
     this.opp = FIGHTER_BY_ID[r.fighters[1 - net.you]];
     this.vMe = new FighterView(this.me, 'back', ME_S, ME_X, ME_Y);
     this.vOpp = new FighterView(this.opp, 'front', OPP_S, OPP_X, OPP_Y);
+    this.vRef = new FighterView(REFEREE, 'front', REF_S, REF_X, REF_Y);
+    this.vRef.visible = false;
+    this.vRef.setBase('ref');
     prewarm(this.opp, 'front', OPP_S);
+    setTimeout(() => prewarm(REFEREE, 'front', REF_S), 200);
     prewarm(this.me, 'back', ME_S);
     this.fx = new FX();
     this.chips = chipLayout();
@@ -148,6 +153,7 @@ export class FightScene {
         this.down = null;
         this.vMe.setBase('idle'); this.vOpp.setBase('idle');
         this.vMe.track = this.vOpp.track = null;
+        this.vRef.visible = false;
         music(null);
         this.showBanner(r.round === CONFIG.rounds ? 'FINAL ROUND' : `ROUND ${r.round}`, STYLE.white, 1.3, 3);
         this.at(1350, () => { this.showBanner('FIGHT!', STYLE.gold, 1.0, 5); sfx('bell'); sfx('cheer', 0, true); flashes.rate = 6; });
@@ -187,14 +193,20 @@ export class FightScene {
     const res = r.result;
     const iWin = res.winner === net.you, draw = res.winner == null;
     const title = res.method === 'KO' ? 'K.O.!' : res.method === 'TKO' ? 'T.K.O.!' : res.method === 'FORFEIT' ? 'FORFEIT' : draw ? 'DRAW' : 'DECISION';
-    this.showBanner(title, res.method === 'KO' || res.method === 'TKO' ? STYLE.red : STYLE.gold, 99, 5, 50);
-    if (res.method === 'KO' || res.method === 'TKO') { flash('#ffffff', 0.2); shake(6, 0.5); sfx('ko'); }
+    this.showBanner(title, res.method === 'KO' || res.method === 'TKO' ? STYLE.red : STYLE.gold, 99, 4, 40);
+    if (res.method === 'KO' || res.method === 'TKO') {
+      flash('#ffffff', 0.2); shake(6, 0.5); sfx('ko');
+      if (!this.vRef.visible) this.refIn('refWave'); else { this.vRef.track = null; this.vRef.setBase('refWave'); }
+    }
+    this.down = null;
     sfx('bell', 0.2); sfx('cheer', 0.1, true);
     flashes.rate = 8;
     if (!draw) {
       const w = iWin ? this.vMe : this.vOpp, l = iWin ? this.vOpp : this.vMe;
       w.track = null; w.setBase('win');
-      if (l.base !== 'down') l.setBase('tired');
+      // Keep the winner's raised gloves on screen under the banner.
+      if (!iWin) w.off = { x: 0, y: 34 };
+      if (l.base !== 'down' && !(l.track && l.track.keys.at(-1).p === 'down')) l.setBase('tired');
     }
     this.overText = draw ? "IT'S A DRAW" : iWin ? 'YOU WIN!' : 'YOU LOSE...';
     this.overBtns = [
@@ -224,6 +236,7 @@ export class FightScene {
         this.count = m.n;
         this.countT = 0;
         sfx('count');
+        if (this.vRef.visible) this.vRef.play([{ p: 'refCount', d: 0.22 }, { p: 'refCount2', d: 0.26 }, { p: 'refLook', d: 0.2, tween: true }], () => this.vRef.setBase('refLook'));
         break;
       case 'mash': {
         const side = m.who === net.you ? 'me' : 'opp';
@@ -432,6 +445,21 @@ export class FightScene {
       else { this.vOpp.track = null; this.vOpp.setBase('taunt'); }
     }
     this.showBanner(m.tko ? 'T.K.O.!' : 'DOWN!', STYLE.red, 1.4, 5, 64);
+    this.refIn(m.tko ? 'refWave' : 'refLook');
+  }
+
+  refIn(base = 'refLook') {
+    const r = this.vRef;
+    r.visible = true;
+    r.setBase(base);
+    r.play([{ p: 'refIdle', d: 0.01, dx: 140 }, { p: 'refIdle', d: 0.45, dx: 0, tween: true }], () => r.setBase(base));
+  }
+
+  refOut() {
+    const r = this.vRef;
+    if (!r.visible) return;
+    r.play([{ p: 'refWave2', d: 0.35 }, { p: 'refIdle', d: 0.5, dx: 150, tween: true }, { p: 'refIdle', d: 5, dx: 150, hold: true }]);
+    setTimeout(() => { if (!this.down) r.visible = false; }, 1100);
   }
 
   onGetUp(m) {
@@ -453,7 +481,7 @@ export class FightScene {
     flashes.rate = 1.5;
     if (!this.down) return;
     this.down.sides = this.down.sides.filter((s) => s !== side);
-    if (!this.down.sides.length) { this.down = null; setTimeout(() => music('fight'), 1500); }
+    if (!this.down.sides.length) { this.down = null; this.refOut(); setTimeout(() => music('fight'), 1500); }
   }
 
   // --- input ----------------------------------------------------------------
@@ -520,6 +548,7 @@ export class FightScene {
     for (const e of due) e.fn();
     this.vMe.update(dt);
     this.vOpp.update(dt);
+    this.vRef.update(dt);
     this.fx.update(dt);
     flashes.update(dt);
     if (this.banner) { this.banner.t += dt; if (this.banner.t > this.banner.dur) this.banner = null; }
@@ -547,6 +576,7 @@ export class FightScene {
   draw(ctx, ox, oy) {
     backdrop(ctx, 0, ox, oy);
     this.vOpp.draw(ctx, ox, oy);
+    this.vRef.draw(ctx, ox, oy);
     this.drawTells(ctx, ox, oy);
     this.vMe.draw(ctx, ox, oy);
     this.fx.draw(ctx);
@@ -767,7 +797,7 @@ export class FightScene {
     }
     if (this.count > 0) {
       const pop = this.countT < 0.08 ? 1 : 0;
-      drawText(ctx, String(this.count), W / 2, 52 - pop * 4, { ...STYLE.white, align: 'center', scale: 5 + pop });
+      drawText(ctx, String(this.count), 64, 56 - pop * 4, { ...STYLE.white, align: 'center', scale: 5 + pop });
     }
     if (meDown && !d.tko) {
       const p = this.mashP[0];
@@ -825,14 +855,16 @@ export class FightScene {
     const r = net.room;
     if (!r?.result) return;
     const iWin = r.result.winner === net.you;
-    drawText(ctx, this.overText, W / 2, 98, { ...(iWin ? STYLE.gold : r.result.winner == null ? STYLE.white : STYLE.blue), align: 'center', scale: 2 });
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 146, W, 24);
+    drawText(ctx, this.overText, W / 2, 150, { ...(iWin ? STYLE.gold : r.result.winner == null ? STYLE.white : STYLE.blue), align: 'center', scale: 2 });
     if (r.result.scores) {
       const [a, b] = [r.result.scores[net.you], r.result.scores[1 - net.you]];
-      drawText(ctx, `SCORE ${a} - ${b}`, W / 2, 118, { small: true, color: '#ffffff', align: 'center' });
+      drawText(ctx, `JUDGES: ${a} - ${b}`, W / 2, 80, { small: true, color: '#ffffff', align: 'center' });
     }
     const oppWants = r.rematch?.[1 - net.you];
     if (oppWants && !r.rematch?.[net.you]) {
-      if (blink(2)) drawText(ctx, `${r.players?.[1 - net.you]?.bot ? 'CPU' : 'RIVAL'} WANTS A REMATCH!`, W / 2, 164, { small: true, color: '#7ac8ff', align: 'center' });
+      if (blink(2)) drawText(ctx, `${r.players?.[1 - net.you]?.bot ? 'CPU' : 'RIVAL'} WANTS A REMATCH!`, W / 2, 196, { small: true, color: '#7ac8ff', align: 'center' });
     }
     for (const b of this.overBtns) b.draw(ctx);
   }

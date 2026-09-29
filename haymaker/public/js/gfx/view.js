@@ -68,6 +68,9 @@ const IDLE_LOOPS = {
   down: [['down', 1]],
   win: [['win', 0.4], ['win2', 0.4]],
   taunt: [['taunt', 0.5], ['idle', 0.5]],
+  ref: [['refIdle', 1]],
+  refLook: [['refLook', 1]],
+  refWave: [['refWave', 0.22], ['refWave2', 0.22]],
   guard: [['guard', 1]],
 };
 POSES.windupB = { ...POSES.windup, glow: 0 };
@@ -86,6 +89,7 @@ export class FighterView {
     this.jolt = { x: 0, y: 0 };
     this.alpha = 1;
     this.visible = true;
+    this.off = { x: 0, y: 0 }; // extra offset applied to idle loops
   }
 
   setBase(b) {
@@ -145,10 +149,10 @@ export class FighterView {
     const total = loop.reduce((s, l) => s + l[1], 0);
     let u = (this.baseT || 0) % total;
     for (const [n, d] of loop) {
-      if (u < d) return { name: n, dx: 0, dy: 0 };
+      if (u < d) return { name: n, dx: this.off.x, dy: this.off.y };
       u -= d;
     }
-    return { name: loop[0][0], dx: 0, dy: 0 };
+    return { name: loop[0][0], dx: this.off.x, dy: this.off.y };
   }
 
   spriteNow() {

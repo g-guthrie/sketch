@@ -98,3 +98,23 @@ export const FIGHTERS = [
 ];
 
 export const FIGHTER_BY_ID = Object.fromEntries(FIGHTERS.map((f) => [f.id, f]));
+
+// The referee is built with the same renderer.
+export const REFEREE = {
+  id: 'ref',
+  name: 'REF',
+  body: { ...base, outfit: 'ref', hair: 'buzz', stache: true, shoulder: 27, chest: 22, waistW: 18, hip: 20, belly: 3, headR: 17.5, arm: 6.5, delt: 8, glove: 5.5, thigh: 9, calf: 7.5, legScale: 0.98, jaw: 1.05 },
+  palette: {
+    outline: ['#10101a'],
+    skin: SKIN.peach,
+    hair: ['#303038', '#6a6a78', '#9a9aa8', '#c8c8d4', '#ffffff'],
+    shirt: ['#2a3040', '#8a98b8', '#d0d8ec', '#ffffff', '#ffffff'],
+    tie: ['#000000', '#0a0a10', '#1a1a24', '#34344a', '#5a5a78'],
+    trunks: ['#08080c', '#16161e', '#262634', '#3a3a4c', '#5a5a70'],
+    trunksTrim: ['#000000', '#0a0a0a', '#141414', '#2a2a2a', '#c0a040'],
+    shoe: ['#000000', '#0a0a10', '#1a1a24', '#3a3a4c', '#8a8aa0'],
+    sock: ['#08080c', '#16161e', '#262634', '#3a3a4c', '#5a5a70'],
+    glove: SKIN.peach,
+    gloveTrim: SKIN.peach,
+  },
+};

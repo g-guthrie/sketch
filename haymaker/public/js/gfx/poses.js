@@ -40,6 +40,12 @@ export const POSES = {
   win: { root: [0, 4, 0], gL: [30, 64, 6], gR: [-30, 64, 6], eL: [1, 0, 0], eR: [-1, 0, 0], face: 'happy' },
   win2: { root: [0, 6, 0], gL: [26, 70, 8], gR: [-34, 58, 4], eL: [1, 0, 0], eR: [-1, 0, 0], face: 'happy' },
   taunt: { yaw: 0.2, gL: [20, 30, 20], gR: [-16, 6, 28], face: 'happy' },
+  refIdle: { gL: [22, -34, 8], gR: [-22, -34, 8], eL: [1, 0, -0.6], eR: [-1, 0, -0.6], face: 'calm' },
+  refLook: { pitch: 0.18, crouch: 6, gL: [16, -20, 22], gR: [-16, -20, 22], eL: [1, -0.4, -0.3], eR: [-1, -0.4, -0.3], face: 'calm' },
+  refCount: { pitch: 0.1, yaw: 0.1, gR: [-10, 52, 22], eR: [-1, 0, 0], gL: [20, -30, 12], face: 'shout' },
+  refCount2: { pitch: 0.24, yaw: -0.08, crouch: 4, gR: [-18, 4, 36], eR: [-1, -0.2, 0], gL: [20, -30, 12], face: 'shout' },
+  refWave: { gL: [36, 52, 4], gR: [-36, 52, 4], eL: [1, -0.2, 0], eR: [-1, -0.2, 0], face: 'shout' },
+  refWave2: { gL: [-6, 6, 30], gR: [6, 4, 30], eL: [1, -0.5, 0], eR: [-1, -0.5, 0], face: 'shout' },
 };
 
 const NUM = ['crouch', 'pitch', 'roll', 'yaw', 'fall', 'headRoll', 'glow', 'stance'];

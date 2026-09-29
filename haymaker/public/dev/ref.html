@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#3a3558"><canvas id="c"></canvas>
+<script type="module">
+import { renderFighter } from '../js/gfx/sprite.js';
+import { REFEREE } from '../js/gfx/fighters.js';
+import { POSES } from '../js/gfx/poses.js';
+const names = ['refIdle', 'refLook', 'refCount', 'refCount2', 'refWave', 'refWave2'];
+const c = document.getElementById('c'); c.width = 6 * 130 * 2; c.height = 230 * 2;
+const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+names.forEach((n, i) => { const s = renderFighter(REFEREE, POSES[n], 'front', 1.1); x.drawImage(s.canvas, (i * 130 + 65 - s.ax) * 2, (220 - s.ay) * 2, s.w * 2, s.h * 2); });
+</script>

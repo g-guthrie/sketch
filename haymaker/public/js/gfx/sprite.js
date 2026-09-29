@@ -70,7 +70,7 @@ export const REST = {
   stance: 0, face: 'normal', glow: 0, hurtFlash: 0,
 };
 
-function buildSkeleton(body, pose) {
+export function buildSkeleton(body, pose) {
   const P = { ...REST, ...pose };
   const b = body;
   const pelvis = [P.root[0], 88 * b.legScale - P.crouch + P.root[1], P.root[2]];
@@ -125,8 +125,10 @@ function buildSkeleton(body, pose) {
 // ---------------------------------------------------------------------------
 // Primitive list
 
-function buildPrims(body, j, P) {
+export function buildPrims(body, j, P) {
   const b = body;
+  const ref = b.outfit === 'ref';
+  const torso = ref ? 'shirt' : 'skin';
   const prims = [];
   const cap = (a, bb, r1, r2, mat, group = mat, extra = {}) =>
     prims.push({ type: 'cap', a, b: bb, r1, r2, mat, group, ...extra });
@@ -146,11 +148,12 @@ function buildPrims(body, j, P) {
     const hip = j['hip' + side], kn = j['kn' + side], an = j['an' + side];
     const sx = side === 'L' ? 1 : -1;
     const mid = add(hip, mul(sub(kn, hip), 0.42));
-    cap(hip, mid, b.thigh + 2.5, b.thigh + 1.5, 'trunks', 'trunks', { band: 'leg' });
-    cap(mid, kn, b.thigh, b.calf + 1, 'skin', 'skin');
-    cap(kn, an, b.calf + 0.5, b.calf - 2.5, 'skin', 'skin');
+    const legMat = ref ? 'trunks' : 'skin';
+    cap(hip, mid, b.thigh + 2.5, b.thigh + 1.5, 'trunks', 'trunks', ref ? {} : { band: 'leg' });
+    cap(mid, kn, b.thigh, b.calf + 1, legMat, legMat);
+    cap(kn, an, b.calf + 0.5, b.calf - 2.5, legMat, legMat);
     const sockTop = add(an, [0, 9, 0]);
-    cap(an, sockTop, b.calf - 1.6, b.calf - 1.2, 'sock', 'sock');
+    cap(an, sockTop, b.calf - 1.6, b.calf - 1.2, ref ? 'trunks' : 'sock', 'sock');
     ell(add(an, [sx * 1, -1, 4]), [6.5, 5, 10], 'shoe', 'shoe');
   }
 
@@ -161,14 +164,22 @@ function buildPrims(body, j, P) {
     const t = k / 4;
     const o = [0, lerp(15, 36, t), lerp(0, -1, t)];
     const rx = lerp(b.waistW, b.chest, t * t);
-    ell(off(j.pelvis, o), [rx, lerp(11, 14, t), lerp(10 + b.belly, 11, t)], 'skin', 'skin', { rot: -roll });
+    ell(off(j.pelvis, o), [rx, lerp(11, 14, t), lerp(10 + b.belly, 11, t)], torso, torso, { rot: -roll });
   }
-  if (b.belly > 2) ell(off(j.waist, [0, 0, 4 + b.belly * 0.5]), [b.waistW * 0.85, 12, 7 + b.belly], 'skin', 'skin', { rot: -roll });
+  if (b.belly > 2) ell(off(j.waist, [0, 0, 4 + b.belly * 0.5]), [b.waistW * 0.85, 12, 7 + b.belly], torso, torso, { rot: -roll });
   // Pecs, back
-  ell(off(j.chest, [9, 5, 5]), [11.5, 7, 6.5], 'skin', 'pecL', { rot: -roll });
-  ell(off(j.chest, [-9, 5, 5]), [11.5, 7, 6.5], 'skin', 'pecR', { rot: -roll });
-  ell(off(j.chest, [0, 3, -6]), [b.chest * 1.02, 15, 8], 'skin', 'skin', { rot: -roll });
-  cap(off(j.neck, [10, -2, -3]), off(j.neck, [-10, -2, -3]), 8.5, 8.5, 'skin', 'skin');
+  if (!ref) {
+    ell(off(j.chest, [9, 5, 5]), [11.5, 7, 6.5], torso, 'pecL', { rot: -roll });
+    ell(off(j.chest, [-9, 5, 5]), [11.5, 7, 6.5], torso, 'pecR', { rot: -roll });
+  }
+  ell(off(j.chest, [0, 3, -6]), [b.chest * 1.02, 15, 8], torso, torso, { rot: -roll });
+  cap(off(j.neck, [10, -2, -3]), off(j.neck, [-10, -2, -3]), 8.5, 8.5, torso, torso);
+  if (ref) {
+    // Bow tie.
+    ell(off(j.neck, [4.5, -4, 11]), [4.6, 3, 2.5], 'tie', 'tie');
+    ell(off(j.neck, [-4.5, -4, 11]), [4.6, 3, 2.5], 'tie', 'tie');
+    ell(off(j.neck, [0, -4, 12.5]), [2, 2, 2], 'tie', 'tie');
+  }
 
   // Neck + head
   cap(j.neck, off(j.head, [0, -8, -2], true), b.neckR, b.neckR - 1, 'skin', 'skin');
@@ -185,7 +196,7 @@ function buildPrims(body, j, P) {
     case 'buzz': H([0, hr * 0.22, -hr * 0.2], [hr * 0.96, hr * 1.0, hr * 0.97]); break;
     case 'flattop':
       H([0, hr * 0.22, -hr * 0.2], [hr * 0.99, hr * 1.0, hr * 0.97]);
-      H([0, hr * 0.78, -hr * 0.08], [hr * 0.86, hr * 0.5, hr * 0.84]);
+      H([0, hr * 0.92, -hr * 0.1], [hr * 0.88, hr * 0.56, hr * 0.8]);
       break;
     case 'mohawk':
       H([0, hr * 0.1, -hr * 0.2], [hr * 0.95, hr * 1.0, hr * 0.96]);
@@ -211,9 +222,14 @@ function buildPrims(body, j, P) {
   for (const side of ['L', 'R']) {
     const sh = j['sh' + side], el = j['el' + side], gl = j['gl' + side];
     const sx = side === 'L' ? 1 : -1;
-    ell(sh, [b.delt, b.delt * 0.95, b.delt], 'skin', 'skin');
-    cap(sh, el, b.arm + 1, b.arm - 0.5, 'skin', 'skin');
+    ell(sh, [b.delt, b.delt * 0.95, b.delt], torso, torso);
+    cap(sh, el, b.arm + 1, b.arm - 0.5, torso, torso);
     const fdir = norm(sub(gl, el));
+    if (ref) {
+      cap(el, gl, b.arm - 0.5, b.arm - 1.8, 'skin', 'skin');
+      ell(gl, [b.glove, b.glove * 1.1, b.glove], 'skin', 'hand' + side);
+      continue;
+    }
     const wrist = add(gl, mul(fdir, -b.glove * 0.9));
     cap(el, wrist, b.arm - 0.5, b.arm - 1.8, 'skin', 'skin');
     const cuffEnd = add(gl, mul(fdir, -b.glove * 0.35));
@@ -302,7 +318,8 @@ export function renderFighter(fighter, pose, view = 'front', S = 1) {
           const d2 = ex * ex + ey * ey;
           if (d2 > r * r) continue;
           const nz = Math.sqrt(r * r - d2);
-          const z = q.pa.z + (q.pb.z - q.pa.z) * t + nz;
+          // Depth in model units: convert the pixel-space bulge back.
+          const z = q.pa.z + (q.pb.z - q.pa.z) * t + nz / (q.pa.s + (q.pb.s - q.pa.s) * t);
           const i = y * W + x;
           if (z <= depth[i]) continue;
           depth[i] = z;
@@ -326,7 +343,7 @@ export function renderFighter(fighter, pose, view = 'front', S = 1) {
           const qq = u * u + v * v;
           if (qq > 1) continue;
           const w = Math.sqrt(1 - qq);
-          const z = q.pc.z + q.rz * w;
+          const z = q.pc.z + q.r[2] * w;
           const i = y * W + x;
           if (z <= depth[i]) continue;
           depth[i] = z;
@@ -361,7 +378,7 @@ export function renderFighter(fighter, pose, view = 'front', S = 1) {
           const xx = x + dx;
           if (xx < 0 || xx >= W) continue;
           const k = yy * W + xx;
-          if (matBuf[k] !== m || Math.abs(depth[k] - depth[i]) > 2.5 * S) continue;
+          if (matBuf[k] !== m || Math.abs(depth[k] - depth[i]) > 2.5) continue;
           ax += nBuf[k * 3]; ay += nBuf[k * 3 + 1]; az += nBuf[k * 3 + 2];
         }
       }
@@ -408,7 +425,7 @@ export function renderFighter(fighter, pose, view = 'front', S = 1) {
         if (!matBuf[k]) continue;
         const gap = depth[k] - z;
         const sameGroup = groupBuf[k] === g;
-        const thresh = sameGroup ? 7 * S : groupBuf[k] && groupBuf[k].startsWith('pec') && g === 'skin' ? 2.2 * S : 3.2 * S;
+        const thresh = sameGroup ? 7 : groupBuf[k] && groupBuf[k].startsWith('pec') && g === 'skin' ? 2.2 : 3.2;
         if (gap > thresh) { line[i] = 1; break; }
       }
     }
@@ -574,6 +591,8 @@ const FACE_FOR = {
   happy: { eyes: 'happy', brows: 'normal', mouth: 'smile' },
   ko: { eyes: 'ko', brows: 'worry', mouth: 'ko' },
   block: { eyes: 'angry', brows: 'angry', mouth: 'grit' },
+  shout: { eyes: 'angry', brows: 'angry', mouth: 'tired' },
+  calm: { eyes: 'angry', brows: 'normal', mouth: 'smirk' },
 };
 
 function drawFace(d, W, H, groupBuf, depth, hp, r, fighter, P, j, mats) {

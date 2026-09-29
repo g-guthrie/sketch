@@ -349,7 +349,7 @@ class Room {
 // ---------------------------------------------------------------------------
 // Socket handling
 
-const wss = new WebSocketServer({ server, path: '/ws' });
+const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 4096 });
 
 wss.on('connection', (ws) => {
   ws.isAlive = true;

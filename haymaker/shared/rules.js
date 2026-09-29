@@ -17,11 +17,11 @@ export const CONFIG = {
 // kind: atk | load | def
 export const ACTIONS = {
   JAB:    { kind: 'atk', target: 'head', speed: 3, dmg: 5, cost: 1, label: 'JAB', key: 'J' },
-  HOOK_L: { kind: 'atk', target: 'head', side: 'L', speed: 2, dmg: 11, cost: 2, label: 'L HOOK', key: 'U' },
-  HOOK_R: { kind: 'atk', target: 'head', side: 'R', speed: 2, dmg: 11, cost: 2, label: 'R HOOK', key: 'O' },
-  BODY:   { kind: 'atk', target: 'body', speed: 2, dmg: 7, drain: 3, cost: 2, label: 'BODY', key: 'K' },
+  HOOK_L: { kind: 'atk', target: 'head', side: 'L', speed: 2, dmg: 11, cost: 2, label: 'L HOOK', key: 'U', armor: { JAB: 0.6 } },
+  HOOK_R: { kind: 'atk', target: 'head', side: 'R', speed: 2, dmg: 11, cost: 2, label: 'R HOOK', key: 'O', armor: { JAB: 0.6 } },
+  BODY:   { kind: 'atk', target: 'body', speed: 2, dmg: 6, drain: 3, cost: 2, label: 'BODY', key: 'K' },
   WINDUP: { kind: 'load', cost: 1, label: 'WIND UP', key: 'I' },
-  UPPER:  { kind: 'atk', target: 'head', speed: 1, dmg: 24, cost: 2, label: 'UPPERCUT', key: 'I', needsLoad: true, armor: ['JAB'], stun: true },
+  UPPER:  { kind: 'atk', target: 'head', speed: 1, dmg: 24, cost: 2, label: 'UPPERCUT', key: 'I', needsLoad: true, armor: { JAB: 1 }, stun: true },
   STAR:   { kind: 'atk', target: 'head', speed: 3, dmg: 12, perStar: 10, cost: 0, label: 'STAR', key: 'L', needsStar: true },
   GUARD:  { kind: 'def', label: 'GUARD', key: 'W' },
   LOW:    { kind: 'def', label: 'LOW GUARD', key: 'S' },
@@ -73,6 +73,7 @@ function versus(a, d) {
   }
   if (A.target === 'body') {
     if (d === 'LOW') return { res: 'blocked', mult: 0, tag: 'BLOCKED', perfect: true };
+    if (d === 'DUCK') return { res: 'hit', mult: 1.5, tag: 'CAUGHT' };
     return { res: 'hit', mult: 1 };
   }
   // Head attacks.
@@ -81,7 +82,7 @@ function versus(a, d) {
       if (a === 'JAB') return { res: 'blocked', mult: 0, tag: 'BLOCKED' };
       if (a === 'UPPER') return { res: 'guardbreak', mult: 0.5, tag: 'GUARD BREAK' };
       if (a === 'STAR') return { res: 'chip', mult: 0.5, tag: 'BLOCKED' };
-      return { res: 'blocked', mult: 0.25, tag: 'BLOCKED' };
+      return { res: 'blocked', mult: 0.2, tag: 'BLOCKED' };
     case 'LOW':
       return { res: 'hit', mult: 1 };
     case 'SLIP_L':
@@ -94,6 +95,8 @@ function versus(a, d) {
     }
     case 'DUCK':
       if (a === 'UPPER') return { res: 'hit', mult: 1.5, tag: 'CAUGHT' };
+      // Ducking a jab is safe but too late to counter off.
+      if (a === 'JAB') return { res: 'evade', mult: 0, tag: 'DUCKED', noCounter: true };
       return { res: 'evade', mult: 0, tag: 'DUCKED' };
   }
   return { res: 'hit', mult: 1 };
@@ -133,10 +136,12 @@ export function resolveBeat(stIn, picks) {
 
   if (isAtk(0) && isAtk(1)) {
     const s0 = spd(0), s1 = spd(1);
-    const armor = (i, j) => (ACTIONS[acts[i]].armor || []).includes(acts[j]);
+    // Armor lets a slower punch plough through a faster one, sometimes at reduced force.
+    const armor = (i, j) => ACTIONS[acts[i]].armor?.[acts[j]];
     if (s0 === s1 || armor(0, 1) || armor(1, 0)) {
-      hits.push([0, 1, { res: 'hit', mult: 1, tag: 'TRADE' }]);
-      hits.push([1, 0, { res: 'hit', mult: 1, tag: 'TRADE' }]);
+      const m = (i) => (armor(i, 1 - i) && spd(1 - i) > spd(i) ? armor(i, 1 - i) : 1);
+      hits.push([0, 1, { res: 'hit', mult: m(0), tag: 'TRADE' }]);
+      hits.push([1, 0, { res: 'hit', mult: m(1), tag: 'TRADE' }]);
       out[0].outcome = out[1].outcome = 'trade';
     } else {
       const f = s0 > s1 ? 0 : 1, s = 1 - f;
@@ -167,18 +172,18 @@ export function resolveBeat(stIn, picks) {
     if (v.res === 'evade') {
       out[j].reaction = 'dodge';
       st[i].stamina -= 1; // whiff
-      st[j].counter = true;
-      st[j].earnedCounter = true;
+      if (!v.noCounter) { st[j].earnedCounter = true; out[j].earnedCounter = true; }
       continue;
     }
     if (v.res === 'blocked' || v.res === 'chip' || v.res === 'guardbreak') {
       out[i].lands = true;
+      if (v.res === 'blocked') st[i].stamina -= 1; // punching into a guard wears you out
       out[j].took += took;
       st[j].hp -= took;
       st[i].points += took;
       out[j].reaction = v.res === 'guardbreak' ? 'guardbreak' : 'block';
       if (v.res === 'guardbreak') st[j].nextGuardBroken = true;
-      if (v.perfect) { st[j].counter = true; st[j].earnedCounter = true; out[j].tags.push('PERFECT'); }
+      if (v.perfect) { st[j].earnedCounter = true; out[j].earnedCounter = true; out[j].tags.push('PERFECT'); }
       continue;
     }
     // Clean hit.

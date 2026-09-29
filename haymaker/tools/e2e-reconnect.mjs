@@ -1,0 +1,37 @@
+// PvP: player B reloads mid-match and should land back in the fight.
+import { chromium } from 'playwright';
+const base = process.env.URL || 'http://localhost:8123/';
+const b = await chromium.launch();
+const mk = async (tag) => {
+  const ctx = await b.newContext({ viewport: { width: 960, height: 540 } });
+  const p = await ctx.newPage();
+  p.on('pageerror', (e) => console.log(tag, 'pageerror:', e.stack || e.message));
+  await p.goto(base); await p.waitForTimeout(300);
+  await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  return p;
+};
+const phase = (p) => p.evaluate(() => window.__hm?.net.room?.phase);
+const wait = async (p, ph, ms = 20000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if ((await phase(p)) === ph) return true; await p.waitForTimeout(60); } return false; };
+const A = await mk('A');
+await A.keyboard.press('Enter');
+await wait(A, 'lobby');
+const code = await A.evaluate(() => window.__hm.net.room.code);
+const B = await mk('B');
+await B.keyboard.press('ArrowDown'); await B.keyboard.press('Enter'); await B.waitForTimeout(200);
+for (const ch of code) await B.keyboard.press(ch);
+await wait(A, 'select');
+await A.waitForTimeout(300);
+await A.keyboard.press('Enter'); await B.keyboard.press('Enter');
+await wait(A, 'pick');
+await A.keyboard.press('J'); await B.keyboard.press('W');
+await wait(A, 'resolve'); await wait(A, 'pick');
+console.log('before reload: beat', await A.evaluate(() => window.__hm.net.room.beat));
+await B.reload();
+await B.waitForTimeout(1500);
+console.log('B phase after reload', await phase(B), 'scene', await B.evaluate(() => window.__hm.engine.scene.constructor.name));
+await wait(A, 'pick', 15000);
+console.log('A phase', await phase(A));
+await A.keyboard.press('U'); await B.keyboard.press('A');
+await wait(A, 'resolve', 8000);
+console.log('A resolved beat', await A.evaluate(() => window.__hm.net.room.beat), JSON.stringify(await A.evaluate(() => window.__hm.net.room.state.map((s) => s.hp))));
+await b.close();

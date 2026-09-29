@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: haymaker
+    runtime: node
+    rootDir: haymaker
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    plan: free
