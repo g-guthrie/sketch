@@ -1,0 +1,41 @@
+sheet g_treads
+palette guard
+cell 120 32
+anchor 60 31
+
+frame roll0
+  point deck 62 10
+     0         1         2         3         4         5         6         7         8         9         0         1         
+     012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+  00|........................................................................................................................|
+  01|........................................................................................................................|
+  02|........................................................................................................................|
+  03|........................................................................................................................|
+  04|........................................................................................................................|
+  05|........................................................................................................................|
+  06|........................................................................................................................|
+  07|.........kkkkkk.kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk|
+  08|.........kwaabk.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|
+  09|.........kabcck.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|
+  10|.........kabbdk.kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk|
+  11|........kwabbdk.........k.kkkkkkaaaaaaaaaaaaadaaaaaaaaaaaaadaaaaaaaaaaaaadaaaaaaaaaaaaadaaaaaaaaaaaaakaaakaaak..........|
+  12|........kabd1Rk.......kkaaaaaaakbbbbbbbbbbbbbdbbbbbbbbbbbbbdbbbbbbbbbbbbbdbbbbbbbbbbbbbdbbbbbbbbbbbbbkccckcccbkkk.......|
+  13|.......kwabd1rRk.....kaaccccccckcccccccccccccdcccccccccccccdcccccccccccccdcccccccccccccdccccccccccccckkkdddddkcbbk......|
+  14|.......kabd1rrRk....kkccdddddkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkdacccccadcbkk.....|
+  15|......kwabd11rRRk..kackdaaabbdkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkddcaadbbcddck......|
+  16|......kabd1rrrRRk..kacdaakbkbbdkkkkkccccdkkdabcdkkccccdkkdabcdkkccccdkkdabcdkkccccdkkdabcdkkccccdkkkkdcabbbbbbcdkckk....|
+  17|.....kwabd1rrrrRk.kacdabkkbkkbcdkkccwaaabddkdcdkccwaaabddkdcdkccwaaabddkdcdkccwaaabddkdcdkccwaaabddkdcadbbbbbdbcdbck....|
+  18|.....kabd11rrrrRk..kcdakkkbkkkcdkccabbbbbcddkkkccabbbbbcddkkkccabbbbbcddkkkccabbbbbcddkkkccabbbbbcdddcabbbyybbbcdbck....|
+  19|....kwabd1rrrrrRk.kacdbkkkakkkcdkcabbdddbbcdkkkcabbdbbbbcdkkkcabbdddbbcdkkkcabbdbbbbcdkkkcabbdddbbcdacbbbywyYbbcabck....|
+  20|....kabd1rrrrrRRk.kbcdbkbbkbbkcdcabbbbbbbbbcdkcabddbbbbdbcdkcabbbbbbbbbcdkcabddbbbbdbcdkcabbbbbbbbbcdcbbbyyYYbccdkk.....|
+  21|...kwabdRRRRRRRRk.kbcdbbkkkkkbcdcabbbbybbbbcdkcabbbbybbdbcdkcabbbbybbbbcdkcabbbbybbdbcdkcabbbbybbbbcdcbdbbYYbdccdbck....|
+  22|...kabd1111111rRk..kbcdbbkkkccdkcabbbywYbbbcdkcabbbywYbdbcdkcabbbywYbbbcdkcabbbywYbdbcdkcabbbywYbbbcddcbbbbbbccdbckk....|
+  23|..kwabd1rrrrrrrRk..kkccdbccccdkkcbbdbbYbbdccdkcbbbbbYbbbccdkcbbdbbYbbdccdkcbbbbbYbbbccdkcbbdbbYbbdccdddcbcdccdddbck.....|
+  24|..kabd1rrrrrrrRRk...kbbbdddddkkkdbbddbbbddccdkdbbbbbbbbbccdkdbbddbbbddccdkdbbbbbbbbbccdkdbbddbbbddccdkdacccccadbkkk.....|
+  25|.kwabd1rrrrrrRRk....kkccbkbkkkkkkdbbbbbbbccdkkkdbbdddbbccdkkkdbbbbbbbccdkkkdbbdddbbccdkkkdbbbbbbbccdkkkkdddddbbcc.......|
+  26|.kabdRRRRRRRRRdk......kkkccbbbkkkddcbbbbccddkkkddcbbbbccddkkkddcbbbbccddkkkddcbbbbccddkkkddcbbbbccddkkkkkbbbkcckk.......|
+  27|kwabddddddddddk..........kkcccbkbkddcccccddkkkkkddcccccddkkkkkddcccccddkkkkkddcccccddkkkkkddcccccddkkbkbbcccckkk........|
+  28|kaykkyykkyykkbk............kkkkccbbbdddddkkkkkkkkkdddddkkkkkkkkkdddddkkkkkkkkkdddddkkkkkkkkkdddddbbbbckccckkk...........|
+  29|kbkkyykkyykkyck................kkcccbbbbbbbkbbbbbkbbbbbkbbbbbkbbbbbkbbbbbkbbbbbkbbbbbkbbbbbkbbbbkccccck.kk..............|
+  30|kcccccccccccdk..................kkkkkcccccckccccckccccckccccckccccckccccckccccckccccckccccckccccckkkkk..................|
+  31|kkkkkkkkkkkkk......................k.kkkkkk.kkkkk.kkkkk.kkkkk.kkkkk.kkkkk.kkkkk.kkkkk.kkkkk.kkk.k.......................|

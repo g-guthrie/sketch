@@ -5,7 +5,7 @@ anchor 14 39
 open bottom
 
 frame fwd
-  point muzzle 35 34
+  point muzzle 36 33
      0         1         2         3         
      0123456789012345678901234567890123456789
   00|........................................|
@@ -35,16 +35,61 @@ frame fwd
   24|.........kCCSsssCk......................|
   25|.........kyyywyyyk......................|
   26|........kkYYYYYYYkk.....................|
-  27|...kkkkkwwwwwkoooork....................|
-  28|...kwwgkgwwwwkroorrk....................|
-  29|...kwggkggwwgkryyrrk....................|
-  30|...kgggkGgggGkrYyrkkkkkk................|
-  31|...kgyGkRRRRRkrrRkdGggck......kkkk......|
-  32|...kgGGkRrrrokkkkkkdkdkkkkkkkkkookk.....|
-  33|...kgGGkRrrrokyywyyddyywwwwwgggrowck....|
-  34|...kGGdkRRrrrkyyyyroyyYgdgdgdgGrrcCk....|
-  35|...kkkkkDRrrrkYYYYRrYYYGGGGGGGdRrCCk....|
-  36|....kdkkDRrrrrrgwwwkkkkkgggGkkkRRkk.....|
-  37|....kkkkDDRRrrrggwwk...kgGGGk.kkkk......|
-  38|........kDDDDRRGGggk....kkkk............|
+  27|...kkkkkwwwwwkrooork....................|
+  28|...kwwgkgwwwwkRroorkkkkkkk..............|
+  29|...kwggkggwwgkRyyrrkGggwwck.............|
+  30|...kgggkGgggGkRYyrRkdGGGdCk.......kk....|
+  31|...kgyGkRRRRRkkkkkkkkdkkdkkkkkkk.kock...|
+  32|...kgGGkRrrrokggGGyywwyyygwwwwwgkoowk...|
+  33|...kgGGkRrrrokgGGdyyYoorYgdgdgdgGrrck...|
+  34|...kGGdkRRrrrkGdkkYYYrRRYGdGdGdGkRrCk...|
+  35|...kkkkkDRrrrkkkkwwgkkkkkkkggGkk.kRCk...|
+  36|....kdkkDRrrooyywwwwgkDRRDGgGGdk..kk....|
+  37|....kkkkDDRrrRyYgwgGgkDDDDdGGdk.........|
+  38|........kDDDDRYYGgGGkkkkkkkkkk..........|
+  39|.........kYYyyyywyyk....................|
+
+frame fwd_fire
+  point muzzle 34 33
+     0         1         2         3         
+     0123456789012345678901234567890123456789
+  00|........................................|
+  01|........................................|
+  02|........................................|
+  03|........................................|
+  04|........................................|
+  05|........................................|
+  06|........................................|
+  07|........................................|
+  08|........................................|
+  09|........................................|
+  10|........................................|
+  11|........................................|
+  12|........................................|
+  13|........................................|
+  14|........................................|
+  15|........................................|
+  16|...........kkkkk........................|
+  17|..........kcwwcck.......................|
+  18|.........kwcDDDDck......................|
+  19|........kcwDDDDDDck.....................|
+  20|........kccDDssssck.....................|
+  21|........kcCDDssksck.....................|
+  22|........kCCDSssssck.....................|
+  23|........kCCDSsssSck.....................|
+  24|.........kCCSsssCk......................|
+  25|........kkkyywyyyk......................|
+  26|.......kwwwkYYYYYkk.....................|
+  27|...kkkkgwwwwkRrooork....................|
+  28|...kwwkggwwgkRRrookkkkkk................|
+  29|...kwgkGgggGkRRyykGggwwck...............|
+  30|...kggkDRRRRkDRYykdGGGdCk.......kk......|
+  31|...kgykRrrrokkkkkkkdkkdkkkkkkk.kock.....|
+  32|...kgkRrrrokggGGyywwyyygwwwwwgkoowk.....|
+  33|...kgkRRrrrkgGGdyyYoorYgdgdgdgGrrck.....|
+  34|...kGkDRrrrkGdkkYYYrRRYGdGdGdGkRrCk.....|
+  35|...kkkDRrrrkkkkwwgkkkkkkkggGkk.kRCk.....|
+  36|....kkDRrrooyywwwwgkDRRDGgGGdk..kk......|
+  37|....kkDDDRrRyYgwgGgkDDDDdGGdk...........|
+  38|......kkkkDDYYGgGGkkkkkkkkkk............|
   39|.........kYYyyyywyyk....................|
