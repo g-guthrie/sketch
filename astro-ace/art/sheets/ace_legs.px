@@ -1,0 +1,34 @@
+sheet ace_legs
+palette ace
+cell 32 24
+anchor 14 23
+open top
+
+frame idle
+  point waist 14 3
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|.........kDRRrrrrrok............|
+  05|.........kDRRRrrrrok............|
+  06|........kDRRRDrrrrrok...........|
+  07|.......kDRRRRkRrrrrok...........|
+  08|.......kDRRRk.kRrrrrok..........|
+  09|......kDRRRk..kRRrrrok..........|
+  10|......kDDRRk..kRRrrrok..........|
+  11|.....kDDRRk...kRRrrrok..........|
+  12|.....kYYYYk...kYyywyyk..........|
+  13|.....kDYYYk...kYYyyyYk..........|
+  14|....kGggggGk.kgwwwwwwwk.........|
+  15|....kGgggGGk.kggwwwwwwk.........|
+  16|....kGgggGk...kgwwwwwwk.........|
+  17|....kGgggGk...kggwwwwwk.........|
+  18|....kDRRRDk...kRRrrrrok.........|
+  19|....kGgggGk...kgwwwwwwk.........|
+  20|....kGgggggk..kgwwwwwwwk........|
+  21|....kGGgggggk.kggwwwwwwwk.......|
+  22|....kdGGGGGGGkkdGGGGGGGGGk......|
+  23|....kkkkkkkkkkkkkkkkkkkkkk......|

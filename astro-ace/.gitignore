@@ -1,0 +1,8 @@
+out/desk/
+out/test.gba
+out/*.png
+out/*.gif
+game/*.o
+game/game.elf
+tools/shot
+__pycache__/
