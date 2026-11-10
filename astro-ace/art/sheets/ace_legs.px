@@ -103,14 +103,14 @@ frame run1
   05|.........kDRRrrrrrok............|
   06|.........kDRRRrrrrook...........|
   07|.........kRRDRRrrrrook..........|
-  08|.kkkk....kRRkDRRrrrrook.........|
-  09|kdgggkkkkRRRDkDRRrrrrook........|
-  10|kdGggggggkRRRDkDRRrrrrryk.......|
-  11|kGggRggggkRRRDk.kRRrryywyk......|
-  12|kGggRgggggkRRDk.kRYyyyyyyk......|
-  13|kGgGDGgggggYYYk.kYYYyygggk......|
-  14|kGgGkGGGggGYYYk.kgggggwwwk......|
-  15|kGgGkkkkGGGYYk..kgwwwwwwk.......|
+  08|..kkk....kRRkDRRrrrrook.........|
+  09|.kgggkkkkRRRDkDRRrrrrook........|
+  10|kdggggggkRRRRDkDRRrrrrryk.......|
+  11|kdgggggRgkRRRDk.kRRrryywyk......|
+  12|kdGgggRgggkRRDk.kRYyyyyyyk......|
+  13|kdGgGGRGgggYYYk.kYYYyygggk......|
+  14|kdGgkGDGGgGYYYk.kgggggwwwk......|
+  15|kdGgkkkkGGGYYk..kgwwwwwwk.......|
   16|kGGGk...kkkkk...kgwwwwwwk.......|
   17|.kkk............kRRrrrrok.......|
   18|.kkkk..........kgwwwwwwk........|
