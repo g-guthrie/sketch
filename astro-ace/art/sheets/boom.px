@@ -1,0 +1,40 @@
+sheet boom
+palette fx
+cell 32 32
+anchor 16 16
+
+frame boom1
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|............kkkkk...............|
+  04|..........kkrrrrrkk...kkkk......|
+  05|.....kkk.krroooooorkkkrrrrkk....|
+  06|....krrrkkrooyyyyoorRroooorrk...|
+  07|...krooorRoyyeeeyyyooRoyyyork...|
+  08|...kroyyooyyyeewwweeyyoyyyork...|
+  09|...kroyyyoyyeewwwwweeyyeeyork...|
+  10|....krooyyyeewwwwwweeyyeeyork...|
+  11|....kkrooyeeewwwwwweeyyyoork....|
+  12|...krrRooyeewwwwwwweeyyooRrk....|
+  13|..kroorRoyyewwwwwwweeyyoRoork...|
+  14|..kroyyoRoyeewwwwwwweeyoyyyork..|
+  15|..kroyyyooyyeewwwwwweeyoyeeyrk..|
+  16|..kroyyeyoyyyeewwwwweeyoyeeyrk..|
+  17|..kroyyyyoyyyeeewwweeeyoyyyork..|
+  18|..krooyyyooyyyeeeeeeyyooyyoork..|
+  19|...krrooooyyyyeeeeyyyyooorrrk...|
+  20|....kkrrooyyyyyeeyyyyyoorrkk....|
+  21|.....krrooyyyyooyyyyyooorrk.....|
+  22|......krooyyyyoRoyyyyyoorrk.....|
+  23|......kroyyyyyoRRoyyeeyyork.....|
+  24|......kroyyeeyorkroyyeeyork.....|
+  25|......krroyyyoorkrooyyyorrk.....|
+  26|.......krroooork.krooooorrk.....|
+  27|........krrrrkk...krroorrk......|
+  28|.........kkkk......krrrkk.......|
+  29|....................kkk.........|
+  30|................................|
+  31|................................|

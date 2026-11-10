@@ -36,13 +36,13 @@ frame fwd
   25|.........kyyywyyyk......................|
   26|........kkYYYYYYYkk.....................|
   27|...kkkkkwwwwwkrooork....................|
-  28|...kwwgkgwwwwkRroorkkkkkkk..............|
-  29|...kwggkggwwgkRyyrrkGggwwck.............|
-  30|...kgggkGgggGkRYyrRkdGGGdCk.......kk....|
-  31|...kgyGkRRRRRkkkkkkkkdkkdkkkkkkk.kock...|
+  28|...kwwgkgwwwwkRroorkkkkk................|
+  29|...kwggkggwwgkRyyrkGgggck...............|
+  30|...kgggkGgggGkRYyrkdGGdCk.........kk....|
+  31|...kgyGkRRRRRkkkkkkkdkkdkkkkkkkk.kock...|
   32|...kgGGkRrrrokggGGyywwyyygwwwwwgkoowk...|
-  33|...kgGGkRrrrokgGGdyyYoorYgdgdgdgGrrck...|
-  34|...kGGdkRRrrrkGdkkYYYrRRYGdGdGdGkRrCk...|
+  33|...kgGGkRrrrokgGGdyyYoorYggdggdgGrrck...|
+  34|...kGGdkRRrrrkGdkkYYYrRRYGGdGGdGkRrCk...|
   35|...kkkkkDRrrrkkkkwwgkkkkkkkggGkk.kRCk...|
   36|....kdkkDRrrooyywwwwgkDRRDGgGGdk..kk....|
   37|....kkkkDDRrrRyYgwgGgkDDDDdGGdk.........|
@@ -81,13 +81,13 @@ frame fwd_fire
   25|........kkkyywyyyk......................|
   26|.......kwwwkYYYYYkk.....................|
   27|...kkkkgwwwwkRrooork....................|
-  28|...kwwkggwwgkRRrookkkkkk................|
-  29|...kwgkGgggGkRRyykGggwwck...............|
-  30|...kggkDRRRRkDRYykdGGGdCk.......kk......|
-  31|...kgykRrrrokkkkkkkdkkdkkkkkkk.kock.....|
+  28|...kwwkggwwgkRRrokkkkk..................|
+  29|...kwgkGgggGkRRykGgggck.................|
+  30|...kggkDRRRRkDRYkdGGdCk.........kk......|
+  31|...kgykRrrrokkkkkkdkkdkkkkkkkk.kock.....|
   32|...kgkRrrrokggGGyywwyyygwwwwwgkoowk.....|
-  33|...kgkRRrrrkgGGdyyYoorYgdgdgdgGrrck.....|
-  34|...kGkDRrrrkGdkkYYYrRRYGdGdGdGkRrCk.....|
+  33|...kgkRRrrrkgGGdyyYoorYggdggdgGrrck.....|
+  34|...kGkDRrrrkGdkkYYYrRRYGGdGGdGkRrCk.....|
   35|...kkkDRrrrkkkkwwgkkkkkkkggGkk.kRCk.....|
   36|....kkDRrrooyywwwwgkDRRDGgGGdk..kk......|
   37|....kkDDDRrRyYgwgGgkDDDDdGGdk...........|

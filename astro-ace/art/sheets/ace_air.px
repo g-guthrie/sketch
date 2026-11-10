@@ -1,0 +1,40 @@
+sheet ace_air
+palette ace
+cell 32 32
+anchor 16 16
+
+frame tuck0
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|................kkkkk...........|
+  05|...............kcwwcck..........|
+  06|..............kwcDDDDck.........|
+  07|.............kcwDDDDDDck........|
+  08|.....kkkkkkkkkccDDDDDDck........|
+  09|....kwwgkwwwwkcCDDDDSssk........|
+  10|....kwggkgwwwkCCDDDSsksk........|
+  11|....kgggkggwgkCCDDSssssk........|
+  12|....kgyGkGggGkkCCDSssSk.........|
+  13|....kgGGkdddddYyywyyYk.....kk...|
+  14|....kgGGkRrokkkkkkkkkkkkkkkock..|
+  15|....kGGdkRrodgGyywwyygwwgkoowk..|
+  16|....kkkkkRrodGdyYoorYdgdgGrrck..|
+  17|.....kdkkRRrddkYYrRRYGdGdkRrCk..|
+  18|.....kkkkRrrkkwwgkkkkkkkkkkRCk..|
+  19|.....kYyyRrroywwwkYyywyYk..kk...|
+  20|.....kDRRDRRrYgwgkgwwwwwk.......|
+  21|.....kRrrRRRRRDDDkgwwwwwk.......|
+  22|......kRrrrroorrRkRrrrrokk......|
+  23|......kDRrrrrrrRRkgwwwwwwwk.....|
+  24|.......kDRRrrrRRDkggwwwwwwk.....|
+  25|........kDRRRRRDkkGggwwwwk......|
+  26|.........kkDDDDk.kdGGgggk.......|
+  27|...........kkkk...kdGGkk........|
+  28|...................kkk..........|
+  29|................................|
+  30|................................|
+  31|................................|

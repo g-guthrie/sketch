@@ -11,25 +11,25 @@ frame run0
   02|.......kyyk.....................|
   03|........kkk.....................|
   04|...........k....kkkkk...........|
-  05|............k.kkbaaabkk.........|
+  05|............k.kkbaaaakk.........|
   06|.............kcbbaawwabk........|
   07|.............kdcbbbaaabk........|
   08|.............kdcyyywyyyYk.......|
   09|.............kdckkdeEwek........|
   10|.............kdcckdeeeek........|
-  11|.............kdccbbadgwgk.......|
-  12|.........kkkkkkdccbbdGgGk..kkk..|
-  13|.......kkbaawwakkPppPkkk..kcbck.|
-  14|......kcbaaaaaabkbaawabck.kdcck.|
+  11|.............kdccbaadgwgk.......|
+  12|.........kkkkkkdccbbdGGgk..kkk..|
+  13|.......kkbaawwakkPPppkkk..kcbck.|
+  14|......kcbaaaaaabkbaaawbck.kdcck.|
   15|.....kcbbdbdbbbbkbbddbbckkPPdk..|
-  16|.....kdcbdbdbbbckcbddbcckdcck...|
+  16|.....kccbdbdbbbckcbddbcckdcck...|
   17|.....kYcccbbbccYkcccbbcdkddck...|
   18|......kYyyywyyYkkkkkkccdkkkk....|
   19|.......kkkkkkkkwaawykkkkkwyk....|
-  20|........kdPppbbbbbyykgwwwyygk...|
-  21|........kcPpPcpwpPyYkGkGkyYGk...|
-  22|........kcPPPcPpPPyYkGGGGYYGk...|
-  23|........kdcckdccccYYkkkkkYYk....|
+  20|........kdPppbbbbbyykggwwyygk...|
+  21|........kdPpPcpwpPyYkGkGkyYGk...|
+  22|........kcPPPcPPPPyYkGGGGYYGk...|
+  23|........kccckddcccYYkkkkkYYk....|
   24|.........kkkkkkkkkkk.....kk.....|
   25|...........kPPpppPPk............|
   26|..........kbaabyybbck...........|
@@ -50,46 +50,46 @@ frame run0
 frame run1
      0         1         2         3 
      01234567890123456789012345678901
-  00|..........kk....................|
-  01|.........kyyk...................|
-  02|..........kk....................|
-  03|............k...................|
+  00|................................|
+  01|..........kk....................|
+  02|.........kyyk...................|
+  03|..........kk....................|
   04|............k...................|
-  05|............k...kkkkk...........|
-  06|..............kkbaaabkk.........|
-  07|.............kcbbaawwabk........|
-  08|.............kdcbbbaaabk........|
-  09|.............kdcyyywyyyYk.......|
-  10|.............kdckkdeEwek........|
-  11|.............kdcckdeeeek........|
-  12|.............kdccbbadgwgk.......|
-  13|.........kkkkkkdccbbdGgGk.......|
-  14|.......kkbaawwakkPppPkkk........|
-  15|......kcbaaaaaabkbaawabck..kkk..|
+  05|............k...................|
+  06|............k...kkkkk...........|
+  07|..............kkbaaaakk.........|
+  08|.............kcbbaawwabk........|
+  09|.............kdcbbbaaabk........|
+  10|.............kdcyyywyyyYk.......|
+  11|.............kdckkdeEwek........|
+  12|.............kdcckdeeeek........|
+  13|.........kkkkkdccbaadgwgk.......|
+  14|.......kkbaawwakccbbdGGgk.......|
+  15|......kcbaaaaaabkdddcbbck..kkk..|
   16|.....kcbbdbdbbbbkbbddbbckkkcbck.|
-  17|.....kdcbdbdbbbckcbddbcckPdccck.|
+  17|.....kccbdbdbbbckcbddbcckPdccck.|
   18|.....kYcccbbbccYkcccbbcdkPdddk..|
   19|......kYyyywyyYkkkkkkccdkkkkk...|
-  20|.......kkkkkkkkwaawykkkkkwyk....|
-  21|........kdPppbbbbbyykgwwwyygk...|
-  22|........kcPpPcpwpPyYkGkGkyYGk...|
-  23|........kcPPPcPpPPyYkGGGGYYGk...|
-  24|........kdcckdccccYYkkkkkYYk....|
-  25|.........kkkkkkkkkkk.....kk.....|
-  26|...........kPPpppPPk............|
+  20|.......kkkkkkkkwaawykccdkkk.....|
+  21|........kdPppbbbbbyykkkkkwyk....|
+  22|........kdPpPcpwpPyYkggwwyygk...|
+  23|........kcPPPcPPPPyYkGkGkyYGk...|
+  24|........kccckddcccYYkGGGGYYGk...|
+  25|.........kkkkkkkkkkkkkkkkYYk....|
+  26|...........kPPpppPPk.....kk.....|
   27|..........kbaabyybbck...........|
   28|.........kdcbbcYYccddk..........|
   29|.kk.....kdcckcbbaabk............|
-  30|kcbkkkkkdcccckcbbaabk...........|
-  31|kccPccbkdccck.kcbbaabk..........|
-  32|kdcPcccddcck...kccbabbk.........|
-  33|kddPddcPPpPk....kPppppPk........|
-  34|.kkkkkkkkkk....kcbaaabk.........|
-  35|..............kcbbaabk..........|
-  36|..............kdPppPckkk........|
-  37|.............kcbbaaabbbck.......|
-  38|.............kddddddddcbk.......|
-  39|.............kkkkkkkkkkkk.......|
+  30|kcbkkkkkdcccckcbbaabkk..........|
+  31|kccPccbkdccck.kkcbbaabk.........|
+  32|kdcPcccddcck....kccbabbk........|
+  33|kddPddcPPpPk.....kPppppPk.......|
+  34|.kkkkkkkkkk......kcbaaabk.......|
+  35|.................kcbbaabk.......|
+  36|.................kdPppPckkk.....|
+  37|................kcbbaaabbbck....|
+  38|................kddddddddcbk....|
+  39|................kkkkkkkkkkkk....|
 
 frame run2
      0         1         2         3 
@@ -98,39 +98,39 @@ frame run2
   01|................................|
   02|......kk........................|
   03|.....kyykkk.....kkkkk...........|
-  04|......kk...kk.kkbaaabkk.........|
+  04|......kk...kk.kkbaaaakk.........|
   05|.............kcbbaawwabk........|
   06|.............kdcbbbaaabk........|
   07|.............kdcyyywyyyYk.......|
   08|.............kdckkdeEwek........|
   09|.............kdcckdeeeek........|
-  10|.............kdccbbadgwgk.......|
-  11|.........kkkkkkdccbbdGgGk.......|
-  12|.......kkbaawwakkPppPkkk........|
-  13|......kcbaaaaaabkbaawabck.......|
+  10|.............kdccbaadgwgk.......|
+  11|.........kkkkkkdccbbdGGgk.......|
+  12|.......kkbaawwakkPPppkkk........|
+  13|......kcbaaaaaabkbaaawbck.......|
   14|.....kcbbdbdbbbbkbbddbbck.......|
-  15|.....kdcbdbdbbbckcbddbcck.......|
+  15|.....kccbdbdbbbckcbddbcck.......|
   16|.....kYcccbbbccYkcccbbcdk.......|
   17|......kYyyywyyYkkkkkkccdkkk.....|
   18|.......kkkkkkkkwaawykkkkkwyk....|
-  19|........kdPppbbbbbyykgwwwyygk...|
-  20|........kcPpPcpwpPyYkGkGkyYGk...|
-  21|........kcPPPcPpPPyYkGGGGYYGk...|
-  22|........kdcckdccccYYkkkkkYYk....|
+  19|........kdPppbbbbbyykggwwyygk...|
+  20|........kdPpPcpwpPyYkGkGkyYGk...|
+  21|........kcPPPcPPPPyYkGGGGYYGk...|
+  22|........kccckddcccYYkkkkkYYk....|
   23|.........kkkkkkkkkkk.....kk.....|
   24|...........kPPpppPPk............|
   25|..........kbaabyybbck...........|
-  26|.........kdcbbcYYccddkkkkk......|
-  27|...........kcbbaabkdccccbbk.....|
-  28|...........kcbbaabkddcccPppk....|
-  29|...........kccbaabkkkdddPPPk....|
-  30|...........kdccbbbk..kdccbk.....|
-  31|...........kPppppPk..kdccck.....|
-  32|...........kcbaaabk.kPPpPk......|
-  33|...........kcbbaabkkdcccbk......|
-  34|...........kdcbbabk.kddccck.....|
-  35|...........kdccbbbk..kkkkk......|
-  36|...........kdPppPckkk...........|
+  26|.........kdcbbcYYccddk..........|
+  27|...........kcbbaabkdcckk........|
+  28|...........kcbbaabkdcccbkk......|
+  29|...........kccbaabkddcccbbk.....|
+  30|...........kdccbbbkkddccPppk....|
+  31|...........kPppppPk.kkddPPPk....|
+  32|...........kcbaaabk...kdccbk....|
+  33|...........kcbbaabk...kPPpPk....|
+  34|...........kdcbbabk..kdcccbbk...|
+  35|...........kdccbbbk..kddcccck...|
+  36|...........kdPppPckkk.kkkkkk....|
   37|..........kcbbaaabbbck..........|
   38|..........kddddddddcbk..........|
   39|..........kkkkkkkkkkkk..........|
@@ -143,25 +143,25 @@ frame run3
   02|.......kyyk.....................|
   03|........kkk.....................|
   04|...........k....kkkkk...........|
-  05|............k.kkbaaabkk.........|
+  05|............k.kkbaaaakk.........|
   06|.............kcbbaawwabk........|
   07|.............kdcbbbaaabk........|
   08|.............kdcyyywyyyYk.......|
   09|.............kdckkdeEwek........|
   10|.............kdcckdeeeek........|
-  11|.............kdccbbadgwgk.......|
-  12|.........kkkkkkdccbbdGgGk.......|
-  13|.......kkbaawwakkPppPkkk........|
-  14|......kcbaaaaaabkbaawabck.......|
+  11|.............kdccbaadgwgk.......|
+  12|.........kkkkkkdccbbdGGgk.......|
+  13|.......kkbaawwakkPPppkkk........|
+  14|......kcbaaaaaabkbaaawbck.......|
   15|.....kcbbdbdbbbbkbbddbbck.......|
-  16|.....kdcbdbdbbbckcbddbcck.......|
+  16|.....kccbdbdbbbckcbddbcck.......|
   17|.....kYcccbbbccYkcccbbcdk.......|
   18|......kYyyywyyYkkkkkkccdkkk.....|
   19|.....kkkkkkkkkkwaawykkkkkwyk....|
-  20|....kccdkdPppbbbbbyykgwwwyygk...|
-  21|....kdcckcPpPcpwpPyYkGkGkyYGk...|
-  22|.....kkkkcPPPcPpPPyYkGGGGYYGk...|
-  23|........kdcckdccccYYkkkkkYYk....|
+  20|....kccckdPppbbbbbyykggwwyygk...|
+  21|....kdddkdPpPcpwpPyYkGkGkyYGk...|
+  22|.....kkkkcPPPcPPPPyYkGGGGYYGk...|
+  23|........kccckddcccYYkkkkkYYk....|
   24|.........kkkkkkkkkkk.....kk.....|
   25|...........kPPpppPPk............|
   26|..........kbaabyybbck...........|
@@ -170,7 +170,7 @@ frame run3
   29|.........kcbbaabkdcccbk.........|
   30|........kcbbaabk.kdcccck........|
   31|.......kccbabbk...kdcccck.......|
-  32|......kPppppPk....kPPppPk.......|
+  32|.....kkPppppPk....kPPppPk.......|
   33|....kcbbaabk.......kdccbck......|
   34|..kkcbbabkk.........kdccck......|
   35|.kPppPdkk............kddcck.....|
@@ -182,46 +182,46 @@ frame run3
 frame run4
      0         1         2         3 
      01234567890123456789012345678901
-  00|..........kk....................|
-  01|.........kyyk...................|
-  02|..........kk....................|
-  03|............k...................|
+  00|................................|
+  01|..........kk....................|
+  02|.........kyyk...................|
+  03|..........kk....................|
   04|............k...................|
-  05|............k...kkkkk...........|
-  06|..............kkbaaabkk.........|
-  07|.............kcbbaawwabk........|
-  08|.............kdcbbbaaabk........|
-  09|.............kdcyyywyyyYk.......|
-  10|.............kdckkdeEwek........|
-  11|.............kdcckdeeeek........|
-  12|.............kdccbbadgwgk.......|
-  13|.........kkkkkkdccbbdGgGk.......|
-  14|.......kkbaawwakkPppPkkk........|
-  15|......kcbaaaaaabkbaawabck.......|
+  05|............k...................|
+  06|............k...kkkkk...........|
+  07|..............kkbaaaakk.........|
+  08|.............kcbbaawwabk........|
+  09|.............kdcbbbaaabk........|
+  10|.............kdcyyywyyyYk.......|
+  11|.............kdckkdeEwek........|
+  12|.............kdcckdeeeek........|
+  13|.........kkkkkdccbaadgwgk.......|
+  14|.......kkbaawwakccbbdGGgk.......|
+  15|......kcbaaaaaabkdddcbbck.......|
   16|.....kcbbdbdbbbbkbbddbbck.......|
-  17|.....kdcbdbdbbbckcbddbcck.......|
+  17|.....kccbdbdbbbckcbddbcck.......|
   18|.....kYcccbbbccYkcccbbcdk.......|
-  19|......kYyyywyyYkkkkkkccdkkk.....|
-  20|.......kkkkkkkkwaawykkkkkwyk....|
-  21|........kdPppbbbbbyykgwwwyygk...|
-  22|........kcPpPcpwpPyYkGkGkyYGk...|
-  23|........kcPPPcPpPPyYkGGGGYYGk...|
-  24|........kdcckdccccYYkkkkkYYk....|
-  25|.........kkkkkkkkkkk.....kk.....|
-  26|...........kPPpppPPk............|
+  19|......kYyyywyyYkkkkkkccdk.......|
+  20|.......kkkkkkkkwaawykccdkkk.....|
+  21|........kdPppbbbbbyykkkkkwyk....|
+  22|........kdPpPcpwpPyYkggwwyygk...|
+  23|........kcPPPcPPPPyYkGkGkyYGk...|
+  24|........kccckddcccYYkGGGGYYGk...|
+  25|.........kkkkkkkkkkkkkkkkYYk....|
+  26|...........kPPpppPPk.....kk.....|
   27|..........kbaabyybbck...........|
   28|.........kdcbbcYYccddk..........|
   29|.kk......kcbbaabkcck............|
-  30|kbakkkkkkcbbaabkdccck...........|
-  31|kbbpbaabcbbaabkdccccck..........|
-  32|kcbPbbbccbbbbkkddccccck.........|
-  33|kdcPcccPppppPk..kPPpppPk........|
-  34|.kkkkkkkkkkkk..kdcbbcck.........|
-  35|..............kdccbcck..........|
-  36|..............kdPPpPdkkk........|
-  37|.............kdcccccbbcck.......|
-  38|.............kddddddddddk.......|
-  39|.............kkkkkkkkkkkk.......|
+  30|kbakkkkkkcbbaabkdccckk..........|
+  31|kbbpbaabcbbaabkkdccccck.........|
+  32|kcbPbbbccbbbbk..kddcccck........|
+  33|kdcPcccPppppPk...kPPpppPk.......|
+  34|.kkkkkkkkkkkk....kdcbbcck.......|
+  35|.................kdccbcck.......|
+  36|.................kdPPpPdkkk.....|
+  37|................kdcccccbbcck....|
+  38|................kddddddddddk....|
+  39|................kkkkkkkkkkkk....|
 
 frame run5
      0         1         2         3 
@@ -230,39 +230,39 @@ frame run5
   01|................................|
   02|......kk........................|
   03|.....kyykkk.....kkkkk...........|
-  04|......kk...kk.kkbaaabkk.........|
+  04|......kk...kk.kkbaaaakk.........|
   05|.............kcbbaawwabk........|
   06|.............kdcbbbaaabk........|
   07|.............kdcyyywyyyYk.......|
   08|.............kdckkdeEwek........|
   09|.............kdcckdeeeek........|
-  10|.............kdccbbadgwgk.......|
-  11|.........kkkkkkdccbbdGgGk.......|
-  12|.......kkbaawwakkPppPkkk........|
-  13|......kcbaaaaaabkbaawabck.......|
+  10|.............kdccbaadgwgk.......|
+  11|.........kkkkkkdccbbdGGgk.......|
+  12|.......kkbaawwakkPPppkkk........|
+  13|......kcbaaaaaabkbaaawbck.......|
   14|.....kcbbdbdbbbbkbbddbbckkk.....|
-  15|.....kdcbdbdbbbckcbddbcckcck....|
+  15|.....kccbdbdbbbckcbddbcckcck....|
   16|.....kYcccbbbccYkcccbbcdkddk....|
   17|......kYyyywyyYkkkkkkccdkkk.....|
   18|.......kkkkkkkkwaawykkkkkwyk....|
-  19|........kdPppbbbbbyykgwwwyygk...|
-  20|........kcPpPcpwpPyYkGkGkyYGk...|
-  21|........kcPPPcPpPPyYkGGGGYYGk...|
-  22|........kdcckdccccYYkkkkkYYk....|
+  19|........kdPppbbbbbyykggwwyygk...|
+  20|........kdPpPcpwpPyYkGkGkyYGk...|
+  21|........kcPPPcPPPPyYkGGGGYYGk...|
+  22|........kccckddcccYYkkkkkYYk....|
   23|.........kkkkkkkkkkk.....kk.....|
   24|...........kPPpppPPk............|
   25|..........kbaabyybbck...........|
-  26|.........kdcbbcYYccddkkkk.......|
-  27|...........kkbaaaaaaaabbbk......|
-  28|............kcbbbbbbbbbPppk.....|
-  29|............kdccccccccdPPPk.....|
-  30|...........kkkkkkkkkkcbabk......|
-  31|...........kPPppPPk.kcbabk......|
-  32|...........kdcbbcck.kPppPk......|
-  33|...........kdccbcckkcbbaak......|
-  34|...........kdccbcck.kdcbbbk.....|
-  35|...........kddccccck.kkkkk......|
-  36|...........kdPPpPdkkk...........|
+  26|.........kdcbbcYYccddk..........|
+  27|...........kkbaaaaaaabkk........|
+  28|............kcbbbaaaaaabkk......|
+  29|............kdcccbbbbbbbbak.....|
+  30|............kkkkkdccccccPppk....|
+  31|...........kPPppPkkkkkdPPPPk....|
+  32|...........kdcbbcck...kcbabk....|
+  33|...........kdccbcck...kPppPk....|
+  34|...........kdccbcck..kcbbaabk...|
+  35|...........kddcccck..kdcbbbbk...|
+  36|...........kdPPpPdkkk.kkkkkk....|
   37|..........kdcccccbbcck..........|
   38|..........kddddddddddk..........|
   39|..........kkkkkkkkkkkk..........|
@@ -275,26 +275,71 @@ frame aim
   01|......kyyk......................|
   02|.......kkk......................|
   03|..........k....kkkkk............|
-  04|...........k.kkbaaabkk..........|
+  04|...........k.kkbaaaakk..........|
   05|............kcbbaawwabk.........|
   06|............kdcbbbaaabk.........|
   07|............kdcyyywyyyYk........|
   08|............kdckkdeEwek.........|
   09|............kdcckdeeeek.........|
-  10|............kdccbbadgwgk........|
-  11|........kkkkkkdccbbdGgGk........|
-  12|......kkbaawwakkPppPkkk.........|
-  13|.....kcbaaaaaabkbaawabck........|
+  10|............kdccbaadgwgk........|
+  11|........kkkkkkdccbbdGGgk........|
+  12|......kkbaawwakkPPppkkk.........|
+  13|.....kcbaaaaaabkbaaawbck........|
   14|....kcbbdbdbbbbkbbddbcck........|
-  15|....kdcbdbdbbbckkkkkkkkk....kk..|
+  15|....kccbdbdbbbckkkkkkkkk....kk..|
   16|....kYcccbbbccYkaawwawykkkkkwyk.|
-  17|.....kYyyywyyYkkbbbbbyykgwwwyygk|
-  18|....kkkkkkkkkkkkcpwpPyYkGkGkyYGk|
-  19|...kgwgkdddddddkcPpPPyYkGGGGYYGk|
-  20|...kGgGkccbbbbckdccccYYkkkkkYYk.|
-  21|...kGgGkdcbddbcckkkkkkkkccckkk..|
-  22|...kdGdkdccbbccdddddckPPddk.....|
-  23|....kkk.kkkPpPpPpPkkk.kkkk......|
+  17|.....kYyyywyyYkkbbbbbyykggwwyygk|
+  18|......kkkkkkkkkkcpwpPyYkGkGkyYGk|
+  19|.......kdddddddkcPPPPyYkGGGGYYGk|
+  20|.......kccbbbbckddcccYYkkkkkYYk.|
+  21|.......kdcbddbcckkkkkkkkccckkk..|
+  22|.......kdccbbccdddddckPPddk.....|
+  23|........kkkPpPpPpPkkk.kkkk......|
+  24|..........kPpPpPpPk.............|
+  25|.........kbaabyybbck............|
+  26|........kdcbbcYYccddk...........|
+  27|........kcbbabkdcccbk...........|
+  28|.......kcbbaak.kdcccbk..........|
+  29|......kccbaak...kddccbk.........|
+  30|.....kdccbbk.....kddccck........|
+  31|....kPpppPk......kPPppPk........|
+  32|...kcbaaak.......kdcbbck........|
+  33|...kcbbabk.......kdccbck........|
+  34|..kdcbbabk.......kdccbck........|
+  35|..kdccbbbk.......kddccck........|
+  36|..kdPppPkk.......kdPPpPkk.......|
+  37|.kcbbaaabbk.....kdccccbbck......|
+  38|.kdddddddcbk....kdddddddddk.....|
+  39|.kkkkkkkkkkk....kkkkkkkkkkk.....|
+
+frame aim_fire
+  point muzzle 28 18
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|.........kk.....................|
+  01|........kyyk....................|
+  02|.........kk.....................|
+  03|..........k...kkkkk.............|
+  04|...........kkkbaaaakk...........|
+  05|...........kcbbaawwabk..........|
+  06|...........kdcbbbaaabk..........|
+  07|...........kdcyyywyyyYk.........|
+  08|...........kdckkdEwwek..........|
+  09|...........kdcckdeEEek..........|
+  10|.......kkkkkkccbaadgwgk.........|
+  11|.....kkbaawwakccbbdGGgk.........|
+  12|....kcbaaaaaabkPPppkkk..........|
+  13|...kcbbdbdbbbbkbaaawbck.........|
+  14|...kccbdbdbbbckbbddbcck.........|
+  15|...kYcccbbbccYkkkkkkkkk...kk....|
+  16|....kYyyywyyYkaawwawykkkkkwyk...|
+  17|.....kkkkkkkkkbbbbbyykggwwwywk..|
+  18|......kddddddkcwwpPyYkGoGoyyyk..|
+  19|......kccbbbckcppPPyYkGGGGyYok..|
+  20|......kdcbddbkddcccYYkkkkkYYk...|
+  21|......kdcbbccckkkkkkkkccckkk....|
+  22|......kdccbbccdddddckPdddk......|
+  23|.......kkkkPpPpPpPkk.kkkk.......|
   24|..........kPpPpPpPk.............|
   25|.........kbaabyybbck............|
   26|........kdcbbcYYccddk...........|

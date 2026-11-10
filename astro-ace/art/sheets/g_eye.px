@@ -1,0 +1,100 @@
+sheet g_eye
+palette guard
+cell 20 20
+anchor 10 10
+
+frame shut
+     0         1         
+     01234567890123456789
+  00|....................|
+  01|....................|
+  02|........kkkkk.......|
+  03|......kkdddddkk.....|
+  04|.....kdcccccccdk....|
+  05|....kdddddddddddk...|
+  06|...kdbaaaabbbbbcdk..|
+  07|...kcbabbbbbbabcdk..|
+  08|..kdccdccccccdccddk.|
+  09|..kdddRRrrrrrRRdddk.|
+  10|..kdRoooeeeeeoooRdk.|
+  11|..kdddRRrrrrrRRdddk.|
+  12|..kdcbaaaabbbbbccdk.|
+  13|...kcbabbbbbbabcdk..|
+  14|...kdddddddddddddk..|
+  15|....kdcbbbbbcccdk...|
+  16|.....kdccccccddk....|
+  17|......kkdcccdkk.....|
+  18|........kkkkk.......|
+  19|....................|
+
+frame half
+     0         1         
+     01234567890123456789
+  00|....................|
+  01|....................|
+  02|........kkkkk.......|
+  03|......kkdddddkk.....|
+  04|.....kdcccccccdk....|
+  05|....kdcbbbbbbbcdk...|
+  06|...kcbaabbbbbbcddk..|
+  07|...kcbaabbbddddRdk..|
+  08|..kdcbbddddRRrrrRdk.|
+  09|..kddddr1ooo1rrrRdk.|
+  10|..kdRRr1oeeo1rrrRdk.|
+  11|..kdRr1ooeoo1rrrRdk.|
+  12|..kdRrr1ooo1rrrrRdk.|
+  13|...kddRRRRRRRRRddk..|
+  14|...kcbaabbbbbbccdk..|
+  15|....kdcbbbbbcccdk...|
+  16|.....kdccccccddk....|
+  17|......kkdcccdkk.....|
+  18|........kkkkk.......|
+  19|....................|
+
+frame open
+     0         1         
+     01234567890123456789
+  00|....................|
+  01|....................|
+  02|........kkkkk.......|
+  03|......kkdddddkk.....|
+  04|.....kdRRRRRRRdk....|
+  05|....kdRRRrrrRRRdk...|
+  06|...kdRrr111rrrrRdk..|
+  07|...kdR11ooo11rrRdk..|
+  08|..kdRr1oeeeo1rrrRdk.|
+  09|..kdR1oeeweeo1rrRdk.|
+  10|..kdR1oewwweo1rrRdk.|
+  11|..kdR1oeeweeo1rrRdk.|
+  12|..kdRr1oeeeo1rrrRdk.|
+  13|...kdR11ooo11rrRdk..|
+  14|...kdRrr111rrrrRdk..|
+  15|....kdRrrrrrrrRdk...|
+  16|.....kdRRRRRRRdk....|
+  17|......kkdddddkk.....|
+  18|........kkkkk.......|
+  19|....................|
+
+frame dead
+     0         1         
+     01234567890123456789
+  00|....................|
+  01|....................|
+  02|........kkkkk.......|
+  03|......kkdddddkk.....|
+  04|.....kdkdddddddk....|
+  05|....kdcdkdddddkdk...|
+  06|...kdcccdkdddkRRdk..|
+  07|...kddcdddkdkRRcdk..|
+  08|..kdddddddkkkRRRcdk.|
+  09|..kdddddkkkkRkkRcdk.|
+  10|..kdddkkkdkkRkdkkck.|
+  11|..kdkkedkkkRRdkddck.|
+  12|..kddewekkkRddkdcck.|
+  13|...kdkekkkdddcckck..|
+  14|...kddkkkkdddcccck..|
+  15|....kddkkdddcccck...|
+  16|.....kdddddcccck....|
+  17|......kkdcccckk.....|
+  18|........kkkkk.......|
+  19|....................|

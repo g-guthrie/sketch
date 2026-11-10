@@ -33,93 +33,6 @@ frame idle
   22|....kdGGGGGGGkkdGGGGGGGGGk......|
   23|....kkkkkkkkkkkkkkkkkkkkkk......|
 
-frame run3
-  point waist 14 2
-     0         1         2         3 
-     01234567890123456789012345678901
-  00|................................|
-  01|................................|
-  02|................................|
-  03|.........kDRRrrrrrok............|
-  04|.........kDRRRrrrrokkkk.........|
-  05|.........kDRRrrrrokDRRRkk.......|
-  06|.........kDRRrrrokDDRRRYYk......|
-  07|.........kDRRrrrokDDRRYYYGk.....|
-  08|........kDRRrrrokDDRRYYYggk.....|
-  09|........kDRRrrrokDDRYYYgggk.....|
-  10|.......kDRRrrrok.kkYYYGgggk.....|
-  11|.......kDRRrrrok..kGGgggggk.....|
-  12|......kYyyyrrok...kGggggggk.....|
-  13|......kYYyywyyk...kDRRRRRRk.....|
-  14|.....kggwwgYYk....kGggggggk.....|
-  15|.....kgwwwwwgk....kGggggggk.....|
-  16|....kggwwwwwk.....kdGggggggk....|
-  17|....kRRrrrrok......kGGggggggk...|
-  18|...kggwwwwwk........kkGGggggGk..|
-  19|...kggwwwwwk..........kkGGgGk...|
-  20|...kGGgwwwwwwk..........kkkk....|
-  21|....kkGGgwwwwwk.................|
-  22|......kkGGGGGGk.................|
-  23|........kkkkkk..................|
-
-frame run2
-  point waist 14 3
-     0         1         2         3 
-     01234567890123456789012345678901
-  00|................................|
-  01|................................|
-  02|................................|
-  03|................................|
-  04|.........kDRRrrrrrok............|
-  05|.........kDRRRrrrrok............|
-  06|..........kDRRrrrrokk...........|
-  07|..........kDRRrrrrokRk..........|
-  08|...........kRRrrrrokDRk.........|
-  09|...........kDRRrrrrokRRk........|
-  10|............kRRrrrrokDRYk.......|
-  11|............kRRrrrrokRYYk.......|
-  12|.......kkk..kYyywyyykYYk........|
-  13|......kGggggkYYyyyyYkkk.........|
-  14|.....kGggggkgggwwwwk............|
-  15|.....kGggggkgwwwwwwk............|
-  16|....kdGgggkgwwwwwwk.............|
-  17|....kGgggkkRRrrrrok.............|
-  18|....kGgGk.kgwwwwwwk.............|
-  19|....kGGk..kggwwwwwk.............|
-  20|.....kk...kgwwwwwwwk............|
-  21|..........kggwwwwwwwk...........|
-  22|..........kdGGGGGGGGGk..........|
-  23|..........kkkkkkkkkkkk..........|
-
-frame run1
-  point waist 14 4
-     0         1         2         3 
-     01234567890123456789012345678901
-  00|................................|
-  01|................................|
-  02|................................|
-  03|................................|
-  04|................................|
-  05|.........kDRRrrrrrok............|
-  06|.........kDRRRrrrrook...........|
-  07|.........kRRDRRrrrrook..........|
-  08|..kkk....kRRkDRRrrrrook.........|
-  09|.kgggkkkkRRRDkDRRrrrrook........|
-  10|kdggggggkRRRRDkDRRrrrrryk.......|
-  11|kdgggggRgkRRRDk.kRRrryywyk......|
-  12|kdGgggRgggkRRDk.kRYyyyyyyk......|
-  13|kdGgGGRGgggYYYk.kYYYyygggk......|
-  14|kdGgkGDGGgGYYYk.kgggggwwwk......|
-  15|kdGgkkkkGGGYYk..kgwwwwwwk.......|
-  16|kGGGk...kkkkk...kgwwwwwwk.......|
-  17|.kkk............kRRrrrrok.......|
-  18|.kkkk..........kgwwwwwwk........|
-  19|...............kggwwwwwk........|
-  20|...............kgwwwwwwwk.......|
-  21|...............kggwwwwwwwk......|
-  22|...............kdGGGGGGGGGk.....|
-  23|...............kkkkkkkkkkkk.....|
-
 frame run0
   point waist 14 3
      0         1         2         3 
@@ -148,3 +61,206 @@ frame run0
   21|...kGGggk............kGgwgGGkk..|
   22|....kkkk..............kdGGkk....|
   23|.......................kkk......|
+
+frame run1
+  point waist 14 4
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|................................|
+  05|.........kDRRrrrrrok............|
+  06|.........kDRRRrrrrook...........|
+  07|.........kRRDRRrrrrook..........|
+  08|..kkk....kRRkDRRrrrrook.........|
+  09|.kgggkkkkRRRDkDRRrrrrook........|
+  10|kdggggggkRRRRDkDRRrrrrryk.......|
+  11|kdgggggRgkRRRDk.kRRrryywyk......|
+  12|kdGgggRgggkRRDk.kRYyyyyyyk......|
+  13|kdGgGGRGgggYYYk.kYYYyygggk......|
+  14|kdGgkGDGGgGYYYk.kgggggwwwk......|
+  15|kdGgkkkkGGGYYk..kgwwwwwwk.......|
+  16|kGGGk...kkkkk...kgwwwwwwk.......|
+  17|.kkk............kRRrrrrok.......|
+  18|...............kgwwwwwwk........|
+  19|...............kggwwwwwk........|
+  20|...............kgwwwwwwwk.......|
+  21|...............kggwwwwwwwk......|
+  22|...............kdGGGGGGGGGk.....|
+  23|...............kkkkkkkkkkkk.....|
+
+frame run2
+  point waist 14 3
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|.........kDRRrrrrrok............|
+  05|.........kDRRRrrrrok............|
+  06|..........kDRRrrrrokk...........|
+  07|..........kDRRrrrrokRk..........|
+  08|...........kRRrrrrokDRk.........|
+  09|...........kDRRrrrrokRRk........|
+  10|............kRRrrrrokDRYk.......|
+  11|............kRRrrrrokRYYk.......|
+  12|.......kkkkkkYyywyyykYYk........|
+  13|......kGggggkYYyyyyYkkk.........|
+  14|.....kGggggkgggwwwwk............|
+  15|.....kGggggkgwwwwwwk............|
+  16|....kdGgggkgwwwwwwk.............|
+  17|....kGgggkkRRrrrrok.............|
+  18|....kGgGk.kgwwwwwwk.............|
+  19|....kGGk..kggwwwwwk.............|
+  20|.....kk...kgwwwwwwwk............|
+  21|..........kggwwwwwwwk...........|
+  22|..........kdGGGGGGGGGk..........|
+  23|..........kkkkkkkkkkkk..........|
+
+frame run3
+  point waist 14 2
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|.........kDRRrrrrrok............|
+  04|.........kDRRRrrrrokkkk.........|
+  05|.........kDRRrrrrokDRRRkk.......|
+  06|.........kDRRrrrokDDRRRYYk......|
+  07|.........kDRRrrrokDDRRYYYYk.....|
+  08|........kDRRrrrokDDRRYYYYYk.....|
+  09|........kDRRrrrokDDRYYYYYYk.....|
+  10|.......kDRRrrrok.kkDYYGGggk.....|
+  11|.......kDRRrrrok..kGGgggggk.....|
+  12|......kYyyyrrok...kGggggggk.....|
+  13|......kYYyywyyk...kDRRRRRRk.....|
+  14|.....kggwwgYYk....kGggggggk.....|
+  15|.....kgwwwwwgk....kGggggggk.....|
+  16|....kggwwwwwk.....kdGggggggk....|
+  17|....kRRrrrrok......kGGggggggk...|
+  18|...kggwwwwwk........kkGGggggGk..|
+  19|...kggwwwwwkk.........kkGGgGk...|
+  20|...kGGgwwwwwwk..........kkkk....|
+  21|....kkGGgwwwwwk.................|
+  22|......kkGGGGGGk.................|
+  23|........kkkkkk..................|
+
+frame run4
+  point waist 14 3
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|.........kDRRrrrrrok............|
+  05|.........kDRrrrrrokRk...........|
+  06|.........kRrrrrrRkDRRk..........|
+  07|........kRrrrrrRkDDRRRk.........|
+  08|.......korrrrRDkDDRRRRRk........|
+  09|.......korrrRDkDDRRRRYYk........|
+  10|......korrrrRDkkDRRRYYYGk.......|
+  11|......krrrrRRk..kDRYYYGgk.......|
+  12|.....kywyyrRDk...kYYYGggk.......|
+  13|....kwwyyyYDk....kYYGgggk.......|
+  14|...kwwwgYYYk......kGGggggk......|
+  15|..kwrrwwggk.......kGgggggk......|
+  16|.kwwwrrggk.........kGggRRRkkkk..|
+  17|.kGwwwrRk..........kDRRgggggggk.|
+  18|.kdGwwgk............kGggggggggk.|
+  19|..kGGwwk............kGGggggggGk.|
+  20|...kGGwwk............kGggggGGk..|
+  21|....kGGwgk...........kGGgGGkk...|
+  22|.....kkkk.............kdGkk.....|
+  23|.......................kk.......|
+
+frame run5
+  point waist 14 4
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|................................|
+  05|.........kDRRrrrrrok............|
+  06|.........kDRRrrrrrok............|
+  07|.........kDRrrrrrokRk...........|
+  08|..kkkk..kDRrrrrrokDRRk..........|
+  09|.kwwwwkkkRRrrrrrokDRRRk.........|
+  10|kdwwwwwrkRrrrrrokDRRRRRk........|
+  11|kdwwwwwrwkRrrrrRkDRRYYYYk.......|
+  12|kdGwwwrwwwkRrrrRkYYYYYYYk.......|
+  13|kdGwggrgwwwyywyykYYYYGGGk.......|
+  14|kdGwkgRggwgYyyyykGGGGgggk.......|
+  15|kdGwkkkkgggYYyykkGgggggk........|
+  16|kGGgk...kkkkkkk.kGgggggk........|
+  17|.kkk............kDRRRRRk........|
+  18|...............kGgggggk.........|
+  19|...............kGGggggk.........|
+  20|...............kGggggggk........|
+  21|...............kGGggggggk.......|
+  22|...............kdGGGGGGGGk......|
+  23|...............kkkkkkkkkkk......|
+
+frame run6
+  point waist 14 3
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|.........kDRRrrrrrok............|
+  05|.........kDRRRrrrrookk..........|
+  06|..........kDRRRrrrrrook.........|
+  07|..........kDDRRRrrrrrook........|
+  08|..........kkkkkRRrrrrrook.......|
+  09|.........kdGwwwkkkRrryywyk......|
+  10|.........kdGwwwrwwkRYyyyyk......|
+  11|........kGGwwwwwrwwgYyyyYk......|
+  12|.......kGGwwwgwwrwwwgYYYk.......|
+  13|......kGGwwwggggRggggggk........|
+  14|.....kGGwwwgkkkkkkkkkkk.........|
+  15|.....kGwwwgkGGGGGk..............|
+  16|.....kGwwgkGgggggk..............|
+  17|......kkkkkDRRRRDk..............|
+  18|..........kGgggggk..............|
+  19|..........kGGggggk..............|
+  20|..........kGggggggk.............|
+  21|..........kGGggggggk............|
+  22|..........kdGGGGGGGGk...........|
+  23|..........kkkkkkkkkkk...........|
+
+frame run7
+  point waist 14 2
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|.........kDRRrrrrrok............|
+  04|.........kDRRrrrrrrokkkk........|
+  05|.........kDRRrrrrrrrooookk......|
+  06|.........kDRRrrrrrrrrrrooyk.....|
+  07|........kRDDDkRRrrrrrrrrywyk....|
+  08|........kRRRDDkRRrrrrrryyyyk....|
+  09|.......kRRRRRDDkRRrrrrYyyyYk....|
+  10|.......kRRRRRDk.kDRRrYYYYggk....|
+  11|......kRRRRRDk...kkkYYYgwwwk....|
+  12|......kYYYYRDk.....kgggwwwwk....|
+  13|......kYYYYYYk.....kgwwwwwwk....|
+  14|.....kGGggGYYk.....kRRrrrrok....|
+  15|.....kGggggGk......kgwwwwwwk....|
+  16|....kGGggggk.......kdgwwwwwwk...|
+  17|....kDRRRRRk........kGgwwwwwwk..|
+  18|...kGGggggk..........kkGGwwwwgk.|
+  19|...kGGggggkk...........kkGGwgk..|
+  20|...kdGGgggggk............kkkk...|
+  21|....kkGGGggggk..................|
+  22|......kkGGGGGk..................|
+  23|........kkkkk...................|
