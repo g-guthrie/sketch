@@ -17,7 +17,7 @@ ATTR0 = [0, 0, 0, 0, 0x4000, 0x4000, 0x4000, 0x4000, 0x8000, 0x8000, 0x8000, 0x8
 ATTR1 = [0, 0x4000, 0x8000, 0xC000, 0, 0x4000, 0x8000, 0xC000, 0, 0x4000, 0x8000, 0xC000]
 
 
-def cut(mask, waste=0.42, grid=None, single=None):
+def cut(mask, waste=0.24, grid=None, single=None):
     """Cover the opaque pixels of mask (bool h x w). -> [(x, y, w, h)].
     waste: how much empty area a bigger rectangle may carry before smaller
     ones are preferred. grid=(w,h): fixed tiling (lets identical blocks of an

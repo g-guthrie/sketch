@@ -41,7 +41,7 @@ def gif(cvs, ms, scale=3, bg=(88, 48, 136)):
     for c in cvs:
         base = Image.new('RGBA', (w, h), (*bg, 255))
         base.alpha_composite(rgba(c))
-        ims.append(base.convert('P', palette=Image.ADAPTIVE, colors=64).resize((w * scale, h * scale), Image.NEAREST))
+        ims.append(base.convert('RGB').resize((w * scale, h * scale), Image.NEAREST))
     b = io.BytesIO()
     ims[0].save(b, 'GIF', save_all=True, append_images=ims[1:], duration=ms, loop=0)
     return f'<img src="data:image/gif;base64,{base64.b64encode(b.getvalue()).decode()}" width="{w * scale}" height="{h * scale}">'
