@@ -1,6 +1,7 @@
 """Cover and end-of-issue cards: full-screen comic pages built from the same layers."""
 from style import *
-import hero, sprites, math
+import math
+import anims, guardian
 
 def blank(pal, wrap=False):
     return Canvas(256 if wrap else 512, 160, pal, wrap=wrap)
@@ -39,17 +40,17 @@ def make_title():
     ang = np.arctan2(Y - 150, X - 120)
     far.paint(((ang * 14 / math.pi).astype(int) % 2 == 0), 'y')
     far.tone('o', 'c', lambda X, Y: np.clip((np.hypot(X - 120, Y - 150) - 70) / 120.0, 0, 0.8), 'dot', 4)
-    mid = blank(BOSS, True)
-    mid.stamp(sprites.BOSS_F[0].flipped().scaled(2), 110, 26)
-    play = blank(HERO)
-    play.stamp(hero.composite(hero.TORSOS[1], hero.LEGS[0]).scaled(2), 22, 56)
+    mid = blank(GUARD, True)
+    mid.stamp(guardian.render(guardian.TANK, {'eye': 'open'}, w=160, h=128, ox=80, oy=124), 84, 26)
+    play = blank(ACE)
+    play.stamp(anims.ace('upfwd', 'idle', w=48, h=64, ox=14, oy=60).scaled(2), 10, 24)
     fr = blank(FRAME)
     page_frame(fr)
     big_text(fr, "ASTRO ACE", 16, 13, 3, 'r', shadow='k')
     fr.circle(212, 30, 13, 'k'); fr.circle(212, 30, 12, 'w')
     fr.text("NO.1", 201, 27, 'r', FONT)
     caption(fr, ["PRESS START"], 82, 134)
-    return dict(name='title', far=far, mid=mid, play=play, frame=fr, pals=[FRAME, HERO, BOSS, SKY],
+    return dict(name='title', far=far, mid=mid, play=play, frame=fr, pals=[FRAME, ACE, GUARD, SKY],
                 solid=np.zeros((20, 64), np.uint8), objects=[], backdrop=SKY['o'], cycle=0, start=(0, 0))
 
 def make_end():

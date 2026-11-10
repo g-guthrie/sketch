@@ -1,8 +1,9 @@
 out/desk/
-out/test.gba
+out/test*.gba
 out/*.png
 out/*.gif
 game/*.o
 game/game.elf
 tools/shot
 __pycache__/
+game/gen/

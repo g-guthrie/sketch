@@ -1,16 +1,8 @@
-"""STYLE BIBLE: ASTRO ACE No.1 (pulp sci-fi comic).
+"""Palettes, ramps and the lettering font. The style rules themselves are in
+art/BIBLE.md (v2: hand-drawn sheets, full tonal ramps).
 
-Rules every asset follows:
- 1. INK: one ink colour (#181020) outlines every sprite and every playfield
-    object. Silhouettes are fully closed. No pure black anywhere.
- 2. PRINT LOOK: shading is flat colour + ONE shadow tone. Soft transitions
-    are made with Ben-Day dots (tone/gradient tools), never smooth blends.
- 3. LIGHT comes from above, so sprites can be mirrored without the light
-    flipping. Highlights on top edges, shadow tone on bottom edges.
- 4. DEPTH: far layer = cool, low contrast, no ink. Mid layer = two flat
-    purple planes. Playfield = warm, full ink. Sprites = most saturated.
- 5. PAPER: gutters are warm paper (#f8f0d8), panel borders are 2px ink.
- 6. HARDWARE: 15 colours per palette, each 8x8 tile uses one palette.
+Hardware: 15 colours per palette, each 8x8 background tile uses one palette,
+each sprite sheet one palette. No pure black: the ink is #181020.
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'studio'))

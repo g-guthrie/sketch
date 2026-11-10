@@ -160,7 +160,7 @@ def rocket():
 def make_play():
     c = Canvas(WORLD_W, 160, GROUND)
     rnd = random.Random(3)
-    blocks = [(0, 18, 16), (18, 26, 14), (29, 42, 16), (42, 55, 14)]       # tile cols x0..x1, top tile row
+    blocks = [(0, 18, 16), (18, 26, 14), (29, 55, 16)]                    # the Guardian needs a flat arena       # tile cols x0..x1, top tile row
     for x0, x1, top in blocks:
         px0, px1, py = x0 * 8, x1 * 8, top * 8
         c.rect(px0, py, px1 - px0, 160 - py, '2')
@@ -182,7 +182,7 @@ def make_play():
             x = rnd.randrange(px0 + 4, px1 - 4)
             c.path([(x, py), (x + 1, py + 2), (x - 1, py + 4), (x, py + 6)], 'k')
     # cliff faces where a block is higher than its neighbour
-    for x, top, bot, side in ((18 * 8, 112, 128, 1), (26 * 8 - 3, 112, 160, 1), (29 * 8, 128, 160, -1), (42 * 8, 112, 128, 1)):
+    for x, top, bot, side in ((18 * 8, 112, 128, 1), (26 * 8 - 3, 112, 160, 1), (29 * 8, 128, 160, -1)):
         c.rect(x, top + 1, 3, bot - top - 1, '3')
         c.hatch(c.mask('3') & (np.abs(c._xy()[0] - x - 1) <= 1) & (c._xy()[1] > top), '4', 3, 1)
     # pit: dark chasm with crystal spikes
@@ -193,14 +193,14 @@ def make_play():
     for x, h in ((213, 14), (220, 20), (227, 13)):
         crystal(c, x, 153, h, 4, 0)
     # rocks on the surface
-    for x, w, h, gy in ((120, 9, 6, 128), (296, 7, 5, 128), (384, 10, 7, 112)):
+    for x, w, h, gy in ((120, 9, 6, 128), (296, 7, 5, 128), (424, 10, 7, 128)):
         r = Canvas(c.w, c.h, GROUND)
         r.ellipse(x, gy, w, h, '2')
         r.a[gy:, :] = T
         r.edge('2', '1', 0, -1, depth=2)
         r.fn(lambda X, Y: (X > x + 2) & ((X + Y) % 2 == 0), '3', clip='2')
         c.stamp(r)
-    for x, gy, hs in ((166, 112, (10, 16, 8)), (252, 128, (9, 13)), (360, 112, (12, 18, 9)), (406, 112, (8, 11))):
+    for x, gy, hs in ((166, 112, (10, 16, 8)), (252, 128, (9, 13)), (300, 128, (8, 12))):
         for i, h in enumerate(hs):
             crystal(c, x + i * 6 - 6, gy, h, 4, (i - 1) * 2)
     c.outline('k')
@@ -222,7 +222,7 @@ def make_frame():
 
 FAR, MID_L, PLAY, FRAME_L = make_far(), make_mid(), make_play(), make_frame()
 
-OBJECTS = [('BOSS', 392, 112, 0), ('DRUM', 190, 112, 0), ('DRUM', 286, 128, 0), ('DRUM', 346, 112, 0), ('POD', 230, 52, 1)]
+OBJECTS = [('BOSS', 384, 128, 0), ('DRUM', 190, 112, 0), ('DRUM', 262, 128, 0), ('DRUM', 312, 128, 0), ('POD', 230, 52, 1)]
 ROOM = dict(name='landing', far=FAR, mid=MID_L, play=PLAY, frame=FRAME_L, pals=[FRAME, GROUND, MID, SKY],
             solid=SOLID, objects=OBJECTS, backdrop=SKY['n'], cycle=0, start=(100, 128))
 DUSK = dict(ROOM, name='dusk', out_pals=[FRAME, GROUND_DUSK, MID_DUSK, SKY_DUSK], backdrop=SKY_DUSK['n'],

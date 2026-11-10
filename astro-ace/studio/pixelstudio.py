@@ -496,7 +496,7 @@ def write_c(path, name, arrays):
             h.write(f'#define {sym}_len {len(data)}\nextern const {ct} {sym}[{len(data)}];\n')
             c.write(f'const {ct} {sym}[{len(data)}] = {{\n')
             for i in range(0, len(data), 12):
-                c.write(' ' + ','.join(f'0x{v:X}' for v in data[i:i + 12]) + ',\n')
+                c.write(' ' + ','.join((f'0x{v:X}' if v >= 0 else str(v)) for v in data[i:i + 12]) + ',\n')
             c.write('};\n')
         h.write('#endif\n')
 

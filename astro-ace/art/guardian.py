@@ -47,48 +47,66 @@ PARTS = {
     'core':   dict(hp=0,  weak=True),      # hurts the Guardian itself, once the plate is gone
 }
 
+# battle scars stamped on the hull as it loses health: (frame, x, y) in hull-frame pixels
+SCARS = [('scar0', 30, 26), ('scar1', 60, 42), ('scar2', 48, 18)]
+
 _cache = {}
 def sheet(name):
+    if os.environ.get('ASTRO_BUILD') == '1':
+        import sheetlib
+        return sheetlib.get(name)
     p = os.path.join(SHEETS, name + '.px')
     if name not in _cache:
-        _cache[name] = Sheet(p) if os.path.exists(p) else None
+        try:
+            _cache[name] = Sheet(p) if os.path.exists(p) else None
+        except SyntaxError as e:                     # someone is mid-edit on this sheet
+            print('skipping', e)
+            _cache[name] = None
     return _cache[name]
 
 
 def layout(parts, frames=None, missing=None):
     """Resolve every part's top-left position relative to the root's anchor.
     Returns [(name, sheet, frame, x, y)] in draw order. frames overrides the
-    default frame per part (a state)."""
+    default frame per part (a state). Parents may come later in the list than
+    their children (draw order is not attachment order)."""
     frames = frames or {}
-    pos, out = {}, {}
-    for name, sh, frame, parent, point in parts:
-        s = sheet(sh)
-        fr = frames.get(name, frame)
-        if fr is None:
-            continue
-        if s is None or fr not in s:
-            if missing is not None:
-                missing.append(f'{sh}:{fr}')
-            continue
-        f = s[fr]
-        ax, ay = s.anchor_of(f)
-        if parent is None:
-            px, py = 0, 0
-        elif parent not in pos:
-            continue
-        else:
-            ps, pf, ox, oy = pos[parent]
-            if point is None:
-                px, py = ps.anchor_of(pf)
-            elif point not in pf.points:
+    pos, out, todo = {}, {}, list(parts)
+    while todo:
+        rest = []
+        for part in todo:
+            name, sh, frame, parent, point = part
+            s = sheet(sh)
+            fr = frames.get(name, frame)
+            if fr is None:
+                continue
+            if s is None or fr not in s:
                 if missing is not None:
-                    missing.append(f'{ps.name}:{pf.name} point {point}')
+                    missing.append(f'{sh}:{fr}')
+                continue
+            f = s[fr]
+            ax, ay = s.anchor_of(f)
+            if parent is None:
+                px, py = 0, 0
+            elif parent not in pos:
+                rest.append(part)
                 continue
             else:
-                px, py = pf.points[point]
-            px, py = ox + px, oy + py
-        pos[name] = (s, f, px - ax, py - ay)
-        out[name] = (name, s, f, px - ax, py - ay)
+                ps, pf, ox, oy = pos[parent]
+                if point is None:
+                    px, py = ps.anchor_of(pf)
+                elif point not in pf.points:
+                    if missing is not None:
+                        missing.append(f'{ps.name}:{pf.name} point {point}')
+                    continue
+                else:
+                    px, py = pf.points[point]
+                px, py = ox + px, oy + py
+            pos[name] = (s, f, px - ax, py - ay)
+            out[name] = (name, s, f, px - ax, py - ay)
+        if len(rest) == len(todo):
+            break                                    # parents missing: leave their children out
+        todo = rest
     return [out[p[0]] for p in parts if p[0] in out]
 
 

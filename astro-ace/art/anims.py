@@ -4,13 +4,14 @@ previews (`python3 art/anims.py`) are rendered from the same data."""
 from style import *
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'studio'))
 from px import Sheet
+import sheetlib
+from contracts import SHEETS
 
-SHEETS = os.path.join(os.path.dirname(__file__), 'sheets')
-_cache = {}
 def sheet(name):
-    if name not in _cache:
-        _cache[name] = Sheet(os.path.join(SHEETS, name + '.px'))
-    return _cache[name]
+    """Desk previews read whatever is on the sheet right now; the build goes through sheetlib."""
+    if os.environ.get('ASTRO_BUILD') == '1':
+        return sheetlib.get(name)
+    return Sheet(os.path.join(SHEETS, name + '.px'))
 
 def ace(top, legs, w=48, h=64, ox=14, oy=60):
     """Composite of a legs frame and a top frame: top.anchor sits on legs.waist."""
