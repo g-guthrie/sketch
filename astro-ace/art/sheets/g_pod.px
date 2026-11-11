@@ -1,0 +1,35 @@
+sheet g_pod
+palette guard
+cell 56 24
+anchor 28 0
+
+frame thrust0
+  point arm_l 10 13
+  point arm_r 47 13
+  point gun 28 17
+     0         1         2         3         4         5
+     01234567890123456789012345678901234567890123456789012345
+  00|............kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk............|
+  01|...........k111rwwwaaaaaaaaaaaabbbbbbbbbrrrRk...........|
+  02|...........k1rrRabbdabbdabbdabbdbccdbccdrrRRk...........|
+  03|....kkkkkkkkrRRRbccdbccdbccdcccdcdddcdddRRRRkkkkkkkk....|
+  04|..kkwwwaaaaddddddddddddddddddddddddddddddddddaabbbbbkk..|
+  05|.kaTttTbdawaaaaaaaabd111111111rrrrrrdaabbbbbbbbbdbbccdk.|
+  06|.katwttcdabbdbdbdbbcd1yrrrrrrrrrrRyRdbbbdbdbdbccdc1rddk.|
+  07|.kbTttTcdbbcdcdcdccddrrRRRRRRRRRRRRRdbccdcdcdccddcrRddk.|
+  08|..kccccddccccccccccddRRRRRRRRRRRRRRRdcccccccccddddddddk.|
+  09|...kkdddcddddkyyYYkyykkyykkyykkyykyYYYkddddddddddddddk..|
+  10|.....kkddddddkabcdkkyykkyykkyykkykbbcdkdddddddddddddk...|
+  11|.......kkyyYckwabcdkcccccbbbccccckabbcdkccccccyYYcck....|
+  12|.......kydddYkaabbcdkkkkkkaabbckkkabbccdkkkkkydddYk.....|
+  13|.......kydddYkabbccddk...kbTtcdk.kbbbccddk..kydddYk.....|
+  14|........kYyYk.kabbccrrk...kbcdk...kbbbccrrk..kyYYk......|
+  15|.........kkk..kabrrreyR...kabdk...kbcrrreyR...kkk.......|
+  16|..............krreeeeyoR..kyyYk...krreeeeyoR............|
+  17|...............RoyeeeyoR...kkk.....RoyeeeyoR............|
+  18|................RoyeeyooR...........RoyeeyooR...........|
+  19|.................RoyeyyoR............RoyeyyoR...........|
+  20|..................RoyeyoR.............RoyeyoR...........|
+  21|...................RoyyoR..............RoyyoR...........|
+  22|....................RooR................RooR............|
+  23|.....................RR..................RR.............|

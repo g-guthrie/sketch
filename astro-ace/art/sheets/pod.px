@@ -1,0 +1,44 @@
+sheet pod
+palette mech
+cell 16 16
+anchor 8 15
+
+frame pod0
+     0         1     
+     0123456789012345
+  00|................|
+  01|................|
+  02|................|
+  03|................|
+  04|................|
+  05|................|
+  06|................|
+  07|.....kkkkkk.....|
+  08|.k..kayyyaak..k.|
+  09|kgkkaayyyaaakkgk|
+  10|kggbbbyyybbbbggk|
+  11|kggbbbyyybbbbggk|
+  12|kgkbbbyyybbbbkgk|
+  13|.k.kccYYYccck.k.|
+  14|....kcYYYcck....|
+  15|.....kkkkkk.....|
+
+frame pod1
+     0         1     
+     0123456789012345
+  00|................|
+  01|................|
+  02|................|
+  03|................|
+  04|................|
+  05|................|
+  06|.k............k.|
+  07|kgk..kkkkkk..kgk|
+  08|kggkkayyyaakkggk|
+  09|kgggaayyyaaagggk|
+  10|kggbbbyyybbbbggk|
+  11|kggbbbyyybbbbggk|
+  12|kgkbbbyyybbbbkgk|
+  13|.k.kccYYYccck.k.|
+  14|....kcYYYcck....|
+  15|.....kkkkkk.....|

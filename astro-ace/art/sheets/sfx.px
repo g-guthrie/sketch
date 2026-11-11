@@ -1,0 +1,44 @@
+sheet sfx
+palette fx
+cell 32 16
+anchor 16 8
+
+frame pow
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|............kkkk..........kk....|
+  03|....kkkkk..kwwwwk.kk...kkkwwk...|
+  04|...kwwwwwkkwwrrwwkwwk.kwwkwwrk..|
+  05|...kwwrrwwkyyrkyyrwwrkkwwryyrk..|
+  06|...kyyrkyyryyrkyyryyrykyyryyrk..|
+  07|...kyyyyyrryyrkyyryyryryyryyrk..|
+  08|...kyyrrrrkyyrkyyryyyyyyyrkrrk..|
+  09|...kyyrkkk.kyyyyrryyyryyyryyk...|
+  10|...kyyrk....krrrrkyyrrkyyrkrrk..|
+  11|....krrk.....kkkk.krrk.krrkkk...|
+  12|.....kk............kk...kk......|
+  13|................................|
+  14|................................|
+  15|................................|
+
+frame boom
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|..........kkkk.........kk...kk..|
+  03|..kkkkk..kwwwwk..kkkk.kwwk.kwwk.|
+  04|.kwwwwwkkwwrrwwkkwwwwkkwwwkwwwrk|
+  05|.kwwrrwwkyyrkyyrwwrrwwkyyyyyyyrk|
+  06|.kyyrkyyryyrkyyryyrkyyryyryryyrk|
+  07|.kyyyyyrryyrkyyryyrkyyryyrkryyrk|
+  08|.kyyrryykyyrkyyryyrkyyryyrkkyyrk|
+  09|.kyyrkyyrkyyyyrryyrkyyryyrkkyyrk|
+  10|.kyyyyyrrkkrrrrkkyyyyrrkrrk.krrk|
+  11|..krrrrrk..kkkk..krrrrk.kk...kk.|
+  12|...kkkkk..........kkkk..........|
+  13|................................|
+  14|................................|
+  15|................................|

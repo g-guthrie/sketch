@@ -1,0 +1,44 @@
+sheet saucer
+palette mech
+cell 32 16
+anchor 16 15
+
+frame fly0
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|.............kkkkkk.............|
+  02|............kwEEEEEk............|
+  03|...........kwwEEEEEEk...........|
+  04|..........kwwwEEEEEEEk..........|
+  05|.........kwwwwEEEEEEEEk.........|
+  06|.......kkkEEEEEEEEEEEEkkk.......|
+  07|....kkkaaaaaaaaaaaaaaaaaakkk....|
+  08|..kkaaaaaaaaaaaaaaaaaaaaaaaakk..|
+  09|.kbbbbbbbbbbbbbbbbbbbbbbbbbbbbk.|
+  10|.kbbbeebbbyybbbeebbbyybbbeebbbk.|
+  11|.kbbbeebbbyybbbeebbbyybbbeebbbk.|
+  12|..kkcccccccccccccccccccccccckk..|
+  13|....kkkcccccccccccccccccckkk....|
+  14|.......kkkkkkddddddkkkkkk.......|
+  15|.............kkkkkk.............|
+
+frame fly1
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|.............kkkkkk.............|
+  02|............kwEEEEEk............|
+  03|...........kwwEEEEEEk...........|
+  04|..........kwwwEEEEEEEk..........|
+  05|.........kwwwwEEEEEEEEk.........|
+  06|.......kkkEEEEEEEEEEEEkkk.......|
+  07|....kkkaaaaaaaaaaaaaaaaaakkk....|
+  08|..kkaaaaaaaaaaaaaaaaaaaaaaaakk..|
+  09|.kbbbbbbbbbbbbbbbbbbbbbbbbbbbbk.|
+  10|.kbbbyybbbeebbbyybbbeebbbyybbbk.|
+  11|.kbbbyybbbeebbbyybbbeebbbyybbbk.|
+  12|..kkcccccccccccccccccccccccckk..|
+  13|....kkkcccccccccccccccccckkk....|
+  14|.......kkkkkkddddddkkkkkk.......|
+  15|.............kkkkkk.............|

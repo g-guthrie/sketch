@@ -1,0 +1,14 @@
+sheet hud
+palette ace
+cell 8 8
+anchor 0 0
+
+frame life
+  00|..kkkk..|
+  01|.kcwDDk.|
+  02|kcwDDssk|
+  03|kcCDsksk|
+  04|kCCSsssk|
+  05|.kyyyyk.|
+  06|..kkkk..|
+  07|........|

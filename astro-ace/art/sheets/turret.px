@@ -1,0 +1,152 @@
+sheet turret
+palette mech
+cell 32 32
+anchor 16 31
+
+frame a0
+  point muzzle 30 20
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|................................|
+  05|................................|
+  06|................................|
+  07|................................|
+  08|................................|
+  09|................................|
+  10|................................|
+  11|................................|
+  12|................................|
+  13|............kkkkkkkk............|
+  14|...........kbbbbbbbbk...........|
+  15|..........kbbbbbbbbbbk....kkkk..|
+  16|.........kbaaakkkkbbbbkkkkppppk.|
+  17|........kbbaakddddkbbbbkaappppk.|
+  18|........kbaakdeEEedkbbbkaappppk.|
+  19|.......kbbaakdeeeedkbbbbkbppppk.|
+  20|.......kbbaakdeeeedkbbbbkcppppk.|
+  21|.......kbbbakdeeeedkbbbbkcppppk.|
+  22|.......kbbbaakddddkbbbbbkkppppk.|
+  23|.......kccbbbbkkkkbbbbcck.kkkk..|
+  24|........kcbbbbbbbbbbbbck........|
+  25|........kccbbbbbbbbbbcck........|
+  26|....kkkkkkccbbbbbbbbcckkkkkk....|
+  27|...kccccccccccbbbbcccccccccck...|
+  28|...kcccccccccccccccccccccccck...|
+  29|...kccdcccccdccccccdcccccdcck...|
+  30|...kcccccccccccccccccccccccck...|
+  31|....kkkkkkkkkkkkkkkkkkkkkkkk....|
+
+frame a45
+  point muzzle 25 10
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|................................|
+  05|................................|
+  06|.......................k........|
+  07|......................kpk.......|
+  08|.....................kpppk......|
+  09|....................kpppppk.....|
+  10|....................kapppppk....|
+  11|...................kaaapppppk...|
+  12|..................kaaabcpppk....|
+  13|............kkkkkkkkbbcccpk.....|
+  14|...........kbbbbbbbbkccckk......|
+  15|..........kbbbbbbbbbbkck........|
+  16|.........kbaaakkkkbbbbk.........|
+  17|........kbbaakddddkbbbbk........|
+  18|........kbaakdeEEedkbbbk........|
+  19|.......kbbaakdeeeedkbbbbk.......|
+  20|.......kbbaakdeeeedkbbbbk.......|
+  21|.......kbbbakdeeeedkbbbbk.......|
+  22|.......kbbbaakddddkbbbbbk.......|
+  23|.......kccbbbbkkkkbbbbcck.......|
+  24|........kcbbbbbbbbbbbbck........|
+  25|........kccbbbbbbbbbbcck........|
+  26|....kkkkkkccbbbbbbbbcckkkkkk....|
+  27|...kccccccccccbbbbcccccccccck...|
+  28|...kcccccccccccccccccccccccck...|
+  29|...kccdcccccdccccccdcccccdcck...|
+  30|...kcccccccccccccccccccccccck...|
+  31|....kkkkkkkkkkkkkkkkkkkkkkkk....|
+
+frame a90
+  point muzzle 16 6
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|............kkkkkkk.............|
+  05|...........kpppppppk............|
+  06|...........kpppppppk............|
+  07|...........kpppppppk............|
+  08|...........kpppppppk............|
+  09|............kaabcck.............|
+  10|............kaabcck.............|
+  11|............kaabcck.............|
+  12|............kaabcck.............|
+  13|............kkkkkkkk............|
+  14|...........kbbbbbbbbk...........|
+  15|..........kbbbbbbbbbbk..........|
+  16|.........kbaaakkkkbbbbk.........|
+  17|........kbbaakddddkbbbbk........|
+  18|........kbaakdeEEedkbbbk........|
+  19|.......kbbaakdeeeedkbbbbk.......|
+  20|.......kbbaakdeeeedkbbbbk.......|
+  21|.......kbbbakdeeeedkbbbbk.......|
+  22|.......kbbbaakddddkbbbbbk.......|
+  23|.......kccbbbbkkkkbbbbcck.......|
+  24|........kcbbbbbbbbbbbbck........|
+  25|........kccbbbbbbbbbbcck........|
+  26|....kkkkkkccbbbbbbbbcckkkkkk....|
+  27|...kccccccccccbbbbcccccccccck...|
+  28|...kcccccccccccccccccccccccck...|
+  29|...kccdcccccdccccccdcccccdcck...|
+  30|...kcccccccccccccccccccccccck...|
+  31|....kkkkkkkkkkkkkkkkkkkkkkkk....|
+
+frame am30
+  point muzzle 28 26
+     0         1         2         3 
+     01234567890123456789012345678901
+  00|................................|
+  01|................................|
+  02|................................|
+  03|................................|
+  04|................................|
+  05|................................|
+  06|................................|
+  07|................................|
+  08|................................|
+  09|................................|
+  10|................................|
+  11|................................|
+  12|................................|
+  13|............kkkkkkkk............|
+  14|...........kbbbbbbbbk...........|
+  15|..........kbbbbbbbbbbk..........|
+  16|.........kbaaakkkkbbbbk.........|
+  17|........kbbaakddddkbbbbk........|
+  18|........kbaakdeEEedkbbbk........|
+  19|.......kbbaakdeeeedkbbbbk.......|
+  20|.......kbbaakdeeeedkbbbbk.......|
+  21|.......kbbbakdeeeedkbbbbk.k.....|
+  22|.......kbbbaakddddkbbbbbkkpkkk..|
+  23|.......kccbbbbkkkkbbbbcckpppppk.|
+  24|........kcbbbbbbbbbbbbckbppppk..|
+  25|........kccbbbbbbbbbbcckpppppk..|
+  26|....kkkkkkccbbbbbbbbcckkkkkkk...|
+  27|...kccccccccccbbbbcccccccccck...|
+  28|...kcccccccccccccccccccccccck...|
+  29|...kccdcccccdccccccdcccccdcck...|
+  30|...kcccccccccccccccccccccccck...|
+  31|....kkkkkkkkkkkkkkkkkkkkkkkk....|
