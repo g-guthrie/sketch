@@ -1,0 +1,124 @@
+sheet items
+palette fx
+cell 16 16
+anchor 8 15
+
+frame drum
+     0         1     
+     0123456789012345
+  00|....kkkkkkkk....|
+  01|...kooooooook...|
+  02|..koorrrrrrRRk..|
+  03|..koorrrrrrRRk..|
+  04|..koorrrrrrRRk..|
+  05|..kRRRRRRRRRRk..|
+  06|..koorrryrrRRk..|
+  07|..koorryyyrRRk..|
+  08|..kooryykyyRRk..|
+  09|..koorryyyrRRk..|
+  10|..koorrryrrRRk..|
+  11|..kRRRRRRRRRRk..|
+  12|..koorrrrrrRRk..|
+  13|..koorrrrrrRRk..|
+  14|..koorrrrrrRRk..|
+  15|...kkkkkkkkkk...|
+
+frame badge_s
+     0         1     
+     0123456789012345
+  00|................|
+  01|................|
+  02|...kkkkkkkkkk...|
+  03|..kwwwwwwwwwwk..|
+  04|k.kwwwwwwwwwwk.k|
+  05|okkyyyyyRRRyykko|
+  06|oooyyyyRyyyyyooo|
+  07|kooyyyyyRRyyyook|
+  08|kooyyyyyyyRyyook|
+  09|kooyyyyRRRyyyook|
+  10|.kkooooooooookk.|
+  11|...kooooooook...|
+  12|....koooookk....|
+  13|.....koook......|
+  14|......kok.......|
+  15|.......k........|
+
+frame badge_m
+     0         1     
+     0123456789012345
+  00|................|
+  01|................|
+  02|...kkkkkkkkkk...|
+  03|..kwwwwwwwwwwk..|
+  04|k.kwwwwwwwwwwk.k|
+  05|okkyyRyyyRyyykko|
+  06|oooyyRRyRRyyyooo|
+  07|kooyyRyRyRyyyook|
+  08|kooyyRyyyRyyyook|
+  09|kooyyRyyyRyyyook|
+  10|.kkooooooooookk.|
+  11|...kooooooook...|
+  12|....koooookk....|
+  13|.....koook......|
+  14|......kok.......|
+  15|.......k........|
+
+frame badge_l
+     0         1     
+     0123456789012345
+  00|................|
+  01|................|
+  02|...kkkkkkkkkk...|
+  03|..kwwwwwwwwwwk..|
+  04|k.kwwwwwwwwwwk.k|
+  05|okkyyyyRyyyyykko|
+  06|oooyyyyRyyyyyooo|
+  07|kooyyyyRyyyyyook|
+  08|kooyyyyRyyyyyook|
+  09|kooyyyyRRRRyyook|
+  10|.kkooooooooookk.|
+  11|...kooooooook...|
+  12|....koooookk....|
+  13|.....koook......|
+  14|......kok.......|
+  15|.......k........|
+
+frame fire0
+     0         1     
+     0123456789012345
+  00|................|
+  01|....krk...k.....|
+  02|....krrk.krk....|
+  03|...krrrk.krk....|
+  04|...krrorkrrrk...|
+  05|...krrorrorrk...|
+  06|...krroororrk...|
+  07|..krroooooorrk..|
+  08|..krroooooorrk..|
+  09|..krooyyyyoork..|
+  10|..krooywwyoork..|
+  11|..krooywwyoork..|
+  12|..krroyyyyorrk..|
+  13|...kroooooork...|
+  14|....krrrrrrk....|
+  15|.....kkkkkk.....|
+
+frame fire1
+     0         1     
+     0123456789012345
+  00|................|
+  01|.....krk.k......|
+  02|.....krkkrk.....|
+  03|....krrrkrk.....|
+  04|....krrokrrk....|
+  05|...krrrorork....|
+  06|...krroororrk...|
+  07|..krroooooorrk..|
+  08|..krroooooorrk..|
+  09|..krooyyyyoork..|
+  10|..krooywwyoork..|
+  11|..krooywwyoork..|
+  12|..krroyyyyorrk..|
+  13|...kroooooork...|
+  14|....krrrrrrk....|
+  15|.....kkkkkk.....|

@@ -1,10 +1,6 @@
-"""The Foundry Guardian: boss assembly sheet.
-
-The boss is not one picture. It is a set of separately drawn parts pinned
-together by named points, each with its own frames, hit box and hit points.
-This file is the planning sheet: which part hangs off which point, in what
-order they are drawn, and which states exist. The desk preview
-(`python3 art/guardian.py`) and the engine tables are both made from it.
+"""The Guardian's flying pod form (last stage): head on a thruster pod with chain
+arms, pinned together from drawn sheets by named points. The tank form is
+painted and assembled in art/paint.py. PARTS holds every part's hit points.
 
 A part's `at` is (parent part, point on the parent's frame). The part's own
 anchor pixel is pinned to that point.
@@ -16,20 +12,6 @@ from px import Sheet
 SHEETS = os.path.join(os.path.dirname(__file__), 'sheets')
 
 # name: (sheet, default frame, parent, point on parent)      draw order = list order (back to front)
-TANK = [
-    ('stack_a',  'g_stack',    'stack',  'hull',   'stack_a'),
-    ('stack_b',  'g_stack',    'stack',  'hull',   'stack_b'),
-    ('rack',     'g_rack',     'closed', 'hull',   'rack'),
-    ('treads',   'g_treads',   'roll0',  None,     None),
-    ('hull',     'g_hull',     'hull',   'treads', 'deck'),
-    ('core',     'g_core',     'glow0',  'hull',   'core'),
-    ('plate',    'g_plate',    'intact', 'hull',   'core'),
-    ('head',     'g_head',     'head',   'hull',   'head'),
-    ('eye',      'g_eye',      'shut',   'head',   'eye'),
-    ('dish',     'g_dish',     'spin0',  'head',   'dish'),
-    ('cannon',   'g_cannon',   'cannon', 'hull',   'shoulder'),
-    ('shoulder', 'g_shoulder', 'joint',  'hull',   'shoulder'),
-]
 POD = [
     ('pod',  'g_pod',  'thrust0', None,   None),
     ('head', 'g_head', 'head',    'pod',  None),         # head anchor sits on the pod anchor
@@ -46,9 +28,6 @@ PARTS = {
     'eye':    dict(hp=0,  weak=True),      # hurts the Guardian itself, only while open
     'core':   dict(hp=0,  weak=True),      # hurts the Guardian itself, once the plate is gone
 }
-
-# battle scars stamped on the hull as it loses health: (frame, x, y) in hull-frame pixels
-SCARS = [('scar0', 30, 26), ('scar1', 60, 42), ('scar2', 48, 18)]
 
 _cache = {}
 def sheet(name):
@@ -117,27 +96,12 @@ def render(parts, frames=None, w=160, h=128, ox=80, oy=124, pal=None):
     return c
 
 
-STATES = [
-    ('fresh', TANK, {}),
-    ('attacking', TANK, {'eye': 'open', 'rack': 'open', 'cannon': 'fire', 'treads': 'roll1', 'dish': 'spin1'}),
-    ('stripped', TANK, {'eye': 'half', 'rack': 'wreck', 'cannon': None, 'shoulder': 'stump', 'plate': 'broken',
-                        'core': 'glow2', 'dish': 'wreck', 'treads': 'roll2'}),
-    ('pod', POD, {'eye': 'open'}),
-]
-
 if __name__ == '__main__':
-    from PIL import Image
     out = os.path.join(os.path.dirname(__file__), '..', 'out', 'desk')
     os.makedirs(out, exist_ok=True)
     miss = []
-    ims = []
-    for name, parts, fr in STATES:
-        layout(parts, fr, miss)
-        ims.append(to_image(render(parts, fr, oy=124 if parts is TANK else 40), 4, '#583088'))
-    o = Image.new('RGB', (sum(i.width for i in ims[:2]), sum(i.height for i in ims[::2])))
-    for n, i in enumerate(ims):
-        o.paste(i, ((n % 2) * i.width, (n // 2) * i.height))
-    o.save(out + '/guardian.png')
-    print(out + '/guardian.png')
+    layout(POD, {'eye': 'open'}, miss)
+    save(render(POD, {'eye': 'open'}, oy=40), out + '/guardian_pod.png', 4)
+    print(out + '/guardian_pod.png')
     if miss:
         print('not drawn yet:', ', '.join(sorted(set(miss))))

@@ -198,8 +198,8 @@ def make_frame(caption=("DEEP IN THE ROBOT", "FOUNDRY...")):
     return c
 
 FAR, MID_L, PLAY, FRAME_L = make_far(), make_mid(), make_play(), make_frame()
-OBJECTS = [('BOSS', 384, 128, 1), ('SLED', 156, 128, 0), ('FIRE', 196, 150, 0), ('FIRE', 226, 150, 50),
-           ('FIRE', 260, 150, 100), ('TURRET', 240, 96, 0), ('DRUM', 300, 128, 0), ('POD', 150, 60, 2)]
+OBJECTS = [('BOSS', 364, 128, 1), ('SLED', 156, 128, 0), ('FIRE', 196, 150, 0), ('FIRE', 226, 150, 50),
+           ('FIRE', 260, 150, 100), ('TURRET', 240, 96, 0), ('DRUM', 280, 128, 0), ('POD', 150, 60, 2)]
 ROOM = dict(name='foundry', far=FAR, mid=MID_L, play=PLAY, frame=FRAME_L, pals=[FRAME, FOUNDRY, F_MID, F_FAR],
             solid=SOLID, objects=OBJECTS, backdrop=F_FAR['n'], cycle=1, start=(56, 128))
 

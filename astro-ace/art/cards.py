@@ -1,7 +1,7 @@
 """Cover and end-of-issue cards: full-screen comic pages built from the same layers."""
 from style import *
 import math
-import anims, guardian
+import paint, palettes
 
 def blank(pal, wrap=False):
     return Canvas(256 if wrap else 512, 160, pal, wrap=wrap)
@@ -33,6 +33,18 @@ def page_frame(c):
     c.paint(~inA, 'p')
     c.paint(c.grow(inA, diag=True, n=2) & ~inA, 'k')
 
+def painted(a, name):
+    """A painted RGBA frame -> (15-colour Palette, Canvas), for use on a background layer."""
+    rm = palettes.merge_colours(palettes.colours_of([a]), 15)
+    cols = sorted(set(rm.values()))
+    pal = Palette(name, [('abcdefghijklmno'[i], f'c{i}', '#%02x%02x%02x' % c) for i, c in enumerate(cols)])
+    ys, xs = np.nonzero(a[..., 3])
+    x0, y0 = xs.min(), ys.min()
+    c = Canvas(xs.max() + 1 - x0, ys.max() + 1 - y0, pal)
+    for y, x in zip(ys, xs):
+        c.a[y - y0, x - x0] = rgb15(rm[tuple(int(v) for v in a[y, x, :3])])
+    return pal, c
+
 def make_title():
     far = blank(SKY, True)
     far.rect(0, 0, 256, 160, 'o')
@@ -40,17 +52,21 @@ def make_title():
     ang = np.arctan2(Y - 150, X - 120)
     far.paint(((ang * 14 / math.pi).astype(int) % 2 == 0), 'y')
     far.tone('o', 'c', lambda X, Y: np.clip((np.hypot(X - 120, Y - 150) - 70) / 120.0, 0, 0.8), 'dot', 4)
-    mid = blank(GUARD, True)
-    mid.stamp(guardian.render(guardian.TANK, {'eye': 'open'}, w=160, h=128, ox=80, oy=124), 84, 26)
-    play = blank(ACE)
-    play.stamp(anims.ace('upfwd', 'idle', w=48, h=64, ox=14, oy=60).scaled(2), 10, 24)
+    # the boss goes on the playfield layer (more tile room), the hero on the layer behind it, kept clear of each other
+    bpal, bcv = painted(paint.assembled({})[:, 30:], 'title_boss')
+    play = blank(bpal)
+    play.stamp(bcv, 74, 24)
+    hero = dict((f[0], f[1]) for f in paint.hero())['up']
+    hpal, hcv = painted(hero, 'title_hero')
+    mid = blank(hpal, True)
+    mid.stamp(hcv.scaled(2), 12, 28)
     fr = blank(FRAME)
     page_frame(fr)
     big_text(fr, "ASTRO ACE", 16, 13, 3, 'r', shadow='k')
     fr.circle(212, 30, 13, 'k'); fr.circle(212, 30, 12, 'w')
     fr.text("NO.1", 201, 27, 'r', FONT)
     caption(fr, ["PRESS START"], 82, 134)
-    return dict(name='title', far=far, mid=mid, play=play, frame=fr, pals=[FRAME, ACE, GUARD, SKY],
+    return dict(name='title', far=far, mid=mid, play=play, frame=fr, pals=[FRAME, bpal, hpal, SKY],
                 solid=np.zeros((20, 64), np.uint8), objects=[], backdrop=SKY['o'], cycle=0, start=(0, 0))
 
 def make_end():

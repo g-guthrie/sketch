@@ -47,7 +47,8 @@ static void ms_draw(const Ms* m, int x, int y, int flip, int pal, int prio, int 
 		u16* a = &oam[oam_n++ * 4];
 		a[0] = (oy & 0xFF) | k_attr0[k];
 		a[1] = (ox & 0x1FF) | k_attr1[k] | (flip << 12);
-		a[2] = ((o->tk & 0x3FF) + base) | (prio << 10) | (pal << 12);
+		// painted sprites carry a palette offset per OBJ (bits 10-11); the white hit-flash palette overrides it
+		a[2] = ((o->tk & 0x3FF) + base) | (prio << 10) | ((pal == PAL_FLASH ? pal : pal + ((o->tk >> 10) & 3)) << 12);
 	}
 }
 #define SIN(a) (sin_lut[(a) & 255])
@@ -67,7 +68,7 @@ static void obj_rot(int px, int py, int cx, int cy, int ang, int tile, int pal, 
 // Streaming: the hero has far more frames than fit in OBJ VRAM, so only the
 // frames on screen are loaded, into two fixed slots, during vertical blank.
 static struct { const u32* src; u16 slot, n; } pend[4];
-static int npend, cur_top = -1, cur_legs = -1;
+static int npend, cur_ace = -1;
 static void stream(int* cur, int id, int slot, const Ms* m, const u32* blob) {
 	if (*cur == id || npend >= 4) return;
 	*cur = id;
@@ -241,30 +242,27 @@ static void hero_hit(void) {
 }
 
 static const s16 AX[5] = { 256, 181, 0, 181, 0 }, AY[5] = { 0, -181, -256, 181, 256 };
-static int legs_frame(void) {
-	if (h.crouch) return ACE_LEGS_CROUCH;
-	if (h.vx) return ACE_LEGS_RUN0 + h.run / 3;
-	return ACE_LEGS_IDLE;
+// The hero is whole-body frames: one stand pose and one 8-frame run per aim.
+static const u8 STAND[4] = { ACE_IDLE, ACE_UPFWD, ACE_UP, ACE_DNFWD };
+static const u8 RUNSET[4] = { ACE_RUN0, ACE_RUNUF0, ACE_RUNUP0, ACE_RUNDF0 };
+static int hero_frame(void) {
+	int a = h.aim > 3 ? 0 : h.aim;
+	if (h.crouch) return ACE_CROUCH;
+	if (h.vx && !h.mounted) return RUNSET[a] + h.run / 3;
+	return STAND[a];
 }
-// world position of the upper body's anchor: it rides the waist point of the
-// legs frame (so the bob is whatever was drawn), or the sled's seat
-static void top_anchor(int* ax, int* ay) {
-	if (h.mounted) {
-		*ax = (sled.x >> 8) + h.face * pt_sled_seat[0][0];
-		*ay = (sled.y >> 8) - 1 + pt_sled_seat[0][1] + ((frame >> 3) & 1);
-	} else {
-		int lf = legs_frame();
-		*ax = (h.x >> 8) + h.face * pt_ace_legs_waist[lf][0];
-		*ay = (h.y >> 8) - 1 + pt_ace_legs_waist[lf][1];
-	}
+// where the hero's anchor (between his feet) is in the world
+static void hero_anchor(int* ax, int* ay) {
+	if (h.mounted) { *ax = sled.x >> 8; *ay = (sled.y >> 8) - 9 + ((frame >> 3) & 1); }
+	else { *ax = h.x >> 8; *ay = (h.y >> 8) - 1; }
 }
-// bullets leave from the muzzle point marked on the drawn frame
+// bullets leave from the muzzle point found on the painted frame
 static void muzzle(int* mx, int* my) {
 	int dx = AX[h.aim] * h.face, dy = AY[h.aim];
-	if (!h.ground && !h.mounted) { *mx = (h.x >> 8) + ((dx * 12) >> 8); *my = (h.y >> 8) - 17 + ((dy * 12) >> 8); return; }
-	int ax, ay, f = (h.aim > 3 ? 0 : h.aim) * 2;
-	top_anchor(&ax, &ay);
-	*mx = ax + h.face * pt_ace_top_muzzle[f][0]; *my = ay + pt_ace_top_muzzle[f][1];
+	if (!h.ground && !h.mounted) { *mx = (h.x >> 8) + ((dx * 14) >> 8); *my = (h.y >> 8) - 20 + ((dy * 14) >> 8); return; }
+	int ax, ay, f = h.crouch ? ACE_CROUCH : STAND[h.aim > 3 ? 0 : h.aim];
+	hero_anchor(&ax, &ay);
+	*mx = ax + h.face * pt_ace_muzzle[f][0]; *my = ay + pt_ace_muzzle[f][1];
 }
 
 static int shot_add(s32 x, s32 y, int vx, int vy, int type) {
@@ -355,7 +353,7 @@ static void hero_update(void) {
 			h.ground = 0;
 		}
 		if (!(keys & K_A) && h.vy < -0x180) h.vy = -0x180;
-		int g = move_body(&h.x, &h.y, &h.vx, &h.vy, 5, 30, 1);
+		int g = move_body(&h.x, &h.y, &h.vx, &h.vy, 6, 40, 1);
 		h.ground = g & 1;
 		if ((h.x >> 8) < PANEL_L + 7) h.x = FX(PANEL_L + 7);
 		if ((h.x >> 8) > PANEL_R - 8) h.x = FX(PANEL_R - 8);
@@ -389,7 +387,7 @@ static void kill_enemy(Enemy* e) {
 		fx_add(x, y - 10, 2); shake = 12;
 		for (int i = 0; i < NENEMY; i++) {
 			Enemy* o = &en[i];
-			if (o->type == O_BOSS && o->st != 2 && o->arg != 2 && x > (o->x >> 8) + GT_TREADS_L - 44 && iabs((o->y >> 8) - y) < 70) {
+			if (o->type == O_BOSS && o->st != 2 && o->arg != 2 && x > (o->x >> 8) + GT_HULL_L - 44 && iabs((o->y >> 8) - y) < 70) {
 				if (!B.p[BP_PLATE].dead) part_hit(BP_PLATE, 6, (o->x >> 8) + GT_PLATE_X, (o->y >> 8) + GT_PLATE_Y);
 				else boss_hurt(o, 6);
 			}
@@ -445,7 +443,7 @@ static void boss_init(Enemy* e) {
 	for (int i = 0; i < BP_N; i++) B.p[i].hp = 2;
 #endif
 	e->bx = e->hp;                                        // remember full health for the damage scars
-	if (form != 2 && !peace) e->x = FX(PANEL_R + 70);
+	if (form != 2 && !peace) e->x = FX(PANEL_R + 96);
 	B.ox = e->x >> 8; B.oy = (e->y >> 8) - (form == 2 ? 0 : 1);
 }
 // a hero shot at world (x,y): returns 1 if the Guardian stopped it
@@ -474,7 +472,13 @@ static int boss_shot(Enemy* e, int x, int y, int dmg) {
 	if (!B.p[BP_RACK].dead && HIT(GT_RACK)) { part_hit(BP_RACK, dmg, x, y); return 1; }
 	if (!B.p[BP_DISH].dead && HIT(GT_DISH)) { part_hit(BP_DISH, dmg, x, y); return 1; }
 	if (!B.p[BP_PLATE].dead && HIT(GT_PLATE)) { part_hit(BP_PLATE, dmg, x, y); return 1; }
-	if (HIT(GT_HULL) || HIT(GT_HEAD) || HIT(GT_TREADS)) { if ((frame & 3) == 0) fx_add(x, y, 3); return 1; }
+	{                                                     // the body stops shots where the painting is solid
+		int lx = x - B.ox + GT_ROOT_X, ly = y - B.oy + GT_ROOT_Y;
+		if (lx >= 0 && lx < 160 && ly >= 0 && ly < 128 && ((boss_solid[ly >> 3] >> (lx >> 3)) & 1)) {
+			if ((frame & 3) == 0) fx_add(x, y, 3);
+			return 1;
+		}
+	}
 	return 0;
 }
 static void boss_pod(Enemy* e, int hx, int hy, int htop) {
@@ -546,7 +550,7 @@ static void boss_update(Enemy* e, int hx, int hy, int htop) {
 	if (e->x > tx + 0x180) { e->x -= 0x120; e->st = 0; e->t = 0; }
 	else { e->x = tx; e->st = 1; }
 	B.tread += iabs(e->x - oldx);
-	if ((frame % 44) == 0) fx_add(ox + (((frame / 44) & 1) ? GT_STACK_A_X : GT_STACK_B_X), oy + GT_STACK_A_T - 4, 4);
+	if ((frame % 44) == 0) fx_add(ox + (((frame / 44) & 1) ? GT_STACK_A_X : GT_STACK_B_X), oy + GT_STACK_A_Y - 6, 4);
 	if (e->st == 1) {
 		if (!B.p[BP_CANNON].dead) {                       // cannon: tracks the hero, fires three-round bursts
 			int px = ox + GT_CANNON_X, py = oy + GT_CANNON_Y, c = t % (fast ? 96 : 128);
@@ -565,7 +569,7 @@ static void boss_update(Enemy* e, int hx, int hy, int htop) {
 			int r = t % (fast ? 250 : 320);
 			B.rack_open = r >= 180 && r < 250;
 			if (r == 196 || r == 214 || r == 232) {
-				int lx = ox + GT_RACK_LAUNCH_X, ly = oy + GT_RACK_LAUNCH_Y;
+				int lx = ox + GT_LAUNCH_X, ly = oy + GT_LAUNCH_Y;
 				ebul_add(FX(lx), FX(ly), (hx + (r - 214) * 2 - lx) * 256 / 84, -0x3A0, 2);
 				fx_add(lx, ly - 4, 3);
 			}
@@ -579,17 +583,17 @@ static void boss_update(Enemy* e, int hx, int hy, int htop) {
 			if (B.eye == 2 && (q - sh == 34 || q - sh == 62 || q - sh == 90))
 				for (int k = -1; k <= 1; k++) eshoot(ox + GT_EYE_X, oy + GT_EYE_Y, hx, hy - 16, 0x1B0, k);
 		}
-		if (fast && (t % 150 == 20 || t % 150 == 34)) ebul_add(FX(ox + GT_TREADS_L + 4), FX(oy - 6), -0x2A0, 0, 0);   // floor skimmers
+		if (fast && (t % 150 == 20 || t % 150 == 34)) ebul_add(FX(ox + GT_HULL_L + 4), FX(oy - 6), -0x2A0, 0, 0);   // floor skimmers
 	}
-	if (!h.dead && hx > ox + GT_TREADS_L - 2 && hx < ox + GT_TREADS_R && hy > oy + GT_HEAD_T && htop < oy) hero_hit();
+	if (!h.dead && hx > ox + GT_HULL_L - 2 && hx < ox + GT_HULL_R && hy > oy + GT_HEAD_TOP_Y && htop < oy) hero_hit();
 }
 static void boss_draw(Enemy* e) {
 	int form = e->arg, sx = B.ox - cam, oy = B.oy, fl = form == 2 ? B.dir : 1;
-	int base = form == 1 ? 6 : 4, dying = e->st == 2;
+	int base = form == 2 ? PAL_GUARD : form == 1 ? PAL_BOSS_HOT : PAL_BOSS, dying = e->st == 2;
 	int shk = (dying && (e->t & 2)) ? 1 : 0;
-	int bp = (B.flash || (dying && (e->t & 4))) ? 5 : base;
+	int bp = (B.flash || (dying && (e->t & 4))) ? PAL_FLASH : base;
 #define PART(sheet, fr, P, pal) ms_draw(&ms_##sheet[fr], sx + fl * P##_X + shk, oy + P##_Y, fl < 0, pal, 1, 0)
-#define PP(i) (B.p[i].flash ? 5 : base)
+#define PP(i) (B.p[i].flash ? PAL_FLASH : base)
 	if (form == 2) {
 		PART(g_eye, B.eye, GP_EYE, bp);
 		PART(g_dish, B.p[BP_DISH].dead ? G_DISH_WRECK : G_DISH_SPIN0 + ((frame >> 3) & 3), GP_DISH, PP(BP_DISH));
@@ -604,30 +608,25 @@ static void boss_draw(Enemy* e) {
 		}
 		return;
 	}
-	PART(g_shoulder, B.p[BP_CANNON].dead ? G_SHOULDER_STUMP : G_SHOULDER_JOINT, GT_SHOULDER, PP(BP_CANNON));
-	if (!B.p[BP_CANNON].dead)
-		obj_rot(sx + GT_CANNON_X + shk, oy + GT_CANNON_Y, G_CANNON_CX, G_CANNON_CY, B.ang,
-			ms_g_cannon[B.recoil > 2 ? G_CANNON_FIRE : G_CANNON_CANNON].o[0].tk & 0x3FF, PP(BP_CANNON), 1);
-	PART(g_dish, B.p[BP_DISH].dead ? G_DISH_WRECK : G_DISH_SPIN0 + ((frame >> 3) & 3), GT_DISH, PP(BP_DISH));
-	PART(g_eye, B.eye, GT_EYE, bp);
-	PART(g_head, 0, GT_HEAD, bp);
-	PART(g_plate, B.p[BP_PLATE].dead ? G_PLATE_BROKEN : B.p[BP_PLATE].hp <= G_PLATE_HP / 2 ? G_PLATE_CRACKED : G_PLATE_INTACT, GT_PLATE, PP(BP_PLATE));
-	PART(g_core, dying ? G_CORE_DEAD : G_CORE_GLOW0 + ((frame >> (B.p[BP_PLATE].dead ? 2 : 4)) % 3), GT_CORE, bp);
-	if (e->hp * 3 <= e->bx * 2) ms_draw(&ms_g_scar[0], sx + GT_SCAR0_X + shk, oy + GT_SCAR0_Y, 0, base, 1, 0);
-	if (e->hp * 3 <= e->bx) ms_draw(&ms_g_scar[1], sx + GT_SCAR1_X + shk, oy + GT_SCAR1_Y, 0, base, 1, 0);
-	if (e->hp * 6 <= e->bx || dying) ms_draw(&ms_g_scar[2], sx + GT_SCAR2_X + shk, oy + GT_SCAR2_Y, 0, base, 1, 0);
-	PART(g_hull, 0, GT_HULL, bp);
-	PART(g_treads, (B.tread >> 9) % 3, GT_TREADS, base);
-	PART(g_rack, B.p[BP_RACK].dead ? G_RACK_WRECK : B.rack_open ? G_RACK_OPEN : G_RACK_CLOSED, GT_RACK, PP(BP_RACK));
-	PART(g_stack, 0, GT_STACK_A, base);
-	PART(g_stack, 0, GT_STACK_B, base);
+	// every region shares the painting's anchor, so each is simply drawn in the state it is in
+#define REG(sheet, fr, pal) ms_draw(&ms_##sheet[fr], sx + shk, oy, 0, pal, 1, 0)
+	REG(gb_eye, B.eye == 2 ? GB_EYE_OPEN : GB_EYE_SHUT, bp);
+	REG(gb_dish, B.p[BP_DISH].dead ? GB_DISH_WRECK : GB_DISH_OK, PP(BP_DISH));
+	REG(gb_rack, B.p[BP_RACK].dead ? GB_RACK_WRECK : B.rack_open ? GB_RACK_OPEN : GB_RACK_SHUT, PP(BP_RACK));
+	REG(gb_hatch, B.p[BP_PLATE].dead ? GB_HATCH_OPEN : GB_HATCH_SHUT, PP(BP_PLATE));
+	REG(gb_base, 0, bp);
+	if (!B.p[BP_CANNON].dead) {                           // the barrel turns behind the shoulder collar
+		int tk = ms_gb_cannon[0].o[0].tk, rc = B.recoil > 2 ? 3 : 0;
+		int px = sx + GT_CANNON_X + shk + ((COS(B.ang) * rc) >> 8), py = oy + GT_CANNON_Y + ((SIN(B.ang) * rc) >> 8);
+		obj_rot(px, py, G_CANNON_CX, G_CANNON_CY, B.ang, tk & 0x3FF, B.p[BP_CANNON].flash ? PAL_FLASH : base + ((tk >> 10) & 3), 1);
+	}
 }
 
 static const u8 E_HW[] = { 0, 9, 9, 12, 14, 6, 8, 0, 0, 0, 0 }, E_HH[] = { 0, 34, 34, 24, 14, 15, 14, 0, 0, 0, 0 };
 
 static void enemies_update(void) {
 	int hx = h.x >> 8, hy = h.y >> 8;
-	int htop = hy - (h.mounted ? 40 : !h.ground ? 22 : h.crouch ? 28 : 38);
+	int htop = hy - (h.mounted ? 52 : !h.ground ? 34 : h.crouch ? 32 : 46);
 	for (int i = 0; i < NENEMY; i++) {
 		Enemy* e = &en[i];
 		if (!e->type) continue;
@@ -736,7 +735,7 @@ static void shots_update(void) {
 		}
 	}
 	int hx = h.x >> 8, hy = h.y >> 8;
-	int htop = hy - (h.mounted ? 40 : !h.ground ? 22 : h.crouch ? 28 : 38);
+	int htop = hy - (h.mounted ? 52 : !h.ground ? 34 : h.crouch ? 32 : 46);
 	for (int i = 0; i < NEBUL; i++) {
 		EBul* b = &ebul[i];
 		if (!b->on) continue;
@@ -796,41 +795,29 @@ static void spawner(void) {
 
 // ---------------------------------------------------------------- drawing
 static void hero_draw(int prio) {
-	int hx = (h.x >> 8) - cam, hy = h.y >> 8, fl = h.face < 0;
+	int hx = (h.x >> 8) - cam, hy = h.y >> 8, fl = h.face < 0, f, x = hx, y = hy - 1, flip = fl;
 	if (h.hide || (h.inv & 2)) return;
 	if (h.dead == 2) {                                     // laid out
 		if (h.dt <= 20 && !(h.dt & 2)) return;
-		const Ms* m = &ms_ace_air[ACE_AIR_DOWN];
-		stream(&cur_top, 0x100 | ACE_AIR_DOWN, ACE_AIR_SLOT, m, tl_ace_air);
-		ms_draw(m, hx, hy - 1, fl, 0, prio, ACE_AIR_SLOT);
+		f = ACE_DOWN;
 	} else if (h.dead == 1) {                              // blown off his feet
-		const Ms* m = &ms_ace_air[ACE_AIR_HIT];
-		stream(&cur_top, 0x100 | ACE_AIR_HIT, ACE_AIR_SLOT, m, tl_ace_air);
-		ms_draw(m, hx, hy - 17, fl, 0, prio, ACE_AIR_SLOT);
-	} else if (!h.ground && !h.mounted) {                  // somersault: four drawn angles, mirrored for the other four
-		int p = (h.tick >> 2) & 7, f = ACE_AIR_TUCK0 + (p & 3);
-		const Ms* m = &ms_ace_air[f];
-		stream(&cur_top, 0x100 | f, ACE_AIR_SLOT, m, tl_ace_air);
-		ms_draw(m, hx, hy - 17, (p & 4) ? ((fl ^ 1) | 2) : fl, 0, prio, ACE_AIR_SLOT);
-	} else {                                               // upper body on the legs' waist point (or the sled's seat)
-		int ax, ay, f = (h.aim > 3 ? 0 : h.aim) * 2 + (h.flash > 2);
-		const Ms* m = &ms_ace_top[f];
-		top_anchor(&ax, &ay);
-		stream(&cur_top, f, ACE_TOP_SLOT, m, tl_ace_top);
-		ms_draw(m, ax - cam, ay, fl, 0, prio, ACE_TOP_SLOT);
-		if (!h.mounted) {
-			int lf = legs_frame();
-			m = &ms_ace_legs[lf];
-			stream(&cur_legs, lf, ACE_LEGS_SLOT, m, tl_ace_legs);
-			ms_draw(m, hx, hy - 1, fl, 0, prio, ACE_LEGS_SLOT);
-		}
+		f = ACE_HIT; y = hy - 18;
+	} else if (!h.ground && !h.mounted) {                  // jump: rise, tuck at the top, fall
+		f = h.vy < -0x200 ? ACE_JUMP0 : h.vy < 0x100 ? ACE_JUMP1 + ((h.tick >> 3) & 1) : ACE_JUMP3; y = hy - 26;
+	} else {
+		int ax, ay;
+		hero_anchor(&ax, &ay);
+		f = hero_frame(); x = ax - cam - (h.flash > 3 ? h.face : 0); y = ay;      // one pixel of recoil
 	}
+	const Ms* m = &ms_ace[f];
+	stream(&cur_ace, f, ACE_SLOT, m, tl_ace);
+	ms_draw(m, x, y, flip, 0, prio, ACE_SLOT);
 }
 
 static void draw(void) {
 	// HUD lives in the top-right corner of the panel
 	if (!peace) {
-		for (int i = 0; i < lives && i < 5; i++) ms_draw(&ms_hud[HUD_LIFE], 221 - i * 9, 11, 0, 0, 0, 0);
+		for (int i = 0; i < lives && i < 5; i++) ms_draw(&ms_hud[HUD_LIFE], 221 - i * 9, 11, 0, PAL_ACE, 0, 0);
 		if (weapon) ms_draw(&ms_items[ITEMS_BADGE_S + weapon - 1], 184, 24, 0, 2, 0, 0);
 	}
 	for (int i = 0; i < NFX; i++) {
@@ -871,13 +858,13 @@ static void draw(void) {
 	int hx = (h.x >> 8) - cam;
 	hero_draw((hx < PANEL_L - cam + 12 || hx > PANEL_R - cam - 14) ? 0 : 1);
 	if (sled.on) {
-		int pal = (h.mounted && h.inv > 30 && (frame & 2)) ? 5 : 0;
+		int pal = (h.mounted && h.inv > 30 && (frame & 2)) ? PAL_FLASH : PAL_ACE;
 		ms_draw(&ms_sled[(frame >> 2) & 1], (sled.x >> 8) - cam, (sled.y >> 8) - 1 + ((frame >> 3) & 1), sled.face < 0, pal, 1, 0);
 	}
 	for (int i = 0; i < NENEMY; i++) {
 		Enemy* e = &en[i];
 		if (!e->type) continue;
-		int x = (e->x >> 8) - cam, y = (e->y >> 8) - 1, f = e->dir < 0, wp = e->flash ? 5 : -1;
+		int x = (e->x >> 8) - cam, y = (e->y >> 8) - 1, f = e->dir < 0, wp = e->flash ? PAL_FLASH : -1;
 		switch (e->type) {
 		case O_RUNNER: ms_draw(&ms_trooper[TROOPER_RUN0 + (e->t / 5) % 6], x, y, f, wp < 0 ? 1 : wp, 1, 0); break;
 		case O_SNIPER: ms_draw(&ms_trooper[e->st ? TROOPER_AIM_FIRE : TROOPER_AIM], x, y, f, wp < 0 ? 3 : wp, 1, 0); break;
@@ -912,7 +899,7 @@ static void load_room(int id) {
 	}
 	if (rm->stage == 1) copy32(OBJ_TILE(OBJ_STAGE_BASE), objbank_tank, objbank_tank_len);
 	if (rm->stage == 2) copy32(OBJ_TILE(OBJ_STAGE_BASE), objbank_pod, objbank_pod_len);
-	cur_top = cur_legs = -1; npend = 0;
+	cur_ace = -1; npend = 0;
 	for (int i = 0; i < BP_N; i++) B.p[i].dead = 0;
 	for (int i = 0; i < NENEMY; i++) en[i].type = 0;
 	for (int i = 0; i < NSHOT; i++) shots[i].on = 0;

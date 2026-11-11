@@ -7,41 +7,46 @@ a caption between stages.
 Controls: D-pad move/aim (8 directions), A jump, B shoot, R hold position
 while aiming, Down crouch, Down+A drop through a platform. On the sled: A jumps off.
 
-## The art studio
+## Where the art comes from
 
-Every sprite in the game is drawn by hand, one pixel at a time, the way the
-arcade studios did it, and the tools in `studio/` are that desk rebuilt:
+The hero, the Guardian boss and the explosion are generated with Retro Diffusion
+(a pixel-art model) and assembled by code. The process, in `studio/rd.py`,
+`art/paint.py` and `art/export.py`:
 
-| | |
-|---|---|
-| `art/sheets/*.px` | The drawings. Text grids, one character per pixel, one 15-colour palette per sheet. Anchors and named points (muzzles, joints) live on the frames. |
-| `studio/desk.py` | The drawing desk: enlarge a frame with numbered margins and true-size proofs, onion-skin, flip-book, and the editing commands (copy, shift, paste, rows, plot, rot, flip). |
-| `studio/critic.py` | The art director: tones per ramp, detail, flat areas, outline, noise. Faults are printed with coordinates. |
-| `studio/cutter.py` | Cuts a frame of any size into GBA hardware sprites (a metasprite) and packs OBJ VRAM. |
-| `art/guardian.py` | The boss assembly sheet: which separately drawn part hangs off which point, draw order, hit points. |
-| `art/contracts.py` | What every sheet must contain for the game to build; prints the production board. |
-| `studio/bar.py` | The scorecard: what is drawn, against the house bar. |
-| `studio/lightbox.py` | The light table: one HTML page with every frame, the animations playing, the assembled boss. |
-| `art/BIBLE.md` | House style, the drawing loop, and every sheet's contract. |
+- **Hero.** One character is generated, then *edited* into each pose (aim up,
+  crouch) or *inpainted* (only the arms and rifle repainted, so the body stays
+  pixel-identical), and each pose is *animated* into its run cycle. 43 frames.
+- **Boss.** One painting. Each destructible component is then inpainted in a
+  copy of that painting (rack wrecked, rack shut, dish snapped off, hatch blown
+  open to the core, eye shuttered), and the barrel is extended by outpainting.
+  Because every copy is identical outside the edited region, the boss is a base
+  with a hole per component plus the matching rectangle from whichever copy
+  shows that component's state. Any combination of states is seamless.
+- **GBA limits.** The hero is reduced to one 15-colour palette. The boss is cut
+  into hardware sprites and each sprite picks one of four fitted palettes
+  (`studio/palettes.py`), so the painting keeps about 60 colours.
+- `art/gen/raw/` holds every generated image; `art/gen/ledger.jsonl` records
+  the prompt, style, seed and cost of each call. The API key is read from
+  `$RD_API_KEY` or `$RD_KEY_FILE` and is never stored in the repository.
+
+Still from earlier pipelines: the trooper is hand-drawn on a `.px` sheet;
+bullets, pickups, saucer, turret and sled are the first-generation small
+sprites carried onto sheets; backgrounds are the generated scenery code. The
+last stage's flying pod boss is not painted yet and shows stand-in boxes for
+some parts.
 
 ```
-python3 studio/desk.py view art/sheets/ace_top.px fwd -s 10   # look at a frame
-python3 studio/desk.py critic art/sheets/ace_top.px           # craft check
-python3 art/contracts.py                                      # production board
-python3 art/guardian.py                                       # assembled boss preview
-python3 studio/bar.py                                         # scorecard
-python3 studio/lightbox.py                                    # out/lightbox.html
+python3 art/paint.py                                          # preview hero frames and boss states -> out/desk/
+python3 studio/desk.py view art/sheets/trooper.px -s 8        # look at a drawn sheet
+python3 art/contracts.py                                      # which drawn sheets are complete
 ```
-
-Backgrounds (`art/panel.py`, `art/foundry.py`, `art/cards.py`) are still built
-by the first-generation scenery code on top of `studio/pixelstudio.py`.
 
 ## The game
 
 - `game/main.c`: the engine. Sprites are metasprites; the hero's frames are
-  streamed into two VRAM slots as he animates; the Guardian is a set of parts
-  with their own hit points (rotating cannon, missile rack, radar dish, armour
-  plate over the core, eye), and in the last stage a flying head with chain arms.
+  streamed into VRAM as he animates; the Guardian is a set of parts with their
+  own hit points (hardware-rotated cannon, missile rack, radar dish, hatch over
+  the core, eye), and in the last stage a flying head with chain arms.
 - `game/build.sh` builds `out/astro_ace.gba`. `art/export.py` runs first and
   writes `game/gen/`.
   - `DEFS="-DQUICK -DSTART_STEP=5" OUT=test ./build.sh`: test ROM (invulnerable

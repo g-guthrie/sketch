@@ -205,8 +205,8 @@ def make_play():
             crystal(c, x + i * 6 - 6, gy, h, 4, (i - 1) * 2)
     c.outline('k')
     c.stamp(rocket(), 22, GROUND_Y - 92)
-    platform(c, 31, 12, 5)
-    platform(c, 37, 9, 5)
+    platform(c, 20, 10, 4)                                   # steps up to the Guardian's eye line
+    platform(c, 25, 7, 5)
     platform(c, 12, 11, 4)
     return c
 
@@ -222,7 +222,7 @@ def make_frame():
 
 FAR, MID_L, PLAY, FRAME_L = make_far(), make_mid(), make_play(), make_frame()
 
-OBJECTS = [('BOSS', 384, 128, 0), ('DRUM', 190, 112, 0), ('DRUM', 262, 128, 0), ('DRUM', 312, 128, 0), ('POD', 230, 52, 1)]
+OBJECTS = [('BOSS', 364, 128, 0), ('DRUM', 190, 112, 0), ('DRUM', 236, 128, 0), ('DRUM', 262, 128, 0), ('POD', 230, 52, 1)]
 ROOM = dict(name='landing', far=FAR, mid=MID_L, play=PLAY, frame=FRAME_L, pals=[FRAME, GROUND, MID, SKY],
             solid=SOLID, objects=OBJECTS, backdrop=SKY['n'], cycle=0, start=(100, 128))
 DUSK = dict(ROOM, name='dusk', out_pals=[FRAME, GROUND_DUSK, MID_DUSK, SKY_DUSK], backdrop=SKY_DUSK['n'],
